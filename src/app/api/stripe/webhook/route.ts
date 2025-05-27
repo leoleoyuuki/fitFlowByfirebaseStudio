@@ -3,22 +3,31 @@ import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import type Stripe from 'stripe';
 import { db } from '@/lib/firebase';
-import { doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore'; // Added getDoc
+import type { UserProfile } from '@/types';
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 if (!webhookSecret) {
   console.error('FATAL: STRIPE_WEBHOOK_SECRET is not set.');
 }
 
+// Helper function to construct response with CORS headers
+function createCorsResponse(body: any, status: number) {
+  const response = NextResponse.json(body, { status });
+  response.headers.set('Access-Control-Allow-Origin', '*');
+  response.headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Stripe-Signature');
+  return response;
+}
+
+// Handle OPTIONS requests for CORS preflight
+export async function OPTIONS(req: NextRequest) {
+  return createCorsResponse({ message: 'CORS preflight successful' }, 200);
+}
+
 async function updateUserSubscriptionInDb(
   userId: string,
-  data: {
-    stripeSubscriptionId: string | null;
-    stripeCustomerId: string | null;
-    subscriptionTier: 'free' | 'hypertrophy';
-    subscriptionStatus: 'active' | 'canceled' | 'past_due' | 'incomplete';
-    planId?: string; // Optional: Store the Stripe Price ID or Product ID
-  }
+  data: Partial<UserProfile> // Allow partial updates
 ) {
   if (!userId) {
     console.error('updateUserSubscriptionInDb: Missing userId');
@@ -27,9 +36,9 @@ async function updateUserSubscriptionInDb(
   try {
     const userRef = doc(db, 'users', userId);
     // Using setDoc with merge to create or update the user's subscription info
-    await setDoc(userRef, { 
+    await setDoc(userRef, {
         ...data,
-        updatedAt: serverTimestamp() 
+        updatedAt: serverTimestamp()
     }, { merge: true });
     console.log(`Subscription updated in DB for user ${userId}:`, data);
   } catch (error) {
@@ -44,11 +53,11 @@ export async function POST(req: NextRequest) {
 
   if (!signature) {
     console.error('Webhook Error: Missing Stripe signature.');
-    return NextResponse.json({ error: 'Missing Stripe signature.' }, { status: 400 });
+    return createCorsResponse({ error: 'Missing Stripe signature.' }, 400);
   }
   if (!webhookSecret) {
      console.error('Webhook Error: Webhook secret is not configured on the server.');
-    return NextResponse.json({ error: 'Webhook secret not configured.' }, { status: 500 });
+    return createCorsResponse({ error: 'Webhook secret not configured.' }, 500);
   }
 
   let event: Stripe.Event;
@@ -57,7 +66,7 @@ export async function POST(req: NextRequest) {
     event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
   } catch (err: any) {
     console.error(`Webhook Error: ${err.message}`);
-    return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
+    return createCorsResponse({ error: `Webhook Error: ${err.message}` }, 400);
   }
 
   console.log('Stripe Webhook Event Received:', event.type, event.data.object?.id);
@@ -83,7 +92,7 @@ export async function POST(req: NextRequest) {
                 stripeCustomerId: customerId,
                 subscriptionTier: 'hypertrophy',
                 subscriptionStatus: 'active',
-                planId: plan.stripePriceId // Store the specific price ID
+                // planId: plan.stripePriceId // Store the specific price ID - optional, if needed
             });
         } else {
             console.error(`Plan details for 'hypertrophy' not found in MOCK_SUBSCRIPTION_PLANS for session ${session.id}`);
@@ -96,73 +105,86 @@ export async function POST(req: NextRequest) {
     case 'customer.subscription.updated':
       const updatedSubscription = event.data.object as Stripe.Subscription;
       console.log(`Subscription updated: ${updatedSubscription.id} for customer ${updatedSubscription.customer}, status: ${updatedSubscription.status}`);
-      // Potentially update status in DB, e.g., if it becomes 'past_due' or 'active' again.
       // You need a way to map stripeSubscriptionId back to your Firebase userId.
       // This usually involves querying your 'users' collection by 'stripeSubscriptionId'.
-      // For now, this is a placeholder. You'd need to implement lookup logic.
-      // Example: await updateSubscriptionStatusByStripeId(updatedSubscription.id, updatedSubscription.status as any);
+      // For this example, we'll assume you have a method or will implement one.
+      // For instance, if client_reference_id was used in subscription metadata, or if you query users table by stripeCustomerId.
+      // This part is crucial for production.
+      if (updatedSubscription.customer) {
+        // Placeholder: Find user by stripeCustomerId. In a real app, you'd query Firestore.
+        // const user = await findUserByStripeCustomerId(updatedSubscription.customer as string);
+        // if (user && user.id) {
+        //   await updateUserSubscriptionInDb(user.id, {
+        //     stripeSubscriptionId: updatedSubscription.id,
+        //     subscriptionStatus: updatedSubscription.status as 'active' | 'canceled' | 'past_due' | 'incomplete',
+        //     subscriptionTier: 'hypertrophy' // This might need to be determined from the plan items.
+        //   });
+        // } else {
+        //   console.error("Could not find user for subscription update:", updatedSubscription.id);
+        // }
+      }
       break;
 
     case 'customer.subscription.deleted': // Handles cancellations (at period end or immediate)
       const deletedSubscription = event.data.object as Stripe.Subscription;
       console.log(`Subscription deleted: ${deletedSubscription.id} for customer ${deletedSubscription.customer}`);
-      // Find user by stripeSubscriptionId and update their status to 'canceled' or 'free' tier.
-      // This also needs a lookup mechanism.
-      // Example: 
-      // const firebaseUserId = await findUserByStripeSubscriptionId(deletedSubscription.id);
-      // if (firebaseUserId) {
-      //   await updateUserSubscriptionInDb(firebaseUserId, {
-      //     stripeSubscriptionId: deletedSubscription.id,
-      //     stripeCustomerId: typeof deletedSubscription.customer === 'string' ? deletedSubscription.customer : null,
+      // Find user by stripeSubscriptionId or stripeCustomerId and update their status to 'canceled' or 'free' tier.
+      // Example (requires finding the user):
+      // const user = await findUserByStripeCustomerId(deletedSubscription.customer as string);
+      // if (user && user.id) {
+      //   await updateUserSubscriptionInDb(user.id, {
       //     subscriptionTier: 'free',
       //     subscriptionStatus: 'canceled',
+      //     stripeSubscriptionId: null, // Or keep the ID but mark as inactive
       //   });
-      // }
-      // For now, this is a placeholder.
-      // A simple example if you have the user ID (you won't directly from this event without a lookup based on subscription ID)
-      // if (deletedSubscription.metadata?.firebaseUserId) { // If you store firebaseUserId in Stripe subscription metadata
-      //     await updateUserSubscriptionInDb(deletedSubscription.metadata.firebaseUserId, {
-      //         stripeSubscriptionId: deletedSubscription.id,
-      //         stripeCustomerId: typeof deletedSubscription.customer === 'string' ? deletedSubscription.customer : null,
-      //         subscriptionTier: 'free',
-      //         subscriptionStatus: 'canceled',
-      //     });
+      // } else {
+      //    console.error("Could not find user for subscription deletion:", deletedSubscription.id);
       // }
       break;
       
     case 'invoice.payment_succeeded':
       const invoice = event.data.object as Stripe.Invoice;
-      console.log(`Invoice payment succeeded for customer: ${invoice.customer}, subscription: ${invoice.subscription}`);
+      const subIdForInvoice = typeof invoice.subscription === 'string' ? invoice.subscription : null;
+      const customerIdForInvoice = typeof invoice.customer === 'string' ? invoice.customer : null;
+
+      console.log(`Invoice payment succeeded for customer: ${customerIdForInvoice}, subscription: ${subIdForInvoice}`);
       // Ensure subscription remains active. Usually Stripe handles this, but you might want to confirm/log.
       // If a subscription was 'past_due', this might make it 'active' again.
-      // const subIdForInvoice = typeof invoice.subscription === 'string' ? invoice.subscription : null;
-      // if (subIdForInvoice) {
-      //    const firebaseUserId = await findUserByStripeSubscriptionId(subIdForInvoice);
-      //    if (firebaseUserId) {
-      //        await updateUserSubscriptionInDb(firebaseUserId, {
+      // Example (requires finding the user):
+      // if (customerIdForInvoice && subIdForInvoice) {
+      //    const user = await findUserByStripeCustomerId(customerIdForInvoice);
+      //    if (user && user.id) {
+      //        await updateUserSubscriptionInDb(user.id, {
       //             stripeSubscriptionId: subIdForInvoice,
-      //             stripeCustomerId: typeof invoice.customer === 'string' ? invoice.customer : null,
+      //             stripeCustomerId: customerIdForInvoice,
       //             subscriptionTier: 'hypertrophy', // Or determine from subscription items
       //             subscriptionStatus: 'active',
       //        });
+      //    } else {
+      //        console.error("Could not find user for invoice payment succeeded:", subIdForInvoice);
       //    }
       // }
       break;
 
     case 'invoice.payment_failed':
       const failedInvoice = event.data.object as Stripe.Invoice;
-      console.log(`Invoice payment failed for customer: ${failedInvoice.customer}, subscription: ${failedInvoice.subscription}`);
+      const subIdForFailedInvoice = typeof failedInvoice.subscription === 'string' ? failedInvoice.subscription : null;
+      const customerIdForFailedInvoice = typeof failedInvoice.customer === 'string' ? failedInvoice.customer : null;
+
+      console.log(`Invoice payment failed for customer: ${customerIdForFailedInvoice}, subscription: ${subIdForFailedInvoice}`);
       // Notify user, update subscription status (e.g., to 'past_due').
-      // const subIdForFailedInvoice = typeof failedInvoice.subscription === 'string' ? failedInvoice.subscription : null;
-      // if (subIdForFailedInvoice) {
-      //    const firebaseUserId = await findUserByStripeSubscriptionId(subIdForFailedInvoice);
-      //    if (firebaseUserId) {
-      //        await updateUserSubscriptionInDb(firebaseUserId, {
+      // Example (requires finding the user):
+      // if (customerIdForFailedInvoice && subIdForFailedInvoice) {
+      //    const user = await findUserByStripeCustomerId(customerIdForFailedInvoice);
+      //    if (user && user.id) {
+      //        await updateUserSubscriptionInDb(user.id, {
       //             stripeSubscriptionId: subIdForFailedInvoice,
-      //             stripeCustomerId: typeof failedInvoice.customer === 'string' ? failedInvoice.customer : null,
+      //             stripeCustomerId: customerIdForFailedInvoice,
       //             subscriptionTier: 'hypertrophy', // Or determine from subscription items
       //             subscriptionStatus: 'past_due', 
       //        });
+      //    } else {
+      //        console.error("Could not find user for invoice payment failed:", subIdForFailedInvoice);
       //    }
       // }
       break;
@@ -171,7 +193,7 @@ export async function POST(req: NextRequest) {
       console.log(`Unhandled event type ${event.type}`);
   }
 
-  return NextResponse.json({ received: true });
+  return createCorsResponse({ received: true }, 200);
 }
 
 // Dummy MOCK_SUBSCRIPTION_PLANS needed for the webhook logic to find plan details
