@@ -1,6 +1,6 @@
 
 import type { NavItem, Workout, Exercise, SubscriptionPlan, ProgressLog } from '@/types';
-import { Dumbbell, Zap, Heart, Target, Brain, User, Settings, LayoutDashboard, BookOpen, Activity, Gift, Flame, Pizza, Barbell } from 'lucide-react'; // Added Flame, Pizza, Barbell
+import { Dumbbell, Zap, Heart, Target, Brain, User, Settings, LayoutDashboard, BookOpen, Activity, Gift, Flame, Pizza } from 'lucide-react'; // Removed Barbell, it's replaced by Dumbbell
 
 export const APP_NAME = "FitFlow";
 
@@ -11,7 +11,7 @@ export const mainNavItems: NavItem[] = [
 
 export const dashboardNavItems: NavItem[] = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { title: "My Training Plan", href: "/dashboard/workouts", icon: Barbell }, // Changed icon
+  { title: "My Training Plan", href: "/dashboard/workouts", icon: Dumbbell }, // Changed Barbell to Dumbbell
   { title: "Exercise Library", href: "/dashboard/exercises", icon: BookOpen },
   { title: "Log Progress", href: "/dashboard/progress", icon: Activity },
   { title: "AI Plan Generator", href: "/dashboard/personalized-plan", icon: Brain },
@@ -20,7 +20,7 @@ export const dashboardNavItems: NavItem[] = [
 ];
 
 export const MOCK_WORKOUTS: Workout[] = [
-  { id: "1", name: "Full Body Hypertrophy", goal: "Hypertrophy", difficulty: "Intermediate", duration: "75 mins", description: "A science-based full-body workout optimized for muscle growth, hitting all major muscle groups.", icon: Barbell, exercises: ["1", "5", "2", "10", "11", "8"] },
+  { id: "1", name: "Full Body Hypertrophy", goal: "Hypertrophy", difficulty: "Intermediate", duration: "75 mins", description: "A science-based full-body workout optimized for muscle growth, hitting all major muscle groups.", icon: Dumbbell, exercises: ["1", "5", "2", "10", "11", "8"] }, // Changed Barbell to Dumbbell
   { id: "2", name: "Upper Body Power & Pump", goal: "Hypertrophy", difficulty: "Intermediate", duration: "60 mins", description: "Focus on building strength and size in your chest, back, shoulders, and arms.", icon: Dumbbell, exercises: ["2", "10", "12", "13", "14"] },
   { id: "3", name: "Lower Body & Core Strength", goal: "Hypertrophy", difficulty: "All Levels", duration: "60 mins", description: "Develop powerful legs and a rock-solid core with compound and isolation movements.", icon: Target, exercises: ["1", "5", "3", "8", "9"] },
   { id: "4", name: "Push Day Specialization", goal: "Hypertrophy", difficulty: "Advanced", duration: "70 mins", description: "Intensive push workout focusing on chest, shoulders, and triceps for maximum hypertrophy.", icon: Flame, exercises: ["2", "12", "13", "15", "16"] },
@@ -49,7 +49,7 @@ export const MOCK_EXERCISES: Exercise[] = [
 // These should correspond to a Product focused on Hypertrophy plans.
 export const MOCK_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   { id: "free", name: "FitFlow Basic", price: "Free", features: ["Access to progress logger", "View 1 sample workout plan", "Limited exercise library access"], stripePriceId: "" },
-  { id: "hypertrophy", name: "FitFlow Hypertrophy", price: "$14.99/month", features: ["AI-Powered Hypertrophy Training & Diet Plan Generator (Bulking/Cutting)", "Full access to all workout plans & exercises", "Advanced progress tracking & analytics", "Science-based hypertrophy resources"], stripePriceId: "price_your_hypertrophy_plan_id" }, // Replace with your actual Stripe Price ID
+  { id: "hypertrophy", name: "FitFlow Hypertrophy", price: "$14.99/month", features: ["AI-Powered Hypertrophy Training & Diet Plan Generator (Bulking/Cutting)", "Full access to all workout plans & exercises", "Advanced progress tracking & analytics", "Science-based hypertrophy resources"], stripePriceId: "price_1RSnoULZkqAmFk4bCd74Ujzv" }, // Updated with user provided ID
 ];
 
 export const MOCK_PROGRESS_LOGS: ProgressLog[] = [

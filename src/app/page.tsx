@@ -2,7 +2,7 @@
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Barbell, Zap, Target, Brain, CheckCircle, TrendingUp, ShieldCheck, LineChart, Utensils } from "lucide-react"; // Added LineChart, Utensils
+import { Dumbbell, Zap, Target, Brain, CheckCircle, TrendingUp, ShieldCheck, LineChart, Utensils } from "lucide-react"; // Changed Barbell to Dumbbell
 import Image from "next/image";
 import Link from "next/link";
 
@@ -14,7 +14,7 @@ export default function HomePage() {
       description: "Receive science-based training & diet plans for bulking or cutting, tailored by AI.",
     },
     {
-      icon: <Barbell className="h-8 w-8 text-primary" />,
+      icon: <Dumbbell className="h-8 w-8 text-primary" />, // Changed Barbell to Dumbbell
       title: "Effective Workouts",
       description: "Access a library of hypertrophy-focused routines designed for optimal muscle growth.",
     },

@@ -2,7 +2,7 @@
 "use client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Brain, Barbell, Activity, LineChart, Utensils } from "lucide-react"; // Updated icons
+import { Brain, Dumbbell, Activity, LineChart, Utensils } from "lucide-react"; // Updated icons, changed Barbell to Dumbbell
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import Image from "next/image";
@@ -28,7 +28,7 @@ export default function DashboardPage() {
         <Card className="shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Current Training Plan</CardTitle>
-            <Barbell className="h-5 w-5 text-muted-foreground" />
+            <Dumbbell className="h-5 w-5 text-muted-foreground" /> {/* Ensured this is Dumbbell */}
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">Hypertrophy Focus</div>

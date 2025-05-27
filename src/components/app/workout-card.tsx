@@ -2,7 +2,7 @@
 import type { Workout } from "@/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Clock, TrendingUp, Zap, Barbell } from "lucide-react"; // Added Barbell
+import { Clock, TrendingUp, Zap, Dumbbell } from "lucide-react"; // Changed Barbell to Dumbbell
 import Link from "next/link";
 
 interface WorkoutCardProps {
@@ -37,7 +37,7 @@ export function WorkoutCard({ workout }: WorkoutCardProps) {
       <CardFooter>
         <Button className="w-full" asChild>
           <Link href={`/dashboard/workouts/${workout.id}`}>
-            <Barbell className="mr-2 h-4 w-4" /> View Workout Details
+            <Dumbbell className="mr-2 h-4 w-4" /> View Workout Details {/* Changed Barbell to Dumbbell */}
           </Link>
         </Button>
       </CardFooter>

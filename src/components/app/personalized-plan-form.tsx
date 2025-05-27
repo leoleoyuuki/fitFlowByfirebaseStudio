@@ -21,7 +21,7 @@ import type { PersonalizedPlanInput, PersonalizedPlanOutput } from "@/ai/flows/g
 import { generatePersonalizedPlan } from "@/ai/flows/generate-personalized-plan";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription as ShadCnCardDescription } from "@/components/ui/card";
-import { Loader2, Wand2, Barbell, Utensils } from "lucide-react";
+import { Loader2, Wand2, Dumbbell, Utensils } from "lucide-react"; // Changed Barbell to Dumbbell
 import ReactMarkdown from 'react-markdown';
 
 // Re-define schema or import if types are sufficient from flow directly
@@ -276,7 +276,7 @@ export function PersonalizedPlanForm() {
             <Card className="shadow-lg">
                 <CardHeader>
                     <CardTitle className="text-xl text-primary">
-                        <Barbell className="inline-block mr-2 h-5 w-5" /> Your Hypertrophy Training Plan
+                        <Dumbbell className="inline-block mr-2 h-5 w-5" /> Your Hypertrophy Training Plan {/* Changed Barbell to Dumbbell */}
                     </CardTitle>
                     <ShadCnCardDescription>{generatedPlan.trainingPlan.weeklySplitDescription}</ShadCnCardDescription>
                 </CardHeader>

@@ -3,7 +3,7 @@ import { MOCK_WORKOUTS } from "@/lib/constants";
 import { WorkoutCard } from "@/components/app/workout-card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Filter, Barbell } from "lucide-react";
+import { Search, Filter, Dumbbell } from "lucide-react"; // Changed Barbell to Dumbbell
 
 export default function WorkoutsPage() {
   // Placeholder for filtering logic - updated for hypertrophy
@@ -13,7 +13,7 @@ export default function WorkoutsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight flex items-center"><Barbell className="mr-3 h-8 w-8 text-primary" /> My Training Plans</h1>
+        <h1 className="text-3xl font-bold tracking-tight flex items-center"><Dumbbell className="mr-3 h-8 w-8 text-primary" /> My Training Plans</h1> {/* Changed Barbell to Dumbbell */}
         <p className="text-muted-foreground">Your current and available hypertrophy-focused workout plans.</p>
       </div>
 

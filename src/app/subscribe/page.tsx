@@ -23,7 +23,7 @@ export default function SubscribePage() {
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [isSubscribing, setIsSubscribing = useState<string | null>(null);
+  const [isSubscribing, setIsSubscribing] = useState<string | null>(null);
 
   useEffect(() => {
     if (!stripePromise && process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) { 
