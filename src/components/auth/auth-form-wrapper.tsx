@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ReactNode } from "react";
 import { Dumbbell } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
+import { Button } from "@/components/ui/button";
 
 interface AuthFormWrapperProps {
   title: string;
