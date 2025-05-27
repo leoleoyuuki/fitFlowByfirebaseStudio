@@ -1,6 +1,6 @@
 
 import type { NavItem, Workout, Exercise, SubscriptionPlan, ProgressLog } from '@/types';
-import { Dumbbell, Zap, Heart, Target, Brain, User, Settings, LayoutDashboard, BookOpen, Activity, Gift, Flame, Pizza } from 'lucide-react'; // Removed Barbell, it's replaced by Dumbbell
+import { Dumbbell, Zap, Heart, Target, Brain, User, Settings, LayoutDashboard, BookOpen, Activity, Gift, Flame, Pizza } from 'lucide-react';
 
 export const APP_NAME = "FitFlow";
 
@@ -11,7 +11,7 @@ export const mainNavItems: NavItem[] = [
 
 export const dashboardNavItems: NavItem[] = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { title: "My Training Plan", href: "/dashboard/workouts", icon: Dumbbell }, // Changed Barbell to Dumbbell
+  { title: "Meu Plano (IA)", href: "/dashboard/workouts", icon: Dumbbell }, // Updated Name
   { title: "Exercise Library", href: "/dashboard/exercises", icon: BookOpen },
   { title: "Log Progress", href: "/dashboard/progress", icon: Activity },
   { title: "AI Plan Generator", href: "/dashboard/personalized-plan", icon: Brain },
@@ -20,10 +20,10 @@ export const dashboardNavItems: NavItem[] = [
 ];
 
 export const MOCK_WORKOUTS: Workout[] = [
-  { id: "1", name: "Full Body Hypertrophy", goal: "Hypertrophy", difficulty: "Intermediate", duration: "75 mins", description: "A science-based full-body workout optimized for muscle growth, hitting all major muscle groups.", icon: Dumbbell, exercises: ["1", "5", "2", "10", "11", "8"] }, // Changed Barbell to Dumbbell
+  // This mock data is less relevant now as plans are AI generated and stored.
+  // Kept for potential future use or if direct workout creation is added.
+  { id: "1", name: "Full Body Hypertrophy", goal: "Hypertrophy", difficulty: "Intermediate", duration: "75 mins", description: "A science-based full-body workout optimized for muscle growth, hitting all major muscle groups.", icon: Dumbbell, exercises: ["1", "5", "2", "10", "11", "8"] },
   { id: "2", name: "Upper Body Power & Pump", goal: "Hypertrophy", difficulty: "Intermediate", duration: "60 mins", description: "Focus on building strength and size in your chest, back, shoulders, and arms.", icon: Dumbbell, exercises: ["2", "10", "12", "13", "14"] },
-  { id: "3", name: "Lower Body & Core Strength", goal: "Hypertrophy", difficulty: "All Levels", duration: "60 mins", description: "Develop powerful legs and a rock-solid core with compound and isolation movements.", icon: Target, exercises: ["1", "5", "3", "8", "9"] },
-  { id: "4", name: "Push Day Specialization", goal: "Hypertrophy", difficulty: "Advanced", duration: "70 mins", description: "Intensive push workout focusing on chest, shoulders, and triceps for maximum hypertrophy.", icon: Flame, exercises: ["2", "12", "13", "15", "16"] },
 ];
 
 export const MOCK_EXERCISES: Exercise[] = [
@@ -45,11 +45,9 @@ export const MOCK_EXERCISES: Exercise[] = [
   { id: "16", name: "Close-Grip Bench Press", description: "Bench press variation emphasizing triceps development.", instructions: "1. Lie on bench, grip bar shoulder-width apart or slightly narrower. 2. Lower bar to lower chest, keeping elbows tucked close to body. 3. Press bar up until arms fully extended.", videoUrl: "https://placehold.co/600x400.png", dataAiHint: "closegrip bench fitness", muscleGroups: ["Triceps", "Pectorals", "Deltoids (Anterior)"] },
 ];
 
-// Reminder: Update Stripe Price IDs with actual values from your Stripe Dashboard.
-// These should correspond to a Product focused on Hypertrophy plans.
 export const MOCK_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   { id: "free", name: "FitFlow Basic", price: "Free", features: ["Access to progress logger", "View 1 sample workout plan", "Limited exercise library access"], stripePriceId: "" },
-  { id: "hypertrophy", name: "FitFlow Hypertrophy", price: "$14.99/month", features: ["AI-Powered Hypertrophy Training & Diet Plan Generator (Bulking/Cutting)", "Full access to all workout plans & exercises", "Advanced progress tracking & analytics", "Science-based hypertrophy resources"], stripePriceId: "price_1RSnoULZkqAmFk4bCd74Ujzv" }, // Updated with user provided ID
+  { id: "hypertrophy", name: "FitFlow Hypertrophy", price: "$14.99/month", features: ["AI-Powered Hypertrophy Training & Diet Plan Generator (Bulking/Cutting)", "Save and view your personalized AI plan", "Full access to all workout plans & exercises", "Advanced progress tracking & analytics", "Science-based hypertrophy resources"], stripePriceId: "price_1RSnoULZkqAmFk4bCd74Ujzv" },
 ];
 
 export const MOCK_PROGRESS_LOGS: ProgressLog[] = [

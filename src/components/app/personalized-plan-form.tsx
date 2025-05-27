@@ -21,9 +21,13 @@ import type { PersonalizedPlanInput, PersonalizedPlanOutput } from "@/ai/flows/g
 import { generatePersonalizedPlan } from "@/ai/flows/generate-personalized-plan";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription as ShadCnCardDescription, CardFooter } from "@/components/ui/card";
-import { Loader2, Wand2, Dumbbell, Utensils, Save } from "lucide-react"; 
+import { Loader2, Wand2, Dumbbell, Utensils, Save, CheckCircle } from "lucide-react"; 
 import ReactMarkdown from 'react-markdown';
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/auth-context";
+import { db } from "@/lib/firebase";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { useRouter } from "next/navigation";
 
 const ClientPersonalizedPlanInputSchema = z.object({
   goalPhase: z.enum(["bulking", "cutting", "maintenance"], { required_error: "Please select your primary goal." }),
@@ -41,9 +45,12 @@ const ClientPersonalizedPlanInputSchema = z.object({
 
 export function PersonalizedPlanForm() {
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [generatedPlan, setGeneratedPlan] = useState<PersonalizedPlanOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const router = useRouter();
 
   const form = useForm<z.infer<typeof ClientPersonalizedPlanInputSchema>>({
     resolver: zodResolver(ClientPersonalizedPlanInputSchema),
@@ -74,7 +81,6 @@ export function PersonalizedPlanForm() {
         sex: (values.sex === "" || values.sex === "prefer_not_to_say") 
              ? undefined 
              : values.sex as "male" | "female" | undefined,
-        // trainingVolumePreference is already in the correct enum type
     };
 
 
@@ -88,14 +94,47 @@ export function PersonalizedPlanForm() {
     setIsLoading(false);
   }
 
-  const handleSavePlan = () => {
-    // Placeholder for actual save functionality
-    toast({
-        title: "Save Plan",
-        description: "Funcionalidade de salvar o plano no seu perfil será implementada em breve!",
-    });
-    // In a real app, you would send `generatedPlan` to your backend here.
-    // e.g., await savePlanToDatabase(generatedPlan, userId);
+  const handleSavePlan = async () => {
+    if (!generatedPlan) {
+      toast({ title: "Nenhum plano para salvar", description: "Gere um plano primeiro.", variant: "destructive" });
+      return;
+    }
+    if (!user) {
+      toast({ title: "Usuário não autenticado", description: "Faça login para salvar seu plano.", variant: "destructive" });
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const planRef = doc(db, "userGeneratedPlans", user.id);
+      await setDoc(planRef, {
+        latestPlan: generatedPlan,
+        savedAt: serverTimestamp(),
+        trainingFrequency: form.getValues('trainingFrequency'), // Store for potential future use/display
+        goalPhase: form.getValues('goalPhase'), // Store for potential future use/display
+      });
+      toast({
+        title: "Plano Salvo com Sucesso!",
+        description: "Seu plano de treino e dieta foi salvo em seu perfil.",
+        action: (
+          <Button variant="outline" size="sm" onClick={() => router.push('/dashboard/my-ai-plan')}>
+            Ver Meu Plano
+          </Button>
+        ),
+      });
+      // Optionally redirect or clear the form/plan
+      // setGeneratedPlan(null); 
+      // form.reset();
+    } catch (e: any) {
+      console.error("Error saving plan:", e);
+      toast({
+        title: "Erro ao Salvar Plano",
+        description: e.message || "Não foi possível salvar o plano. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -104,10 +143,10 @@ export function PersonalizedPlanForm() {
         <CardHeader>
           <CardTitle className="flex items-center text-2xl">
             <Wand2 className="mr-2 h-6 w-6 text-primary" />
-            Gerador de Plano de Hipertrofia
+            Gerador de Plano de Hipertrofia Personalizado
           </CardTitle>
           <ShadCnCardDescription>
-            Forneça seus detalhes, e nosso sistema criará um plano de treino e dieta focado em hipertrofia, baseado em ciência, para suas fases de bulking ou cutting.
+            Forneça seus detalhes, e nosso sistema criará um plano de treino e dieta focado em hipertrofia, baseado em ciência, para suas fases de bulking ou cutting. O plano gerado poderá ser salvo em "Meu Plano (IA)".
           </ShadCnCardDescription>
         </CardHeader>
         <CardContent>
@@ -248,7 +287,7 @@ export function PersonalizedPlanForm() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Sexo Biológico</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} defaultValue={field.value ?? ""}>
                         <FormControl>
                           <SelectTrigger><SelectValue placeholder="Selecione o sexo" /></SelectTrigger>
                         </FormControl>
@@ -279,7 +318,7 @@ export function PersonalizedPlanForm() {
                 )}
               />
 
-              <Button type="submit" className="w-full md:w-auto" disabled={isLoading}>
+              <Button type="submit" className="w-full md:w-auto" disabled={isLoading || isSaving}>
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -310,6 +349,19 @@ export function PersonalizedPlanForm() {
 
       {generatedPlan && (
         <div className="space-y-6">
+          <Card className="shadow-lg sticky top-20 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <CardHeader>
+                <CardTitle className="text-xl text-primary">Plano Gerado!</CardTitle>
+                <ShadCnCardDescription>Abaixo está seu plano personalizado. Você pode salvá-lo em seu perfil.</ShadCnCardDescription>
+            </CardHeader>
+            <CardFooter>
+                <Button onClick={handleSavePlan} disabled={isSaving || !user} className="w-full md:w-auto">
+                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    {user ? "Salvar Plano em Meu Perfil" : "Faça login para Salvar"}
+                </Button>
+            </CardFooter>
+          </Card>
+
             <Card className="shadow-lg">
                 <CardHeader>
                     <CardTitle className="text-xl text-primary">
@@ -339,11 +391,6 @@ export function PersonalizedPlanForm() {
                     ))}
                     {generatedPlan.trainingPlan.notes && <p className="mt-4 text-sm text-muted-foreground italic"><strong>Notas do Treino:</strong> {generatedPlan.trainingPlan.notes}</p>}
                 </CardContent>
-                 <CardFooter>
-                    <Button onClick={handleSavePlan} variant="outline">
-                        <Save className="mr-2 h-4 w-4" /> Salvar Plano (Em Breve)
-                    </Button>
-                </CardFooter>
             </Card>
 
             <Card className="shadow-lg">
@@ -381,11 +428,6 @@ export function PersonalizedPlanForm() {
                     )}
                     {generatedPlan.dietGuidance.notes && <p className="mt-4 text-sm text-muted-foreground italic"><strong>Notas da Dieta:</strong> {generatedPlan.dietGuidance.notes}</p>}
                 </CardContent>
-                 <CardFooter>
-                    <Button onClick={handleSavePlan} variant="outline">
-                        <Save className="mr-2 h-4 w-4" /> Salvar Plano (Em Breve)
-                    </Button>
-                </CardFooter>
             </Card>
             
             <Card className="shadow-lg">
@@ -396,8 +438,9 @@ export function PersonalizedPlanForm() {
                     <ReactMarkdown>{generatedPlan.overallSummary}</ReactMarkdown>
                 </CardContent>
                  <CardFooter>
-                    <Button onClick={handleSavePlan} variant="default">
-                        <Save className="mr-2 h-4 w-4" /> Salvar Plano em Meu Perfil (Em Breve)
+                    <Button onClick={handleSavePlan} disabled={isSaving || !user} className="w-full md:w-auto">
+                       {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                       {user ? "Salvar Plano Novamente" : "Faça login para Salvar"}
                     </Button>
                 </CardFooter>
             </Card>
@@ -406,4 +449,3 @@ export function PersonalizedPlanForm() {
     </div>
   );
 }
-

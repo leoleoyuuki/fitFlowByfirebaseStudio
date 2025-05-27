@@ -1,43 +1,120 @@
 
-"use client"; // Added "use client" as we'll use useState
+"use client"; 
 
-import { useState, useEffect } from "react"; // Added useState and useEffect
-import type { Workout } from "@/types"; // Assuming Workout type is needed if we fetch data
-// import { MOCK_WORKOUTS } from "@/lib/constants"; // Removed MOCK_WORKOUTS import
-import { WorkoutCard } from "@/components/app/workout-card";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Filter, Dumbbell, Wand2, ClipboardX } from "lucide-react"; 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import type { PersonalizedPlanOutput } from "@/ai/flows/generate-personalized-plan";
+import { useAuth } from "@/contexts/auth-context";
+import { db } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { Loader2, Dumbbell, Wand2, ClipboardX, Eye, Info } from "lucide-react";
 
 export default function WorkoutsPage() {
-  // Placeholder for user's workouts - in a real app, this would be fetched
-  const [userWorkouts, setUserWorkouts] = useState<Workout[]>([]); 
+  const { user } = useAuth();
+  const [savedPlanData, setSavedPlanData] = useState<{ latestPlan: PersonalizedPlanOutput, goalPhase: string, trainingFrequency: number, savedAt: any } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Placeholder for filtering logic - updated for hypertrophy
-  const trainingSplits = ["All Splits", "Full Body", "Upper/Lower", "Push/Pull/Legs"];
-  const difficulties = ["All", "Beginner", "Intermediate", "Advanced"];
+  useEffect(() => {
+    if (user?.id) {
+      const fetchPlan = async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+          const planRef = doc(db, "userGeneratedPlans", user.id);
+          const planSnap = await getDoc(planRef);
+          if (planSnap.exists()) {
+            setSavedPlanData(planSnap.data() as { latestPlan: PersonalizedPlanOutput, goalPhase: string, trainingFrequency: number, savedAt: any });
+          } else {
+            setSavedPlanData(null);
+          }
+        } catch (err: any) {
+          console.error("Error fetching plan:", err);
+          setError("Falha ao carregar o plano. Tente novamente.");
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchPlan();
+    } else {
+      setIsLoading(false); // No user, so not loading a plan
+      setSavedPlanData(null); // Clear any existing plan if user logs out
+    }
+  }, [user?.id]);
 
-  // Simulate fetching user workouts (replace with actual fetch in the future)
-  // useEffect(() => {
-  //   // Example: fetchUserWorkouts().then(data => setUserWorkouts(data));
-  //   // For now, it remains empty until AI generation & saving is implemented
-  // }, []);
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center space-y-4 py-12">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="text-muted-foreground">Carregando seu plano...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+     return (
+        <Card className="text-center py-12 shadow-lg border-destructive">
+          <CardHeader>
+            <ClipboardX className="mx-auto h-16 w-16 text-destructive" />
+            <CardTitle className="mt-6 text-2xl font-semibold text-destructive">Erro ao Carregar Plano</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground mb-4">{error}</p>
+          </CardContent>
+        </Card>
+     );
+  }
+  
+  const planDisplayDate = savedPlanData?.savedAt?.toDate ? 
+    new Date(savedPlanData.savedAt.toDate()).toLocaleDateString('pt-BR', { year: 'numeric', month: 'long', day: 'numeric' }) + 
+    " às " + 
+    new Date(savedPlanData.savedAt.toDate()).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+    : "Data indisponível";
+
 
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight flex items-center"><Dumbbell className="mr-3 h-8 w-8 text-primary" /> Meu Plano de Treino</h1>
-        <p className="text-muted-foreground">Seu plano de treino de hipertrofia gerado por IA aparecerá aqui.</p>
+        <h1 className="text-3xl font-bold tracking-tight flex items-center"><Dumbbell className="mr-3 h-8 w-8 text-primary" /> Meu Plano de Treino e Dieta (IA)</h1>
+        <p className="text-muted-foreground">Aqui você encontra seu plano de hipertrofia mais recente gerado pela IA.</p>
       </div>
 
-      {userWorkouts.length === 0 ? (
+      {savedPlanData?.latestPlan ? (
+        <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-xl md:text-2xl">Visão Geral do Seu Plano de Hipertrofia</CardTitle>
+            <CardDescription>
+              Gerado em: {planDisplayDate}
+              <br />
+              Objetivo: <span className="capitalize font-medium">{savedPlanData.goalPhase}</span> | Dias de Treino: {savedPlanData.trainingFrequency}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground mb-2"><strong>Resumo Geral:</strong></p>
+            <p className="text-sm mb-4">{savedPlanData.latestPlan.overallSummary}</p>
+            <p className="text-muted-foreground mb-2"><strong>Divisão Semanal:</strong></p>
+            <p className="text-sm">{savedPlanData.latestPlan.trainingPlan.weeklySplitDescription}</p>
+          </CardContent>
+          <CardFooter className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+            <Button asChild size="lg">
+              <Link href="/dashboard/my-ai-plan">
+                <Eye className="mr-2 h-5 w-5" /> Ver Plano Completo
+              </Link>
+            </Button>
+             <Button asChild variant="outline" size="lg">
+              <Link href="/dashboard/personalized-plan">
+                <Wand2 className="mr-2 h-5 w-5" /> Gerar Novo Plano
+              </Link>
+            </Button>
+          </CardFooter>
+        </Card>
+      ) : (
         <Card className="text-center py-12 shadow-lg">
           <CardHeader>
             <ClipboardX className="mx-auto h-16 w-16 text-muted-foreground" />
-            <CardTitle className="mt-6 text-2xl font-semibold">Nenhum Plano de Treino Encontrado</CardTitle>
+            <CardTitle className="mt-6 text-2xl font-semibold">Nenhum Plano de Treino Gerado</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-muted-foreground">
@@ -47,47 +124,22 @@ export default function WorkoutsPage() {
             </p>            
             <Button asChild size="lg">
               <Link href="/dashboard/personalized-plan">
-                <Wand2 className="mr-2 h-5 w-5" /> Gerar Meu Plano de Treino com IA
+                <Wand2 className="mr-2 h-5 w-5" /> Gerar Meu Plano com IA
               </Link>
             </Button>
           </CardContent>
         </Card>
-      ) : (
-        <>
-          <div className="flex flex-col md:flex-row gap-4 items-center">
-            <div className="relative flex-grow w-full md:w-auto">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-              <Input placeholder="Buscar planos de treino..." className="pl-10" />
-            </div>
-            <div className="flex gap-4 w-full md:w-auto">
-              <Select defaultValue="All Splits">
-                <SelectTrigger className="w-full md:w-[180px]">
-                  <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
-                  <SelectValue placeholder="Filtrar por divisão" />
-                </SelectTrigger>
-                <SelectContent>
-                  {trainingSplits.map(split => <SelectItem key={split} value={split}>{split}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Select defaultValue="All">
-                <SelectTrigger className="w-full md:w-[180px]">
-                  <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
-                  <SelectValue placeholder="Filtrar por dificuldade" />
-                </SelectTrigger>
-                <SelectContent>
-                  {difficulties.map(diff => <SelectItem key={diff} value={diff}>{diff}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
-            {userWorkouts.map((workout) => (
-              <WorkoutCard key={workout.id} workout={workout} />
-            ))}
-          </div>
-        </>
       )}
+       <Card className="bg-secondary/50 border-dashed">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center"><Info className="mr-2 h-5 w-5 text-primary" /> Importante</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground space-y-2">
+            <p>Seu plano salvo aqui é o mais recente que você gerou e salvou.</p>
+            <p>Ao gerar um novo plano e salvá-lo, ele substituirá o plano atual exibido aqui.</p>
+            <p>Futuramente, implementaremos um histórico de planos para você acessar versões anteriores.</p>
+          </CardContent>
+        </Card>
     </div>
   );
 }
