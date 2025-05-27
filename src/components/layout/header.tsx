@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { APP_NAME, mainNavItems } from "@/lib/constants";
 import { useAuth } from "@/contexts/auth-context";
-import { Dumbbell, User, LogOut, LogIn } from "lucide-react";
+import { Dumbbell, User, LogOut, LogIn, LayoutDashboard, Settings } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   DropdownMenu,
@@ -51,7 +51,7 @@ export function Header() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.photoURL} alt={user.displayName || "User"} />
+                    <AvatarImage src={user.photoURL || ""} alt={user.displayName || "User"} />
                     <AvatarFallback>{getInitials(user.displayName)}</AvatarFallback>
                   </Avatar>
                 </Button>
