@@ -21,11 +21,9 @@ import type { PersonalizedPlanInput, PersonalizedPlanOutput } from "@/ai/flows/g
 import { generatePersonalizedPlan } from "@/ai/flows/generate-personalized-plan";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription as ShadCnCardDescription } from "@/components/ui/card";
-import { Loader2, Wand2, Dumbbell, Utensils } from "lucide-react"; // Changed Barbell to Dumbbell
+import { Loader2, Wand2, Dumbbell, Utensils } from "lucide-react"; 
 import ReactMarkdown from 'react-markdown';
 
-// Re-define schema or import if types are sufficient from flow directly
-// For form validation, it's often good to have it client-side.
 const ClientPersonalizedPlanInputSchema = z.object({
   goalPhase: z.enum(["bulking", "cutting", "maintenance"], { required_error: "Please select your primary goal." }),
   trainingExperience: z.enum(["beginner", "intermediate", "advanced"], { required_error: "Please select your training experience." }),
@@ -34,7 +32,7 @@ const ClientPersonalizedPlanInputSchema = z.object({
   heightCm: z.coerce.number({invalid_type_error: "Must be a number"}).positive({message: "Height must be positive."}).optional().or(z.literal("")),
   weightKg: z.coerce.number({invalid_type_error: "Must be a number"}).positive({message: "Weight must be positive."}).optional().or(z.literal("")),
   age: z.coerce.number({invalid_type_error: "Must be a number"}).positive({message: "Age must be positive."}).optional().or(z.literal("")),
-  sex: z.enum(["male", "female", ""]).optional(),
+  sex: z.enum(["male", "female", "prefer_not_to_say", ""]).optional(), // Added "prefer_not_to_say"
   dietaryPreferences: z.string().optional(),
 });
 
@@ -54,7 +52,7 @@ export function PersonalizedPlanForm() {
       heightCm: "",
       weightKg: "",
       age: "",
-      sex: "",
+      sex: "", // Remains empty string for initial placeholder state
       dietaryPreferences: "",
     },
   });
@@ -64,13 +62,14 @@ export function PersonalizedPlanForm() {
     setGeneratedPlan(null);
     setError(null);
 
-    // Convert empty strings from optional number fields to undefined
     const apiValues: PersonalizedPlanInput = {
         ...values,
         heightCm: values.heightCm ? Number(values.heightCm) : undefined,
         weightKg: values.weightKg ? Number(values.weightKg) : undefined,
         age: values.age ? Number(values.age) : undefined,
-        sex: values.sex === "" ? undefined : values.sex as "male" | "female" | undefined,
+        sex: (values.sex === "" || values.sex === "prefer_not_to_say") 
+             ? undefined 
+             : values.sex as "male" | "female" | undefined,
     };
 
 
@@ -92,7 +91,7 @@ export function PersonalizedPlanForm() {
             <Wand2 className="mr-2 h-6 w-6 text-primary" />
             AI Hypertrophy Plan Generator
           </CardTitle>
-          <ShadCnCardDescription>
+          <ShadCnCardDescription> {/* Corrected from FormDescription to ShadCnCardDescription */}
             Provide your details, and our AI will craft a science-based hypertrophy training and diet plan for your bulking or cutting phase.
           </ShadCnCardDescription>
         </CardHeader>
@@ -218,7 +217,7 @@ export function PersonalizedPlanForm() {
                         <SelectContent>
                           <SelectItem value="male">Male</SelectItem>
                           <SelectItem value="female">Female</SelectItem>
-                           <SelectItem value="">Prefer not to say</SelectItem>
+                          <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem> {/* Changed value */}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -276,7 +275,7 @@ export function PersonalizedPlanForm() {
             <Card className="shadow-lg">
                 <CardHeader>
                     <CardTitle className="text-xl text-primary">
-                        <Dumbbell className="inline-block mr-2 h-5 w-5" /> Your Hypertrophy Training Plan {/* Changed Barbell to Dumbbell */}
+                        <Dumbbell className="inline-block mr-2 h-5 w-5" /> Your Hypertrophy Training Plan
                     </CardTitle>
                     <ShadCnCardDescription>{generatedPlan.trainingPlan.weeklySplitDescription}</ShadCnCardDescription>
                 </CardHeader>
