@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
-  FormDescription,
+  // FormDescription, // No longer used here directly for the header
   FormField,
   FormItem,
   FormLabel,
@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { PersonalizedPlanInput, PersonalizedPlanOutput } from "@/ai/flows/generate-personalized-plan";
 import { generatePersonalizedPlan } from "@/ai/flows/generate-personalized-plan";
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"; // Added CardDescription
 import { Loader2, Wand2 } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 
@@ -67,9 +67,9 @@ export function PersonalizedPlanForm() {
             <Wand2 className="mr-2 h-6 w-6 text-primary" />
             Create Your AI-Powered Workout Plan
           </CardTitle>
-          <FormDescription>
+          <CardDescription> {/* Changed from FormDescription to CardDescription */}
             Tell us about your goals, and our AI will craft a personalized workout plan for you.
-          </FormDescription>
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
