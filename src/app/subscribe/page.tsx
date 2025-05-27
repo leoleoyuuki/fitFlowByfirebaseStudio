@@ -134,6 +134,8 @@ export default function SubscribePage() {
         throw new Error('Stripe.js failed to load.');
       }
 
+      console.log("Attempting to redirect to Stripe Checkout with Session ID:", data.sessionId); // Added for debugging
+
       const { error: stripeError } = await stripe.redirectToCheckout({ sessionId: data.sessionId });
 
       if (stripeError) {
@@ -236,3 +238,4 @@ export default function SubscribePage() {
     </div>
   );
 }
+
