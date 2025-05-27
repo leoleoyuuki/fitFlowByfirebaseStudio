@@ -1,3 +1,4 @@
+
 import type { NavItem, Workout, Exercise, SubscriptionPlan, ProgressLog } from '@/types';
 import { Dumbbell, Zap, Heart, Target, Brain, User, Settings, LayoutDashboard, BookOpen, Activity, Gift } from 'lucide-react';
 
@@ -37,10 +38,13 @@ export const MOCK_EXERCISES: Exercise[] = [
   { id: "9", name: "Leg Raises", description: "Works the lower abdominal muscles.", instructions: "1. Lie on back, legs straight. 2. Raise legs towards ceiling until perpendicular to floor. 3. Lower slowly without touching floor.", videoUrl: "https://placehold.co/600x400.png", dataAiHint: "abs legraise" },
 ];
 
+// IMPORTANT: Replace 'price_xxxx_pro' and 'price_xxxx_premium' with your actual Stripe Price IDs
+// associated with your Stripe Product (e.g., 'prod_SNYwJdLjn2v5xb').
+// Create these Price IDs in your Stripe Dashboard under the relevant Product.
 export const MOCK_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   { id: "free", name: "Basic", price: "Free", features: ["Access to 5 workouts", "Limited exercise tutorials", "Basic progress tracking"], stripePriceId: "" },
-  { id: "pro", name: "Pro", price: "$9.99/month", features: ["Unlimited workouts", "Full exercise library", "Advanced progress tracking", "Personalized plan generation"], stripePriceId: "price_xxxx_pro" },
-  { id: "premium", name: "Premium", price: "$19.99/month", features: ["All Pro features", "1-on-1 coach chat (mock)", "Nutrition guidance (mock)"], stripePriceId: "price_xxxx_premium" },
+  { id: "pro", name: "Pro", price: "$9.99/month", features: ["Unlimited workouts", "Full exercise library", "Advanced progress tracking", "Personalized plan generation"], stripePriceId: "price_xxxx_pro" }, // Example: price_1PExamplePro...
+  { id: "premium", name: "Premium", price: "$19.99/month", features: ["All Pro features", "1-on-1 coach chat (mock)", "Nutrition guidance (mock)"], stripePriceId: "price_xxxx_premium" }, // Example: price_1PExamplePremium...
 ];
 
 export const MOCK_PROGRESS_LOGS: ProgressLog[] = [
@@ -49,3 +53,4 @@ export const MOCK_PROGRESS_LOGS: ProgressLog[] = [
   { id: "log3", date: new Date(2024, 6, 22).toISOString(), exerciseId: "1", exerciseName: "Squats", sets: 3, reps: 12, weight: 55 },
   { id: "log4", date: new Date(2024, 6, 22).toISOString(), exerciseId: "5", exerciseName: "Deadlifts", sets: 1, reps: 5, weight: 100 },
 ];
+
