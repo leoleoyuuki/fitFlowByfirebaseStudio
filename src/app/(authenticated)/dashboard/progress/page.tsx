@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
-import { PlusCircle, Edit, Trash2, TrendingUp, BarChartHorizontalBig } from "lucide-react";
+import { PlusCircle, Edit, Trash2, TrendingUp, BarChartHorizontalBig, Loader2 } from "lucide-react";
 import {
   ChartContainer,
   ChartTooltip,
@@ -19,6 +19,8 @@ import {
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { useAuth } from "@/contexts/auth-context";
+import { SubscriptionRequiredBlock } from "@/components/app/subscription-required-block";
 
 
 const chartConfig = {
@@ -27,15 +29,20 @@ const chartConfig = {
 };
 
 export default function ProgressPage() {
+  const { user, loading: authLoading } = useAuth();
   const [logs, setLogs] = useState<ProgressLog[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingLog, setEditingLog] = useState<ProgressLog | undefined>(undefined);
   const [logToDelete, setLogToDelete] = useState<string | null>(null);
 
   useEffect(() => {
-    // Simulate fetching data
-    setLogs(MOCK_PROGRESS_LOGS.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime() ));
-  }, []);
+    // Simulate fetching data - In a real app, this would fetch from Firestore
+    if (user && user.subscriptionTier === 'hypertrophy' && user.subscriptionStatus === 'active') {
+      setLogs(MOCK_PROGRESS_LOGS.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime() ));
+    } else {
+      setLogs([]);
+    }
+  }, [user]);
 
 
   const handleLogAddedOrUpdated = (log: ProgressLog) => {
@@ -70,6 +77,19 @@ export default function ProgressPage() {
       .slice(0, 10) // Take last 10 for chart
       .reverse(); // Show oldest first for chart
   }, [logs]);
+
+  if (authLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center space-y-4 py-12 min-h-[calc(100vh-200px)]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="text-muted-foreground">Carregando...</p>
+      </div>
+    );
+  }
+
+  if (!user || user.subscriptionTier !== 'hypertrophy' || user.subscriptionStatus !== 'active') {
+    return <SubscriptionRequiredBlock featureName="o Log de Progresso" />;
+  }
 
   return (
     <div className="space-y-8">

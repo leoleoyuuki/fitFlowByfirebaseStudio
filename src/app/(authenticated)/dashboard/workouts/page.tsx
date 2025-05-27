@@ -9,15 +9,32 @@ import { doc, getDoc } from "firebase/firestore";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Loader2, Dumbbell, Wand2, ClipboardX, Eye, Info } from "lucide-react";
+import { Loader2, Dumbbell, Wand2, ClipboardX, Eye, Info, Gift } from "lucide-react";
+import { SubscriptionRequiredBlock } from "@/components/app/subscription-required-block";
 
 export default function WorkoutsPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [savedPlanData, setSavedPlanData] = useState<{ latestPlan: PersonalizedPlanOutput, goalPhase: string, trainingFrequency: number, savedAt: any } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const isSubscribed = user && user.subscriptionTier === 'hypertrophy' && user.subscriptionStatus === 'active';
+
   useEffect(() => {
+    if (authLoading) return; // Wait for auth context to load
+
+    if (!user) {
+      setIsLoading(false); // Not logged in, not loading a plan
+      setSavedPlanData(null);
+      return;
+    }
+
+    if (!isSubscribed) {
+        setIsLoading(false); // Not subscribed, not loading a plan
+        setSavedPlanData(null);
+        return;
+    }
+
     if (user?.id) {
       const fetchPlan = async () => {
         setIsLoading(true);
@@ -28,7 +45,7 @@ export default function WorkoutsPage() {
           if (planSnap.exists()) {
             setSavedPlanData(planSnap.data() as { latestPlan: PersonalizedPlanOutput, goalPhase: string, trainingFrequency: number, savedAt: any });
           } else {
-            setSavedPlanData(null);
+            setSavedPlanData(null); // No plan found for this user
           }
         } catch (err: any) {
           console.error("Error fetching plan:", err);
@@ -39,18 +56,22 @@ export default function WorkoutsPage() {
       };
       fetchPlan();
     } else {
-      setIsLoading(false); // No user, so not loading a plan
-      setSavedPlanData(null); // Clear any existing plan if user logs out
+      setIsLoading(false); 
+      setSavedPlanData(null); 
     }
-  }, [user?.id]);
+  }, [user, authLoading, isSubscribed]);
 
-  if (isLoading) {
+  if (authLoading || (isLoading && isSubscribed) ) { // Only show main loader if expecting to load a plan
     return (
       <div className="flex flex-col items-center justify-center space-y-4 py-12">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
         <p className="text-muted-foreground">Carregando seu plano...</p>
       </div>
     );
+  }
+
+  if (!isSubscribed && !authLoading) {
+    return <SubscriptionRequiredBlock featureName="acessar seus Planos de Treino e Dieta salvos" />;
   }
 
   if (error) {
@@ -114,11 +135,11 @@ export default function WorkoutsPage() {
         <Card className="text-center py-12 shadow-lg">
           <CardHeader>
             <ClipboardX className="mx-auto h-16 w-16 text-muted-foreground" />
-            <CardTitle className="mt-6 text-2xl font-semibold">Nenhum Plano de Treino Gerado</CardTitle>
+            <CardTitle className="mt-6 text-2xl font-semibold">Nenhum Plano de Treino Gerado ou Salvo</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-muted-foreground">
-              Parece que você ainda não gerou seu plano de treino personalizado.
+              Parece que você ainda não gerou e salvou seu plano de treino personalizado.
               <br />
               Use nosso gerador com IA para criar um plano de hipertrofia baseado em ciência!
             </p>            

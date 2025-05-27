@@ -1,10 +1,29 @@
 
+"use client";
+
 import { MOCK_EXERCISES } from "@/lib/constants";
 import { ExerciseCard } from "@/components/app/exercise-card";
 import { Input } from "@/components/ui/input";
-import { Search, BookOpenCheck } from "lucide-react"; // Added BookOpenCheck
+import { Search, BookOpenCheck, Loader2 } from "lucide-react"; 
+import { useAuth } from "@/contexts/auth-context";
+import { SubscriptionRequiredBlock } from "@/components/app/subscription-required-block";
 
 export default function ExercisesPage() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center space-y-4 py-12 min-h-[calc(100vh-200px)]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="text-muted-foreground">Carregando...</p>
+      </div>
+    );
+  }
+
+  if (!user || user.subscriptionTier !== 'hypertrophy' || user.subscriptionStatus !== 'active') {
+    return <SubscriptionRequiredBlock featureName="a Biblioteca de Exercícios" />;
+  }
+
   return (
     <div className="space-y-8">
       <div>

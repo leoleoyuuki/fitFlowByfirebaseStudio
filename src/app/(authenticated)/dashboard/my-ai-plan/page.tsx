@@ -12,15 +12,30 @@ import Link from "next/link";
 import { ArrowLeft, Loader2, Dumbbell, Utensils, Wand2, Info } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useRouter } from "next/navigation";
+import { SubscriptionRequiredBlock } from "@/components/app/subscription-required-block";
 
 export default function MyAiPlanPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [planData, setPlanData] = useState<{ latestPlan: PersonalizedPlanOutput, goalPhase: string, trainingFrequency: number, savedAt: any } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (authLoading) return; // Wait for auth state to resolve
+
+    if (!user) {
+      setError("Você precisa estar logado para ver seu plano.");
+      setIsLoading(false);
+      return;
+    }
+    
+    if (user.subscriptionTier !== 'hypertrophy' || user.subscriptionStatus !== 'active') {
+      // This check is a bit redundant if PersonalizedPlanPage already blocks, but good for direct navigation
+      setIsLoading(false);
+      return; // SubscriptionRequiredBlock will be rendered below
+    }
+
     if (user?.id) {
       const fetchPlan = async () => {
         setIsLoading(true);
@@ -42,13 +57,10 @@ export default function MyAiPlanPage() {
         }
       };
       fetchPlan();
-    } else if (!user && !isLoading) { // if loading is false and there's no user, they are likely logged out
-        setError("Você precisa estar logado para ver seu plano.");
-        setIsLoading(false);
     }
-  }, [user, isLoading]); // Add isLoading to dependency array to refetch if user logs in while on page.
+  }, [user, authLoading]);
 
-  if (isLoading) {
+  if (authLoading || isLoading) {
     return (
       <div className="flex flex-col items-center justify-center space-y-4 py-12 min-h-[calc(100vh-200px)]">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -57,6 +69,10 @@ export default function MyAiPlanPage() {
     );
   }
 
+  if (user && (user.subscriptionTier !== 'hypertrophy' || user.subscriptionStatus !== 'active')) {
+    return <SubscriptionRequiredBlock featureName="seu plano de treino e dieta detalhado" />;
+  }
+  
   if (error || !planData?.latestPlan) {
      return (
         <div className="space-y-8">
