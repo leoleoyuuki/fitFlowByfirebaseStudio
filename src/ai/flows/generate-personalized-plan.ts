@@ -123,7 +123,7 @@ Instructions for Plan Generation:
     *   Write a brief (2-3 sentences) summary of the plan and key recommendations to help the user get started.
 
 **Output Format:**
-Ensure your response strictly adheres to the JSON schema defined for `PersonalizedPlanOutputSchema`.
+Ensure your response strictly adheres to the JSON schema defined for PersonalizedPlanOutputSchema.
 The training plan should be structured with daily workouts, and each exercise should have name, sets, reps, and optionally rest/tempo/notes.
 The diet guidance should clearly list calorie and macro targets.
 Be encouraging and scientific in your tone.
@@ -145,3 +145,4 @@ const generatePersonalizedPlanFlow = ai.defineFlow(
     return output;
   }
 );
+
