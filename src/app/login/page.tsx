@@ -42,8 +42,8 @@ export default function LoginPage() {
 
   return (
     <AuthFormWrapper
-      title="Welcome Back!"
-      description="Log in to your FitFlow account to continue your fitness journey."
+      title="Welcome Back, Lifter!"
+      description="Log in to FitFlow to access your hypertrophy plans and track your gains."
       footerText="Don't have an account?"
       footerLinkText="Sign up"
       footerLinkHref="/signup"
@@ -78,7 +78,7 @@ export default function LoginPage() {
           />
           <Button type="submit" className="w-full" disabled={loading}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Log In
+            Log In & Lift
           </Button>
         </form>
       </Form>

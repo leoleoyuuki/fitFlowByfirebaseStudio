@@ -2,7 +2,7 @@
 import type { Workout } from "@/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Clock, TrendingUp, Zap } from "lucide-react";
+import { Clock, TrendingUp, Zap, Barbell } from "lucide-react"; // Added Barbell
 import Link from "next/link";
 
 interface WorkoutCardProps {
@@ -18,7 +18,7 @@ export function WorkoutCard({ workout }: WorkoutCardProps) {
           <span className="px-2 py-1 text-xs rounded-full bg-accent text-accent-foreground">{workout.goal}</span>
         </div>
         <CardTitle className="text-xl">{workout.name}</CardTitle>
-        <CardDescription className="h-12 overflow-hidden text-ellipsis">{workout.description}</CardDescription>
+        <CardDescription className="h-16 overflow-hidden text-ellipsis">{workout.description}</CardDescription> 
       </CardHeader>
       <CardContent className="flex-grow">
         <div className="flex justify-between text-sm text-muted-foreground mb-1">
@@ -36,8 +36,9 @@ export function WorkoutCard({ workout }: WorkoutCardProps) {
       </CardContent>
       <CardFooter>
         <Button className="w-full" asChild>
-          {/* Link to a workout detail page if it existed, or start workout action */}
-          <Link href={`/dashboard/workouts/${workout.id}`}>Start Workout</Link>
+          <Link href={`/dashboard/workouts/${workout.id}`}>
+            <Barbell className="mr-2 h-4 w-4" /> View Workout Details
+          </Link>
         </Button>
       </CardFooter>
     </Card>

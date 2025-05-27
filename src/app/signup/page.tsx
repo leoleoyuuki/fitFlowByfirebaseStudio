@@ -44,8 +44,8 @@ export default function SignupPage() {
 
   return (
     <AuthFormWrapper
-      title="Create Your Account"
-      description="Join FitFlow and start your personalized fitness journey today."
+      title="Join FitFlow & Build Muscle"
+      description="Sign up to get your AI-powered hypertrophy training and nutrition plan."
       footerText="Already have an account?"
       footerLinkText="Log in"
       footerLinkHref="/login"
@@ -59,7 +59,7 @@ export default function SignupPage() {
               <FormItem>
                 <FormLabel>Full Name</FormLabel>
                 <FormControl>
-                  <Input placeholder="John Doe" {...field} />
+                  <Input placeholder="Your Name" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -85,7 +85,7 @@ export default function SignupPage() {
               <FormItem>
                 <FormLabel>Password</FormLabel>
                 <FormControl>
-                  <Input type="password" placeholder="••••••••" {...field} />
+                  <Input type="password" placeholder="•••••••• (min. 6 characters)" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -93,7 +93,7 @@ export default function SignupPage() {
           />
           <Button type="submit" className="w-full" disabled={loading}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Sign Up
+            Sign Up & Start Building
           </Button>
         </form>
       </Form>

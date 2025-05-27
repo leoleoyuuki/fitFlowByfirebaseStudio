@@ -1,3 +1,4 @@
+
 import type {Metadata} from 'next';
 import {Geist, Geist_Mono} from 'next/font/google';
 import './globals.css';
@@ -15,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'FitFlow - Your Personalized Fitness Journey',
-  description: 'Achieve your fitness goals with AI-powered personalized plans, workout tracking, and expert guidance.',
+  title: 'FitFlow - AI Hypertrophy Training & Nutrition',
+  description: 'Achieve your muscle building goals with AI-powered, science-based hypertrophy plans, diet guidance for bulking/cutting, and progress tracking.',
 };
 
 export default function RootLayout({

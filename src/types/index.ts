@@ -1,3 +1,4 @@
+
 import type { LucideIcon } from 'lucide-react';
 
 export interface NavItem {
@@ -14,13 +15,13 @@ export interface UserProfile {
   email: string;
   displayName?: string;
   photoURL?: string;
-  subscriptionTier?: 'free' | 'pro' | 'premium';
+  subscriptionTier?: 'free' | 'hypertrophy'; // Updated subscription tiers
 }
 
 export interface Workout {
   id: string;
   name: string;
-  goal: 'Strength' | 'Cardio' | 'Flexibility' | 'Balance';
+  goal: 'Hypertrophy' | 'Strength'; // Focused goals
   difficulty: 'Beginner' | 'Intermediate' | 'Advanced' | 'All Levels';
   duration: string;
   description: string;
@@ -33,18 +34,18 @@ export interface Exercise {
   name: string;
   description: string;
   instructions: string;
-  videoUrl?: string; // URL to a video or placeholder
-  imageUrl?: string; // URL to an image or placeholder
+  videoUrl?: string; 
+  imageUrl?: string; 
   dataAiHint?: string;
-  muscleGroups?: string[];
+  muscleGroups?: string[]; // Key muscle groups targeted
 }
 
 export interface SubscriptionPlan {
-  id: string;
+  id: 'free' | 'hypertrophy'; // Updated plan IDs
   name: string;
   price: string;
   features: string[];
-  stripePriceId: string; // For actual Stripe integration
+  stripePriceId: string; 
 }
 
 export interface ProgressLog {
@@ -54,7 +55,8 @@ export interface ProgressLog {
   exerciseName: string;
   sets: number;
   reps: number;
-  weight?: number; // Optional, for bodyweight exercises
-  duration?: number; // Optional, for time-based exercises
+  weight?: number; 
+  duration?: number; 
   notes?: string;
+  // Could add RPE (Rate of Perceived Exertion) or other hypertrophy metrics
 }

@@ -2,31 +2,31 @@
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle, Zap, Target, Brain } from "lucide-react";
+import { Barbell, Zap, Target, Brain, CheckCircle, TrendingUp, ShieldCheck, LineChart, Utensils } from "lucide-react"; // Added LineChart, Utensils
 import Image from "next/image";
 import Link from "next/link";
 
 export default function HomePage() {
   const features = [
     {
-      icon: <Zap className="h-8 w-8 text-primary" />,
-      title: "Workout Library",
-      description: "Access a vast library of pre-designed workout routines for all fitness levels.",
-    },
-    {
-      icon: <Target className="h-8 w-8 text-primary" />,
-      title: "Progress Tracking",
-      description: "Monitor your gains, PBs, and consistency with intuitive tracking tools.",
-    },
-    {
       icon: <Brain className="h-8 w-8 text-primary" />,
-      title: "AI Personalized Plans",
-      description: "Get workout plans tailored to your specific goals and needs by our smart AI.",
+      title: "AI Hypertrophy Plans",
+      description: "Receive science-based training & diet plans for bulking or cutting, tailored by AI.",
     },
     {
-      icon: <CheckCircle className="h-8 w-8 text-primary" />,
-      title: "Exercise Tutorials",
-      description: "Learn proper form with detailed instructions and visual guides for every exercise.",
+      icon: <Barbell className="h-8 w-8 text-primary" />,
+      title: "Effective Workouts",
+      description: "Access a library of hypertrophy-focused routines designed for optimal muscle growth.",
+    },
+    {
+      icon: <LineChart className="h-8 w-8 text-primary" />,
+      title: "Progress Tracking",
+      description: "Log your lifts, monitor strength gains, and track your journey to a stronger physique.",
+    },
+    {
+      icon: <Utensils className="h-8 w-8 text-primary" />,
+      title: "Nutrition Guidance",
+      description: "Get AI-driven dietary advice, macro targets, and meal ideas to support your goals.",
     },
   ];
 
@@ -39,17 +39,17 @@ export default function HomePage() {
           <div className="container mx-auto px-4 text-center">
             <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl text-primary">
               <span className="block">Welcome to FitFlow</span>
-              <span className="block text-foreground">Your Personalized Fitness Journey Starts Here</span>
+              <span className="block text-foreground">Build Muscle, Smarter.</span>
             </h1>
             <p className="mt-6 max-w-2xl mx-auto text-lg text-muted-foreground sm:text-xl">
-              Achieve your fitness goals with AI-powered personalized plans, comprehensive workout tracking, and expert-guided exercises. Join FitFlow today and transform your fitness.
+              Unlock your potential with AI-driven, science-based hypertrophy training and nutrition plans. Whether you're bulking or cutting, FitFlow guides your transformation.
             </p>
             <div className="mt-10 flex justify-center space-x-4">
               <Button asChild size="lg" className="text-lg px-8 py-6">
-                <Link href="/signup">Get Started Free</Link>
+                <Link href="/signup">Start Building Free</Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="text-lg px-8 py-6">
-                <Link href="/#features">Learn More</Link>
+                <Link href="/#features">Learn the Science</Link>
               </Button>
             </div>
           </div>
@@ -59,7 +59,7 @@ export default function HomePage() {
         <section id="features" className="py-16 md:py-24 bg-background">
           <div className="container mx-auto px-4">
             <h2 className="text-3xl font-bold text-center mb-12 text-foreground">
-              Everything You Need to Succeed
+              Your Ultimate Hypertrophy Toolkit
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {features.map((feature) => (
@@ -76,16 +76,46 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+        
+        {/* How It Works / Science Section Teaser */}
+        <section className="py-16 md:py-24 bg-primary/5">
+            <div className="container mx-auto px-4">
+                <div className="text-center mb-12">
+                    <h2 className="text-3xl font-bold text-foreground">Science-Backed Results</h2>
+                    <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
+                        FitFlow integrates proven hypertrophy principles. Our AI considers progressive overload, optimal volume, exercise selection, and nutritional strategies for effective bulking or cutting phases.
+                    </p>
+                </div>
+                <div className="grid md:grid-cols-3 gap-8 text-center">
+                    <div className="space-y-3">
+                        <TrendingUp className="h-10 w-10 text-primary mx-auto" />
+                        <h3 className="text-xl font-semibold">Progressive Overload</h3>
+                        <p className="text-muted-foreground">Continuously challenge your muscles for growth. Track lifts and ensure you're progressing.</p>
+                    </div>
+                    <div className="space-y-3">
+                        <Target className="h-10 w-10 text-primary mx-auto" />
+                        <h3 className="text-xl font-semibold">Targeted Nutrition</h3>
+                        <p className="text-muted-foreground">AI-driven diet plans for bulking (caloric surplus) or cutting (caloric deficit) with optimal macros.</p>
+                    </div>
+                    <div className="space-y-3">
+                        <ShieldCheck className="h-10 w-10 text-primary mx-auto" />
+                        <h3 className="text-xl font-semibold">Smart Recovery</h3>
+                        <p className="text-muted-foreground">Guidance on rest and recovery to maximize muscle repair and growth (feature coming soon).</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
 
         {/* Call to Action Section */}
         <section className="py-16 md:py-24 bg-primary/10">
           <div className="container mx-auto px-4 text-center">
-            <h2 className="text-3xl font-bold text-foreground mb-6">Ready to Transform Your Fitness?</h2>
+            <h2 className="text-3xl font-bold text-foreground mb-6">Ready to Sculpt Your Physique?</h2>
             <p className="text-lg text-muted-foreground mb-8 max-w-xl mx-auto">
-              Join thousands of users who are already achieving their goals with FitFlow.
+              Join FitFlow and leverage AI to build muscle effectively and sustainably.
             </p>
             <Button asChild size="lg" className="text-lg px-8 py-6">
-              <Link href="/signup">Start Your Journey Now</Link>
+              <Link href="/signup">Start Your Transformation</Link>
             </Button>
           </div>
         </section>
@@ -94,7 +124,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="py-8 bg-background border-t">
         <div className="container mx-auto px-4 text-center text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} FitFlow. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} FitFlow. All rights reserved. Engineered for Hypertrophy.</p>
         </div>
       </footer>
     </div>
