@@ -5,6 +5,16 @@ import type { UserProfile } from '@/types';
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { 
+  getAuth, 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  signOut as firebaseSignOut, 
+  onAuthStateChanged,
+  updateProfile,
+  type User as FirebaseUser
+} from 'firebase/auth';
+import { auth } from '@/lib/firebase'; // Import initialized auth
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -23,50 +33,83 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Mock loading state and check for a "logged in" user in localStorage
-    const storedUser = localStorage.getItem('fitflowUser');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
+      if (firebaseUser) {
+        // For now, we'll assume 'free' tier. 
+        // In a real app, you'd fetch this from your database (e.g., Firestore).
+        const userProfile: UserProfile = {
+          id: firebaseUser.uid,
+          email: firebaseUser.email || "",
+          displayName: firebaseUser.displayName || undefined,
+          photoURL: firebaseUser.photoURL || undefined,
+          subscriptionTier: 'free', // Default or fetch from DB
+        };
+        setUser(userProfile);
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const login = async (email: string, pass: string) => {
     setLoading(true);
-    // Mock API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    if (email === "user@example.com" && pass === "password") {
-      const mockUser: UserProfile = { id: "1", email, displayName: "Test User", subscriptionTier: "pro" };
-      setUser(mockUser);
-      localStorage.setItem('fitflowUser', JSON.stringify(mockUser));
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
+      // onAuthStateChanged will handle setting the user and redirecting
       toast({ title: "Login Successful", description: "Welcome back!" });
       router.push('/dashboard');
-    } else {
-      toast({ title: "Login Failed", description: "Invalid email or password.", variant: "destructive" });
+    } catch (error: any) {
+      console.error("Login error:", error);
+      toast({ title: "Login Failed", description: error.message || "Invalid email or password.", variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const signup = async (email: string, pass: string, name: string) => {
     setLoading(true);
-    // Mock API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    const mockUser: UserProfile = { id: "2", email, displayName: name, subscriptionTier: "free" };
-    setUser(mockUser);
-    localStorage.setItem('fitflowUser', JSON.stringify(mockUser));
-    toast({ title: "Signup Successful", description: "Welcome to FitFlow!" });
-    router.push('/dashboard'); // Or to /subscribe
-    setLoading(false);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+      if (userCredential.user) {
+        await updateProfile(userCredential.user, { displayName: name });
+        // Manually update our local user state immediately after profile update
+        // as onAuthStateChanged might be slightly delayed or might not pick up displayName immediately.
+        const userProfile: UserProfile = {
+          id: userCredential.user.uid,
+          email: userCredential.user.email || "",
+          displayName: name,
+          photoURL: userCredential.user.photoURL || undefined,
+          subscriptionTier: 'free', // New users start with free tier
+        };
+        setUser(userProfile); // Update local state
+      }
+      // onAuthStateChanged will also fire, but this ensures quicker UI update with displayName.
+      toast({ title: "Signup Successful", description: "Welcome to FitFlow!" });
+      router.push('/dashboard');
+    } catch (error: any) {
+      console.error("Signup error:", error);
+      toast({ title: "Signup Failed", description: error.message || "Could not create account.", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const logout = async () => {
     setLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setUser(null);
-    localStorage.removeItem('fitflowUser');
-    toast({ title: "Logged Out", description: "You have been successfully logged out." });
-    router.push('/login');
-    setLoading(false);
+    try {
+      await firebaseSignOut(auth);
+      // onAuthStateChanged will handle setting user to null
+      toast({ title: "Logged Out", description: "You have been successfully logged out." });
+      router.push('/login');
+    } catch (error: any) {
+      console.error("Logout error:", error);
+      toast({ title: "Logout Failed", description: error.message || "Could not log out.", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
