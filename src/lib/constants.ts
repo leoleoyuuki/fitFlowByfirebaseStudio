@@ -47,7 +47,7 @@ export const MOCK_EXERCISES: Exercise[] = [
 
 export const MOCK_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   { id: "free", name: "FitFlow Basic", price: "Free", features: ["Access to progress logger", "View 1 sample workout plan", "Limited exercise library access"], stripePriceId: "" },
-  { id: "hypertrophy", name: "FitFlow Hypertrophy", price: "$14.99/month", features: ["AI-Powered Hypertrophy Training & Diet Plan Generator (Bulking/Cutting)", "Save and view your personalized AI plan", "Full access to all workout plans & exercises", "Advanced progress tracking & analytics", "Science-based hypertrophy resources"], stripePriceId: "price_1RSnoULZkqAmFk4bCd74Ujzv" },
+  { id: "hypertrophy", name: "FitFlow Hypertrophy", price: "$14.99/month", features: ["AI-Powered Hypertrophy Training & Diet Plan Generator (Bulking/Cutting)", "Save and view your personalized AI plan", "Full access to all workout plans & exercises", "Advanced progress tracking & analytics", "Science-based hypertrophy resources"], stripePriceId: "price_1RTTxuLZkqAmFk4bPvEANF0J" },
 ];
 
 export const MOCK_PROGRESS_LOGS: ProgressLog[] = [
@@ -57,3 +57,4 @@ export const MOCK_PROGRESS_LOGS: ProgressLog[] = [
   { id: "log4", date: new Date(2024, 6, 22).toISOString(), exerciseId: "5", exerciseName: "Conventional Deadlifts", sets: 1, reps: 5, weight: 140 },
   { id: "log5", date: new Date(2024, 6, 24).toISOString(), exerciseId: "10", exerciseName: "Bent-Over Rows", sets: 3, reps: 12, weight: 60 },
 ];
+
