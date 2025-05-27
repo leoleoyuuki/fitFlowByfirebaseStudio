@@ -43,7 +43,7 @@ export const MOCK_EXERCISES: Exercise[] = [
 // Create these Price IDs in your Stripe Dashboard under the relevant Product.
 export const MOCK_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   { id: "free", name: "Basic", price: "Free", features: ["Access to 5 workouts", "Limited exercise tutorials", "Basic progress tracking"], stripePriceId: "" },
-  { id: "pro", name: "Pro", price: "$9.99/month", features: ["Unlimited workouts", "Full exercise library", "Advanced progress tracking", "Personalized plan generation"], stripePriceId: "price_xxxx_pro" }, // Example: price_1PExamplePro...
+  { id: "pro", name: "Pro", price: "$9.99/month", features: ["Unlimited workouts", "Full exercise library", "Advanced progress tracking", "Personalized plan generation"], stripePriceId: "price_1RSnoULZkqAmFk4bCd74Ujzv" }, // Updated Pro plan Price ID
   { id: "premium", name: "Premium", price: "$19.99/month", features: ["All Pro features", "1-on-1 coach chat (mock)", "Nutrition guidance (mock)"], stripePriceId: "price_xxxx_premium" }, // Example: price_1PExamplePremium...
 ];
 
