@@ -20,19 +20,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { PersonalizedPlanInput, PersonalizedPlanOutput } from "@/ai/flows/generate-personalized-plan";
 import { generatePersonalizedPlan } from "@/ai/flows/generate-personalized-plan";
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription as ShadCnCardDescription } from "@/components/ui/card";
-import { Loader2, Wand2, Dumbbell, Utensils } from "lucide-react"; 
+import { Card, CardContent, CardHeader, CardTitle, CardDescription as ShadCnCardDescription, CardFooter } from "@/components/ui/card";
+import { Loader2, Wand2, Dumbbell, Utensils, Save } from "lucide-react"; 
 import ReactMarkdown from 'react-markdown';
+import { useToast } from "@/hooks/use-toast";
 
 const ClientPersonalizedPlanInputSchema = z.object({
   goalPhase: z.enum(["bulking", "cutting", "maintenance"], { required_error: "Please select your primary goal." }),
   trainingExperience: z.enum(["beginner", "intermediate", "advanced"], { required_error: "Please select your training experience." }),
   trainingFrequency: z.coerce.number({invalid_type_error: "Must be a number"}).min(2, "Minimum 2 days").max(6, "Maximum 6 days").default(3),
+  trainingVolumePreference: z.enum(["low", "medium", "high"], { required_error: "Please select your preferred training volume."}),
   availableEquipment: z.string().min(5, { message: "List equipment (min 5 chars, e.g., 'dumbbells, bands' or 'full gym')." }),
   heightCm: z.coerce.number({invalid_type_error: "Must be a number"}).positive({message: "Height must be positive."}).optional().or(z.literal("")),
   weightKg: z.coerce.number({invalid_type_error: "Must be a number"}).positive({message: "Weight must be positive."}).optional().or(z.literal("")),
   age: z.coerce.number({invalid_type_error: "Must be a number"}).positive({message: "Age must be positive."}).optional().or(z.literal("")),
-  sex: z.enum(["male", "female", "prefer_not_to_say", ""]).optional(), // Added "prefer_not_to_say"
+  sex: z.enum(["male", "female", "prefer_not_to_say", ""], { required_error: "Please select an option." }).optional(),
   dietaryPreferences: z.string().optional(),
 });
 
@@ -41,6 +43,7 @@ export function PersonalizedPlanForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [generatedPlan, setGeneratedPlan] = useState<PersonalizedPlanOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const form = useForm<z.infer<typeof ClientPersonalizedPlanInputSchema>>({
     resolver: zodResolver(ClientPersonalizedPlanInputSchema),
@@ -48,11 +51,12 @@ export function PersonalizedPlanForm() {
       goalPhase: undefined,
       trainingExperience: undefined,
       trainingFrequency: 3,
+      trainingVolumePreference: "medium",
       availableEquipment: "",
       heightCm: "",
       weightKg: "",
       age: "",
-      sex: "", // Remains empty string for initial placeholder state
+      sex: "", 
       dietaryPreferences: "",
     },
   });
@@ -70,6 +74,7 @@ export function PersonalizedPlanForm() {
         sex: (values.sex === "" || values.sex === "prefer_not_to_say") 
              ? undefined 
              : values.sex as "male" | "female" | undefined,
+        // trainingVolumePreference is already in the correct enum type
     };
 
 
@@ -83,16 +88,26 @@ export function PersonalizedPlanForm() {
     setIsLoading(false);
   }
 
+  const handleSavePlan = () => {
+    // Placeholder for actual save functionality
+    toast({
+        title: "Save Plan",
+        description: "Funcionalidade de salvar o plano no seu perfil será implementada em breve!",
+    });
+    // In a real app, you would send `generatedPlan` to your backend here.
+    // e.g., await savePlanToDatabase(generatedPlan, userId);
+  };
+
   return (
     <div className="space-y-8">
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center text-2xl">
             <Wand2 className="mr-2 h-6 w-6 text-primary" />
-            AI Hypertrophy Plan Generator
+            Gerador de Plano de Hipertrofia
           </CardTitle>
-          <ShadCnCardDescription> {/* Corrected from FormDescription to ShadCnCardDescription */}
-            Provide your details, and our AI will craft a science-based hypertrophy training and diet plan for your bulking or cutting phase.
+          <ShadCnCardDescription>
+            Forneça seus detalhes, e nosso sistema criará um plano de treino e dieta focado em hipertrofia, baseado em ciência, para suas fases de bulking ou cutting.
           </ShadCnCardDescription>
         </CardHeader>
         <CardContent>
@@ -104,15 +119,15 @@ export function PersonalizedPlanForm() {
                   name="goalPhase"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Primary Goal</FormLabel>
+                      <FormLabel>Objetivo Principal</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
-                          <SelectTrigger><SelectValue placeholder="Select goal (Bulking/Cutting)" /></SelectTrigger>
+                          <SelectTrigger><SelectValue placeholder="Selecione seu objetivo" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="bulking">Bulking (Gain Muscle)</SelectItem>
-                          <SelectItem value="cutting">Cutting (Lose Fat, Preserve Muscle)</SelectItem>
-                          <SelectItem value="maintenance">Maintenance (Maintain Physique)</SelectItem>
+                          <SelectItem value="bulking">Bulking (Ganhar Músculo)</SelectItem>
+                          <SelectItem value="cutting">Cutting (Perder Gordura, Preservar Músculo)</SelectItem>
+                          <SelectItem value="maintenance">Manutenção (Manter Físico)</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -124,15 +139,15 @@ export function PersonalizedPlanForm() {
                   name="trainingExperience"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Training Experience</FormLabel>
+                      <FormLabel>Experiência de Treino</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
-                          <SelectTrigger><SelectValue placeholder="Select experience level" /></SelectTrigger>
+                          <SelectTrigger><SelectValue placeholder="Selecione seu nível" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="beginner">Beginner (&lt;1 year lifting)</SelectItem>
-                          <SelectItem value="intermediate">Intermediate (1-3 years lifting)</SelectItem>
-                          <SelectItem value="advanced">Advanced (3+ years lifting)</SelectItem>
+                          <SelectItem value="beginner">Iniciante (&lt;1 ano treinando)</SelectItem>
+                          <SelectItem value="intermediate">Intermediário (1-3 anos treinando)</SelectItem>
+                          <SelectItem value="advanced">Avançado (3+ anos treinando)</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -141,43 +156,66 @@ export function PersonalizedPlanForm() {
                 />
               </div>
 
-              <FormField
-                control={form.control}
-                name="trainingFrequency"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Training Days Per Week</FormLabel>
-                    <FormControl>
-                      <Input type="number" placeholder="e.g., 3 (2-6 days)" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid md:grid-cols-2 gap-6">
+                <FormField
+                  control={form.control}
+                  name="trainingFrequency"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Dias de Treino por Semana</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder="Ex: 3 (2-6 dias)" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={form.control}
+                  name="trainingVolumePreference"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Preferência de Volume Semanal</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger><SelectValue placeholder="Selecione o volume" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="low">Baixo (10-13 séries/músculo)</SelectItem>
+                          <SelectItem value="medium">Médio (14-17 séries/músculo)</SelectItem>
+                          <SelectItem value="high">Alto (18-20 séries/músculo)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>Séries por grupo muscular principal por semana.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <FormField
                 control={form.control}
                 name="availableEquipment"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Available Equipment</FormLabel>
+                    <FormLabel>Equipamentos Disponíveis</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="e.g., Full gym access, dumbbells and bench, bodyweight only, resistance bands" {...field} rows={2} />
+                      <Textarea placeholder="Ex: Academia completa, halteres e banco, peso corporal, elásticos" {...field} rows={2} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               
-              <p className="text-sm font-medium text-muted-foreground pt-2">Optional: For more accurate diet plan</p>
+              <p className="text-sm font-medium text-muted-foreground pt-2">Opcional: Para plano de dieta mais preciso</p>
               <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <FormField
                   control={form.control}
                   name="heightCm"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Height (cm)</FormLabel>
-                      <FormControl><Input type="number" placeholder="e.g., 180" {...field} /></FormControl>
+                      <FormLabel>Altura (cm)</FormLabel>
+                      <FormControl><Input type="number" placeholder="Ex: 180" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -187,8 +225,8 @@ export function PersonalizedPlanForm() {
                   name="weightKg"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Weight (kg)</FormLabel>
-                      <FormControl><Input type="number" placeholder="e.g., 75" {...field} /></FormControl>
+                      <FormLabel>Peso (kg)</FormLabel>
+                      <FormControl><Input type="number" placeholder="Ex: 75" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -198,8 +236,8 @@ export function PersonalizedPlanForm() {
                   name="age"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Age</FormLabel>
-                      <FormControl><Input type="number" placeholder="e.g., 25" {...field} /></FormControl>
+                      <FormLabel>Idade</FormLabel>
+                      <FormControl><Input type="number" placeholder="Ex: 25" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -209,15 +247,15 @@ export function PersonalizedPlanForm() {
                   name="sex"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Sex</FormLabel>
+                      <FormLabel>Sexo Biológico</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
-                          <SelectTrigger><SelectValue placeholder="Select sex" /></SelectTrigger>
+                          <SelectTrigger><SelectValue placeholder="Selecione o sexo" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="male">Male</SelectItem>
-                          <SelectItem value="female">Female</SelectItem>
-                          <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem> {/* Changed value */}
+                          <SelectItem value="male">Masculino</SelectItem>
+                          <SelectItem value="female">Feminino</SelectItem>
+                          <SelectItem value="prefer_not_to_say">Prefiro não dizer</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -231,11 +269,11 @@ export function PersonalizedPlanForm() {
                 name="dietaryPreferences"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Dietary Preferences/Restrictions (Optional)</FormLabel>
+                    <FormLabel>Preferências/Restrições Alimentares (Opcional)</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="e.g., Vegetarian, vegan, no dairy, gluten allergy" {...field} rows={2} />
+                      <Textarea placeholder="Ex: Vegetariano, vegano, sem lactose, alergia a glúten" {...field} rows={2} />
                     </FormControl>
-                    <FormDescription>List any specific food preferences or allergies.</FormDescription>
+                    <FormDescription>Liste quaisquer preferências ou alergias específicas.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -245,12 +283,12 @@ export function PersonalizedPlanForm() {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating Your Hypertrophy Plan...
+                    Gerando seu Plano de Hipertrofia...
                   </>
                 ) : (
                   <>
                     <Wand2 className="mr-2 h-4 w-4" />
-                    Generate My Plan
+                    Gerar Meu Plano
                   </>
                 )}
               </Button>
@@ -262,7 +300,7 @@ export function PersonalizedPlanForm() {
       {error && (
         <Card className="border-destructive bg-destructive/10 shadow-lg">
           <CardHeader>
-            <CardTitle className="text-destructive">Error Generating Plan</CardTitle>
+            <CardTitle className="text-destructive">Erro ao Gerar Plano</CardTitle>
           </CardHeader>
           <CardContent>
             <p>{error}</p>
@@ -275,9 +313,13 @@ export function PersonalizedPlanForm() {
             <Card className="shadow-lg">
                 <CardHeader>
                     <CardTitle className="text-xl text-primary">
-                        <Dumbbell className="inline-block mr-2 h-5 w-5" /> Your Hypertrophy Training Plan
+                        <Dumbbell className="inline-block mr-2 h-5 w-5" /> Seu Plano de Treino para Hipertrofia
                     </CardTitle>
-                    <ShadCnCardDescription>{generatedPlan.trainingPlan.weeklySplitDescription}</ShadCnCardDescription>
+                    <ShadCnCardDescription>
+                        {generatedPlan.trainingPlan.weeklySplitDescription}
+                        <br />
+                        {generatedPlan.trainingPlan.weeklyVolumeSummary}
+                    </ShadCnCardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     {generatedPlan.trainingPlan.workouts.map((workoutDay, dayIndex) => (
@@ -286,51 +328,82 @@ export function PersonalizedPlanForm() {
                             <ul className="space-y-1 list-disc list-inside pl-2 text-sm">
                                 {workoutDay.exercises.map((ex, exIndex) => (
                                     <li key={exIndex}>
-                                        <strong>{ex.name}:</strong> {ex.sets} sets of {ex.reps} reps.
-                                        {ex.restSeconds && ` Rest: ${ex.restSeconds}s.`}
-                                        {ex.tempo && ` Tempo: ${ex.tempo}.`}
+                                        <strong>{ex.name}:</strong> {ex.sets} séries de {ex.reps} reps.
+                                        {ex.restSeconds && ` Descanso: ${ex.restSeconds}s.`}
+                                        {ex.tempo && ` Cadência: ${ex.tempo}.`}
                                         {ex.notes && <span className="block text-xs text-muted-foreground italic pl-4">- {ex.notes}</span>}
                                     </li>
                                 ))}
                             </ul>
                         </div>
                     ))}
-                    {generatedPlan.trainingPlan.notes && <p className="mt-4 text-sm text-muted-foreground italic"><strong>Training Notes:</strong> {generatedPlan.trainingPlan.notes}</p>}
+                    {generatedPlan.trainingPlan.notes && <p className="mt-4 text-sm text-muted-foreground italic"><strong>Notas do Treino:</strong> {generatedPlan.trainingPlan.notes}</p>}
                 </CardContent>
+                 <CardFooter>
+                    <Button onClick={handleSavePlan} variant="outline">
+                        <Save className="mr-2 h-4 w-4" /> Salvar Plano (Em Breve)
+                    </Button>
+                </CardFooter>
             </Card>
 
             <Card className="shadow-lg">
                 <CardHeader>
                     <CardTitle className="text-xl text-primary">
-                        <Utensils className="inline-block mr-2 h-5 w-5" /> Your Diet Guidance ({form.getValues('goalPhase')})
+                        <Utensils className="inline-block mr-2 h-5 w-5" /> Suas Diretrizes de Dieta ({form.getValues('goalPhase')})
                     </CardTitle>
-                     <ShadCnCardDescription>Daily Targets: ~{generatedPlan.dietGuidance.estimatedDailyCalories} kcal | P: {generatedPlan.dietGuidance.proteinGrams}g | C: {generatedPlan.dietGuidance.carbGrams}g | F: {generatedPlan.dietGuidance.fatGrams}g</ShadCnCardDescription>
+                     <ShadCnCardDescription>Metas Diárias: ~{generatedPlan.dietGuidance.estimatedDailyCalories} kcal | P: {generatedPlan.dietGuidance.proteinGrams}g | C: {generatedPlan.dietGuidance.carbGrams}g | F: {generatedPlan.dietGuidance.fatGrams}g</ShadCnCardDescription>
                 </CardHeader>
                 <CardContent>
-                    {generatedPlan.dietGuidance.mealExamples && generatedPlan.dietGuidance.mealExamples.length > 0 && (
+                    {generatedPlan.dietGuidance.mealStructureExamples && generatedPlan.dietGuidance.mealStructureExamples.length > 0 && (
                         <>
-                            <h4 className="font-semibold mb-2">Example Meal Ideas:</h4>
+                            <h4 className="font-semibold mb-2">Exemplos de Estrutura de Refeições:</h4>
                             <ul className="list-disc list-inside space-y-1 text-sm">
-                                {generatedPlan.dietGuidance.mealExamples.map((meal, mealIndex) => (
+                                {generatedPlan.dietGuidance.mealStructureExamples.map((meal, mealIndex) => (
                                     <li key={mealIndex}>{meal}</li>
                                 ))}
                             </ul>
                         </>
                     )}
-                    {generatedPlan.dietGuidance.notes && <p className="mt-4 text-sm text-muted-foreground italic"><strong>Diet Notes:</strong> {generatedPlan.dietGuidance.notes}</p>}
+                    {generatedPlan.dietGuidance.brazilianFoodSuggestions && generatedPlan.dietGuidance.brazilianFoodSuggestions.length > 0 && (
+                        <div className="mt-4">
+                            <h4 className="font-semibold mb-2">Sugestões de Alimentos Brasileiros Comuns:</h4>
+                            {generatedPlan.dietGuidance.brazilianFoodSuggestions.map((categoryItem, catIndex) =>(
+                                <div key={catIndex} className="mb-2">
+                                    <p className="text-sm font-medium">{categoryItem.category}:</p>
+                                    <ul className="list-disc list-inside pl-4 text-sm text-muted-foreground">
+                                        {categoryItem.suggestions.map((food, foodIndex) => (
+                                            <li key={foodIndex}>{food}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    {generatedPlan.dietGuidance.notes && <p className="mt-4 text-sm text-muted-foreground italic"><strong>Notas da Dieta:</strong> {generatedPlan.dietGuidance.notes}</p>}
                 </CardContent>
+                 <CardFooter>
+                    <Button onClick={handleSavePlan} variant="outline">
+                        <Save className="mr-2 h-4 w-4" /> Salvar Plano (Em Breve)
+                    </Button>
+                </CardFooter>
             </Card>
             
             <Card className="shadow-lg">
                 <CardHeader>
-                    <CardTitle className="text-xl text-primary">Plan Summary</CardTitle>
+                    <CardTitle className="text-xl text-primary">Resumo do Plano</CardTitle>
                 </CardHeader>
                 <CardContent className="prose prose-sm max-w-none dark:prose-invert">
                     <ReactMarkdown>{generatedPlan.overallSummary}</ReactMarkdown>
                 </CardContent>
+                 <CardFooter>
+                    <Button onClick={handleSavePlan} variant="default">
+                        <Save className="mr-2 h-4 w-4" /> Salvar Plano em Meu Perfil (Em Breve)
+                    </Button>
+                </CardFooter>
             </Card>
         </div>
       )}
     </div>
   );
 }
+
