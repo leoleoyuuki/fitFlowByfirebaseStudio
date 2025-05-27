@@ -14,7 +14,8 @@ import {
   updateProfile,
   type User as FirebaseUser
 } from 'firebase/auth';
-import { auth } from '@/lib/firebase'; // Import initialized auth
+import { auth, db } from '@/lib/firebase'; // Import initialized auth and db
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -33,18 +34,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
-        // For now, we'll assume 'free' tier. 
-        // In a real app, you'd fetch this from your database (e.g., Firestore).
-        const userProfile: UserProfile = {
-          id: firebaseUser.uid,
-          email: firebaseUser.email || "",
-          displayName: firebaseUser.displayName || undefined,
-          photoURL: firebaseUser.photoURL || undefined,
-          subscriptionTier: 'free', // Default or fetch from DB
-        };
-        setUser(userProfile);
+        try {
+          const userDocRef = doc(db, "users", firebaseUser.uid);
+          const userDocSnap = await getDoc(userDocRef);
+
+          let userProfileData: Partial<UserProfile> = {};
+          if (userDocSnap.exists()) {
+            userProfileData = userDocSnap.data() as UserProfile;
+          }
+          
+          const userProfile: UserProfile = {
+            id: firebaseUser.uid,
+            email: firebaseUser.email || "",
+            displayName: firebaseUser.displayName || userProfileData.displayName || undefined,
+            photoURL: firebaseUser.photoURL || userProfileData.photoURL || undefined,
+            subscriptionTier: userProfileData.subscriptionTier || 'free',
+            stripeCustomerId: userProfileData.stripeCustomerId || null,
+            stripeSubscriptionId: userProfileData.stripeSubscriptionId || null,
+            subscriptionStatus: userProfileData.subscriptionStatus || null,
+          };
+          setUser(userProfile);
+
+        } catch (error) {
+            console.error("Error fetching user profile from Firestore:", error);
+            // Fallback to basic profile if Firestore fetch fails
+            const userProfile: UserProfile = {
+                id: firebaseUser.uid,
+                email: firebaseUser.email || "",
+                displayName: firebaseUser.displayName || undefined,
+                photoURL: firebaseUser.photoURL || undefined,
+                subscriptionTier: 'free',
+            };
+            setUser(userProfile);
+        }
       } else {
         setUser(null);
       }
@@ -58,14 +82,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, pass);
-      // onAuthStateChanged will handle setting the user and redirecting
       toast({ title: "Login Successful", description: "Welcome back!" });
       router.push('/dashboard');
     } catch (error: any) {
       console.error("Login error:", error);
       toast({ title: "Login Failed", description: error.message || "Invalid email or password.", variant: "destructive" });
     } finally {
-      setLoading(false);
+      // setLoading(false); // onAuthStateChanged will set loading to false
     }
   };
 
@@ -75,25 +98,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
       if (userCredential.user) {
         await updateProfile(userCredential.user, { displayName: name });
-        // Manually update our local user state immediately after profile update
-        // as onAuthStateChanged might be slightly delayed or might not pick up displayName immediately.
-        const userProfile: UserProfile = {
+        
+        // Create user document in Firestore
+        const userDocRef = doc(db, "users", userCredential.user.uid);
+        const initialUserProfile: UserProfile = {
           id: userCredential.user.uid,
           email: userCredential.user.email || "",
           displayName: name,
           photoURL: userCredential.user.photoURL || undefined,
-          subscriptionTier: 'free', // New users start with free tier
+          subscriptionTier: 'free',
+          stripeCustomerId: null,
+          stripeSubscriptionId: null,
+          subscriptionStatus: null,
+          // createdAt: serverTimestamp(), // Add if you want to track creation time
         };
-        setUser(userProfile); // Update local state
+        await setDoc(userDocRef, {
+            ...initialUserProfile,
+            createdAt: serverTimestamp() // Add creation timestamp
+        });
+
+        setUser(initialUserProfile); // Update local state
       }
-      // onAuthStateChanged will also fire, but this ensures quicker UI update with displayName.
       toast({ title: "Signup Successful", description: "Welcome to FitFlow!" });
       router.push('/dashboard');
     } catch (error: any) {
       console.error("Signup error:", error);
       toast({ title: "Signup Failed", description: error.message || "Could not create account.", variant: "destructive" });
     } finally {
-      setLoading(false);
+      // setLoading(false); // onAuthStateChanged will set loading to false
     }
   };
 
@@ -101,14 +133,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     try {
       await firebaseSignOut(auth);
-      // onAuthStateChanged will handle setting user to null
       toast({ title: "Logged Out", description: "You have been successfully logged out." });
       router.push('/login');
     } catch (error: any) {
       console.error("Logout error:", error);
       toast({ title: "Logout Failed", description: error.message || "Could not log out.", variant: "destructive" });
     } finally {
-      setLoading(false);
+      // setLoading(false); // onAuthStateChanged will set user to null and loading to false
     }
   };
 
@@ -126,3 +157,4 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
+

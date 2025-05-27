@@ -15,7 +15,10 @@ export interface UserProfile {
   email: string;
   displayName?: string;
   photoURL?: string;
-  subscriptionTier?: 'free' | 'hypertrophy'; // Updated subscription tiers
+  subscriptionTier?: 'free' | 'hypertrophy';
+  stripeCustomerId?: string | null;
+  stripeSubscriptionId?: string | null;
+  subscriptionStatus?: 'active' | 'canceled' | 'past_due' | null;
 }
 
 export interface Workout {
@@ -60,3 +63,4 @@ export interface ProgressLog {
   notes?: string;
   // Could add RPE (Rate of Perceived Exertion) or other hypertrophy metrics
 }
+
