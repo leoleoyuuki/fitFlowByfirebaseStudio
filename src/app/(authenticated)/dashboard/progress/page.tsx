@@ -74,10 +74,10 @@ export default function ProgressPage() {
       fetchUserLogs();
     } else if (user && (user.subscriptionTier !== 'hypertrophy' || user.subscriptionStatus !== 'active')) {
       setLogs([]);
-      setIsLoadingLogs(false); // Not subscribed, no logs to load or show error for
+      setIsLoadingLogs(false); 
     } else if (!user) {
         setLogs([]);
-        setIsLoadingLogs(false); // Not logged in
+        setIsLoadingLogs(false); 
     }
   }, [user, authLoading]);
 
@@ -89,32 +89,54 @@ export default function ProgressPage() {
     
     const exerciseName = MOCK_EXERCISES.find(ex => ex.id === logData.exerciseId)?.name || "Unknown Exercise";
     
-    setIsLoadingLogs(true); // Use general loading state or a specific one for submissions
+    // setIsLoadingLogs(true); // This can be managed more granularly or by fetchUserLogs
+
+    const baseData = {
+      userId: user.id,
+      exerciseId: logData.exerciseId,
+      exerciseName,
+      date: new Date(logData.date).toISOString(),
+      sets: logData.sets,
+      reps: logData.reps,
+    };
+
+    const optionalData: Partial<Pick<ProgressLog, 'weight' | 'duration' | 'notes'>> = {};
+
+    if (typeof logData.weight === 'number' && !isNaN(logData.weight)) {
+      optionalData.weight = logData.weight;
+    }
+    if (typeof logData.duration === 'number' && !isNaN(logData.duration)) {
+      optionalData.duration = logData.duration;
+    }
+    if (typeof logData.notes === 'string' && logData.notes.trim() !== "") {
+      // Ensure notes is not just an empty string if it was optional and not filled
+      optionalData.notes = logData.notes.trim();
+    } else if (logData.notes === undefined && editingLog && editingLog.notes !== undefined) {
+        // If notes was explicitly cleared (became undefined from form) and we are editing, 
+        // we might want to set it to null or delete it from Firestore if that's the desired behavior
+        // For now, we'll just not include it if it's undefined or empty after trim.
+    }
+
+
+    const dataToSave = { ...baseData, ...optionalData };
+
+    console.log("Data being sent to Firestore:", JSON.stringify(dataToSave, null, 2)); // DEBUG LOG
+
     try {
       if (editingLog) {
         const logRef = doc(db, "userProgressLogs", editingLog.id);
-        await updateDoc(logRef, { 
-            ...logData, 
-            userId: user.id, 
-            exerciseName,
-            date: new Date(logData.date).toISOString() // Ensure date is ISO string
-        });
+        await updateDoc(logRef, dataToSave);
       } else {
-        await addDoc(collection(db, "userProgressLogs"), { 
-            ...logData, 
-            userId: user.id, 
-            exerciseName,
-            date: new Date(logData.date).toISOString() // Ensure date is ISO string
-        });
+        await addDoc(collection(db, "userProgressLogs"), dataToSave);
       }
       setEditingLog(undefined);
       setShowFormDialog(false);
-      await fetchUserLogs(); // Re-fetch logs to show the new/updated one
-    } catch (err) {
+      await fetchUserLogs(); 
+    } catch (err: any) {
       console.error("Error submitting log:", err);
-      setErrorLogs("Failed to save log. Please try again.");
+      setErrorLogs(`Failed to save log: ${err.message}. Please try again.`);
     } finally {
-       // setIsLoadingLogs(false); // fetchUserLogs will handle this
+       // setIsLoadingLogs(false); // fetchUserLogs will set this
     }
   };
 
@@ -125,17 +147,17 @@ export default function ProgressPage() {
 
   const confirmDeleteLog = async () => {
     if (!logToDeleteId) return;
-    setIsLoadingLogs(true);
+    // setIsLoadingLogs(true);
     try {
       const logRef = doc(db, "userProgressLogs", logToDeleteId);
       await deleteDoc(logRef);
       setLogToDeleteId(null);
-      await fetchUserLogs(); // Re-fetch logs
-    } catch (err) {
+      await fetchUserLogs(); 
+    } catch (err: any) {
       console.error("Error deleting log:", err);
       setErrorLogs("Failed to delete log. Please try again.");
     } finally {
-      // setIsLoadingLogs(false); // fetchUserLogs will handle this
+      // setIsLoadingLogs(false);
     }
   };
   
@@ -144,8 +166,10 @@ export default function ProgressPage() {
     const exercisesData: Record<string, { exerciseName: string; data: Array<{ date: string; weight?: number; reps?: number; originalDate: Date }> }> = {};
 
     logs.forEach(log => {
-        // Ensure log.weight is a number before trying to chart it
-        if (!log.exerciseId || typeof log.weight !== 'number') return; 
+        if (!log.exerciseId) return; 
+
+        const weight = typeof log.weight === 'number' && !isNaN(log.weight) ? log.weight : undefined;
+        const reps = typeof log.reps === 'number' && !isNaN(log.reps) ? log.reps : undefined;
 
         if (!exercisesData[log.exerciseId]) {
             exercisesData[log.exerciseId] = {
@@ -153,19 +177,23 @@ export default function ProgressPage() {
                 data: [],
             };
         }
-        exercisesData[log.exerciseId].data.push({
-            date: log.date, // Keep ISO string for originalDate reference
-            weight: log.weight,
-            reps: log.reps,
-            originalDate: new Date(log.date),
-        });
+        
+        // Only add to chart data if there's a weight, as that's the primary y-axis focus for these charts
+        if (weight !== undefined) {
+            exercisesData[log.exerciseId].data.push({
+                date: log.date, 
+                weight: weight,
+                reps: reps, // Include reps if available
+                originalDate: new Date(log.date),
+            });
+        }
     });
 
     for (const exId in exercisesData) {
         exercisesData[exId].data = exercisesData[exId].data
             .sort((a, b) => a.originalDate.getTime() - b.originalDate.getTime())
-            .slice(-10) // Take last 10 logs
-            .map(d => ({ ...d, date: format(d.originalDate, "MMM d") })); // Format date for XAxis display
+            .slice(-10) 
+            .map(d => ({ ...d, date: format(d.originalDate, "MMM d") })); 
     }
     return exercisesData;
   }, [logs]);
@@ -185,7 +213,7 @@ export default function ProgressPage() {
   }
   
   const renderContent = () => {
-    if (isLoadingLogs && logs.length === 0) { // Initial load
+    if (isLoadingLogs && logs.length === 0) { 
       return (
         <div className="flex flex-col items-center justify-center space-y-4 py-12">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -193,8 +221,8 @@ export default function ProgressPage() {
         </div>
       );
     }
-    if (errorLogs) {
-      return <p className="text-destructive text-center">{errorLogs}</p>;
+    if (errorLogs && !isLoadingLogs) { // Only show error if not currently loading
+      return <p className="text-destructive text-center py-4">{errorLogs}</p>;
     }
     if (logs.length === 0 && !isLoadingLogs) {
       return (
@@ -221,7 +249,7 @@ export default function ProgressPage() {
             <CardDescription>Um registro dos seus treinos completados.</CardDescription>
           </CardHeader>
           <CardContent>
-            {isLoadingLogs && logs.length > 0 && <p className="text-sm text-muted-foreground text-center py-2">Atualizando logs... <Loader2 className="inline-block h-4 w-4 animate-spin" /></p>}
+            {isLoadingLogs && logs.length > 0 && <div className="flex items-center justify-center py-2 text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Atualizando logs...</div>}
             <Table>
               <TableHeader>
                 <TableRow>
@@ -240,7 +268,7 @@ export default function ProgressPage() {
                     <TableCell className="font-medium">{log.exerciseName}</TableCell>
                     <TableCell className="text-center">{log.sets}</TableCell>
                     <TableCell className="text-center">{log.reps}</TableCell>
-                    <TableCell className="text-center">{log.weight ?? "-"}</TableCell>
+                    <TableCell className="text-center">{typeof log.weight === 'number' ? log.weight : "-"}</TableCell>
                     <TableCell className="text-right space-x-2">
                       <Button variant="ghost" size="icon" onClick={() => handleEditLog(log)}>
                         <Edit className="h-4 w-4" />
@@ -277,21 +305,21 @@ export default function ProgressPage() {
         </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-          {Object.entries(groupedChartData).map(([exerciseId, chartInfo]) => (
-            chartInfo.data.length > 0 && (
+          {Object.keys(groupedChartData).length > 0 ? Object.entries(groupedChartData).map(([exerciseId, chartInfo]) => (
+            chartInfo.data.length > 0 && ( // Ensure there's data to plot for this exercise
               <Card key={exerciseId}>
                 <CardHeader>
-                  <CardTitle>{chartInfo.exerciseName} - Progresso (Peso)</CardTitle>
-                  <CardDescription>Últimas {chartInfo.data.length} sessões registradas.</CardDescription>
+                  <CardTitle>{chartInfo.exerciseName} - Progresso (Peso & Reps)</CardTitle>
+                  <CardDescription>Últimas {chartInfo.data.length} sessões registradas com peso.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ChartContainer config={chartConfigBase} className="h-[300px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={chartInfo.data} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
+                      <BarChart data={chartInfo.data} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
                         <XAxis dataKey="date" tickLine={false} axisLine={false} />
-                        <YAxis yAxisId="left" dataKey="weight" orientation="left" stroke="hsl(var(--primary))" tickLine={false} axisLine={false} name="Peso (kg)" />
-                        <YAxis yAxisId="right" dataKey="reps" orientation="right" stroke="hsl(var(--accent))" tickLine={false} axisLine={false} name="Reps" />
+                        <YAxis yAxisId="left" dataKey="weight" orientation="left" stroke="hsl(var(--primary))" tickLine={false} axisLine={false} name="Peso (kg)" domain={['auto', 'auto']}/>
+                        <YAxis yAxisId="right" dataKey="reps" orientation="right" stroke="hsl(var(--accent))" tickLine={false} axisLine={false} name="Reps" domain={['auto', 'auto']}/>
                         <ChartTooltip content={<ChartTooltipContent />} />
                         <ChartLegend content={<ChartLegendContent />} />
                         <Bar yAxisId="left" dataKey="weight" fill="var(--color-weight)" radius={4} name="Peso (kg)" />
@@ -302,11 +330,12 @@ export default function ProgressPage() {
                 </CardContent>
               </Card>
             )
-          ))}
+          )) : ( logs.length > 0 && !isLoadingLogs &&
+            <div className="lg:col-span-2 text-center text-muted-foreground mt-8">
+                Nenhum dado de progressão de peso para exibir nos gráficos. Registre treinos com peso para ver os gráficos.
+            </div>
+          )}
         </div>
-        {Object.keys(groupedChartData).length === 0 && logs.length > 0 && !isLoadingLogs && (
-            <p className="text-center text-muted-foreground mt-8">Nenhum dado de progressão de peso para exibir nos gráficos. Registre treinos com peso para ver os gráficos.</p>
-        )}
       </>
     );
   };
@@ -335,8 +364,10 @@ export default function ProgressPage() {
                 onLogAdded={handleLogSubmit} 
                 existingLog={editingLog ? {
                     ...editingLog,
-                    // Ensure date is passed as Date object to form if stored as ISO string
-                    date: editingLog.date ? new Date(editingLog.date) : new Date() 
+                    date: editingLog.date ? new Date(editingLog.date) : new Date(),
+                    weight: editingLog.weight ?? undefined,
+                    duration: editingLog.duration ?? undefined,
+                    notes: editingLog.notes ?? "",
                 } : undefined} 
             />
           </DialogContent>
@@ -346,3 +377,4 @@ export default function ProgressPage() {
     </div>
   );
 }
+
