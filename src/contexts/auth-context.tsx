@@ -14,7 +14,7 @@ import {
   updateProfile,
   type User as FirebaseUser
 } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase'; // Import initialized auth and db
+import { auth, db } from '@/lib/firebase';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 interface AuthContextType {
@@ -58,8 +58,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUser(userProfile);
 
         } catch (error) {
-            console.error("Error fetching user profile from Firestore:", error);
-            // Fallback to basic profile if Firestore fetch fails
+            console.error("Erro ao buscar perfil do usuário no Firestore:", error);
             const userProfile: UserProfile = {
                 id: firebaseUser.uid,
                 email: firebaseUser.email || "",
@@ -82,13 +81,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, pass);
-      toast({ title: "Login Successful", description: "Welcome back!" });
+      toast({ title: "Login Efetuado", description: "Bem-vindo de volta!" });
       router.push('/dashboard');
     } catch (error: any) {
-      console.error("Login error:", error);
-      toast({ title: "Login Failed", description: error.message || "Invalid email or password.", variant: "destructive" });
-    } finally {
-      // setLoading(false); // onAuthStateChanged will set loading to false
+      console.error("Erro no login:", error);
+      toast({ title: "Falha no Login", description: error.message || "E-mail ou senha inválidos.", variant: "destructive" });
+      setLoading(false); // Explicitly set loading false on error
     }
   };
 
@@ -99,7 +97,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (userCredential.user) {
         await updateProfile(userCredential.user, { displayName: name });
         
-        // Create user document in Firestore
         const userDocRef = doc(db, "users", userCredential.user.uid);
         const initialUserProfile: UserProfile = {
           id: userCredential.user.uid,
@@ -110,22 +107,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           stripeCustomerId: null,
           stripeSubscriptionId: null,
           subscriptionStatus: null,
-          // createdAt: serverTimestamp(), // Add if you want to track creation time
         };
         await setDoc(userDocRef, {
             ...initialUserProfile,
-            createdAt: serverTimestamp() // Add creation timestamp
+            createdAt: serverTimestamp()
         });
 
-        setUser(initialUserProfile); // Update local state
+        setUser(initialUserProfile);
       }
-      toast({ title: "Signup Successful", description: "Welcome to FitFlow!" });
+      toast({ title: "Cadastro Realizado", description: "Bem-vindo ao FitFlow!" });
       router.push('/dashboard');
     } catch (error: any) {
-      console.error("Signup error:", error);
-      toast({ title: "Signup Failed", description: error.message || "Could not create account.", variant: "destructive" });
-    } finally {
-      // setLoading(false); // onAuthStateChanged will set loading to false
+      console.error("Erro no cadastro:", error);
+      toast({ title: "Falha no Cadastro", description: error.message || "Não foi possível criar a conta.", variant: "destructive" });
+      setLoading(false); // Explicitly set loading false on error
     }
   };
 
@@ -133,13 +128,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     try {
       await firebaseSignOut(auth);
-      toast({ title: "Logged Out", description: "You have been successfully logged out." });
+      toast({ title: "Logout Efetuado", description: "Você foi desconectado com sucesso." });
       router.push('/login');
     } catch (error: any) {
-      console.error("Logout error:", error);
-      toast({ title: "Logout Failed", description: error.message || "Could not log out.", variant: "destructive" });
-    } finally {
-      // setLoading(false); // onAuthStateChanged will set user to null and loading to false
+      console.error("Erro no logout:", error);
+      toast({ title: "Falha no Logout", description: error.message || "Não foi possível desconectar.", variant: "destructive" });
+      setLoading(false); // Explicitly set loading false on error
     }
   };
 
@@ -153,7 +147,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 export const useAuth = (): AuthContextType => {
   const context = React.useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error('useAuth deve ser usado dentro de um AuthProvider');
   }
   return context;
 };

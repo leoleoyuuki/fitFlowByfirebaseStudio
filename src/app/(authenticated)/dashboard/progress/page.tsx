@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { PlusCircle, Edit, Trash2, BarChartHorizontalBig, Loader2 } from "lucide-react";
 import {
   ChartContainer,
@@ -21,11 +22,11 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useAuth } from "@/contexts/auth-context";
 import { SubscriptionRequiredBlock } from "@/components/app/subscription-required-block";
 import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc, Timestamp } from "firebase/firestore"; // Removed orderBy
-import { MOCK_EXERCISES } from "@/lib/constants"; // Keep for exercise names if not stored in log
+import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc, Timestamp } from "firebase/firestore";
+import { MOCK_EXERCISES } from "@/lib/constants"; 
 
 const chartConfigBase = {
-  weight: { label: "Weight (kg)", color: "hsl(var(--primary))" },
+  weight: { label: "Peso (kg)", color: "hsl(var(--primary))" },
   reps: { label: "Reps", color: "hsl(var(--accent))" },
 };
 
@@ -46,12 +47,10 @@ export default function ProgressPage() {
     setErrorLogs(null);
     try {
       const logsCollectionRef = collection(db, "userProgressLogs");
-      // Removed orderBy("date", "desc") from the query
       const q = query(logsCollectionRef, where("userId", "==", user.id));
       const querySnapshot = await getDocs(q);
       let fetchedLogs = querySnapshot.docs.map(docSnap => {
         const data = docSnap.data();
-        // Ensure date is a string; Firestore Timestamps need to be converted
         const dateString = data.date instanceof Timestamp ? data.date.toDate().toISOString() : data.date;
         return {
           id: docSnap.id,
@@ -59,11 +58,10 @@ export default function ProgressPage() {
           date: dateString,
          } as ProgressLog;
       });
-      // Client-side sorting (descending by date)
       fetchedLogs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       setLogs(fetchedLogs);
     } catch (err: any) {
-      console.error("Error fetching progress logs:", err);
+      console.error("Erro ao buscar logs de progresso:", err);
       if (err.code === 'failed-precondition' && err.message.includes('index')) {
         setErrorLogs("O banco de dados requer um índice para esta consulta. Por favor, crie o índice no console do Firebase ou aguarde a propagação se já foi criado. Detalhes do erro: " + err.message);
       } else {
@@ -94,7 +92,7 @@ export default function ProgressPage() {
       return;
     }
 
-    const exerciseName = MOCK_EXERCISES.find(ex => ex.id === logData.exerciseId)?.name || "Unknown Exercise";
+    const exerciseName = MOCK_EXERCISES.find(ex => ex.id === logData.exerciseId)?.name || "Exercício Desconhecido";
 
     const baseData = {
       userId: user.id,
@@ -118,7 +116,7 @@ export default function ProgressPage() {
     }
 
     const dataToSave = { ...baseData, ...optionalData };
-    console.log("Data being sent to Firestore:", JSON.stringify(dataToSave, null, 2)); // DEBUG LOG
+    console.log("Dados enviados para o Firestore:", JSON.stringify(dataToSave, null, 2)); 
 
     try {
       if (editingLog) {
@@ -131,7 +129,7 @@ export default function ProgressPage() {
       setShowFormDialog(false);
       await fetchUserLogs();
     } catch (err: any) {
-      console.error("Error submitting log:", err);
+      console.error("Erro ao submeter log:", err);
       setErrorLogs(`Falha ao salvar log: ${err.message}. Tente novamente.`);
     }
   };
@@ -149,7 +147,7 @@ export default function ProgressPage() {
       setLogToDeleteId(null);
       await fetchUserLogs();
     } catch (err: any) {
-      console.error("Error deleting log:", err);
+      console.error("Erro ao deletar log:", err);
       setErrorLogs("Falha ao deletar log. Tente novamente.");
     }
   };
@@ -185,7 +183,7 @@ export default function ProgressPage() {
         exercisesData[exId].data = exercisesData[exId].data
             .sort((a, b) => a.originalDate.getTime() - b.originalDate.getTime())
             .slice(-10)
-            .map(d => ({ ...d, date: format(d.originalDate, "MMM d") }));
+            .map(d => ({ ...d, date: format(d.originalDate, "d MMM", { locale: ptBR }) }));
     }
     return exercisesData;
   }, [logs]);
@@ -256,7 +254,7 @@ export default function ProgressPage() {
               <TableBody>
                 {logs.map((log) => (
                   <TableRow key={log.id}>
-                    <TableCell>{format(new Date(log.date), "MMM d, yyyy")}</TableCell>
+                    <TableCell>{format(new Date(log.date), "d MMM, yyyy", { locale: ptBR })}</TableCell>
                     <TableCell className="font-medium">{log.exerciseName}</TableCell>
                     <TableCell className="text-center">{log.sets}</TableCell>
                     <TableCell className="text-center">{log.reps}</TableCell>

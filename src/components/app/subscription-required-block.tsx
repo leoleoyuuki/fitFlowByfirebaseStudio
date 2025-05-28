@@ -17,7 +17,7 @@ export function SubscriptionRequiredBlock({ featureName = "esta funcionalidade" 
         <Lock className="mx-auto h-12 w-12 text-primary mb-4" />
         <CardTitle className="text-2xl">Assinatura Necessária</CardTitle>
         <CardDescription>
-          Para acessar {featureName}, você precisa de uma assinatura FitFlow Hypertrophy ativa.
+          Para acessar {featureName}, você precisa de uma assinatura FitFlow Hipertrofia ativa.
         </CardDescription>
       </CardHeader>
       <CardContent className="text-center">
@@ -35,3 +35,4 @@ export function SubscriptionRequiredBlock({ featureName = "esta funcionalidade" 
     </Card>
   );
 }
+

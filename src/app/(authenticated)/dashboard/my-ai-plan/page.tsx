@@ -49,7 +49,7 @@ export default function MyAiPlanPage() {
             setPlanData(null);
           }
         } catch (err: any) {
-          console.error("Error fetching plan details:", err);
+          console.error("Erro ao buscar detalhes do plano:", err);
           setError("Falha ao carregar os detalhes do plano. Tente novamente.");
         } finally {
           setIsLoading(false);
@@ -131,7 +131,7 @@ export default function MyAiPlanPage() {
                             {workoutDay.exercises.map((ex, exIndex) => (
                                 <li key={exIndex} className="mb-1">
                                     <strong className="font-medium">{ex.name}:</strong> {ex.sets} séries de {ex.reps} reps.
-                                    {ex.restSeconds && <span className="text-muted-foreground"> Descanso: {ex.restSeconds}s.</span>}
+                                    {ex.restSeconds && <span className="text-muted-foreground"> Descanso: {ex.restSeconds / 60} min.</span>}
                                     {ex.notes && <p className="block text-xs text-muted-foreground italic pl-5">- {ex.notes}</p>}
                                 </li>
                             ))}
@@ -197,3 +197,4 @@ export default function MyAiPlanPage() {
     </div>
   );
 }
+

@@ -15,23 +15,23 @@ export default function DashboardPage() {
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Welcome back, {user?.displayName || "Lifter"}!</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Bem-vindo de volta, {user?.displayName || "Maromba"}!</h1>
           <p className="text-muted-foreground">
             {isSubscribed 
-              ? "Ready to optimize your hypertrophy journey?" 
-              : "Unlock your full potential with our Hypertrophy plan."}
+              ? "Pronto para otimizar sua jornada de hipertrofia?" 
+              : "Desbloqueie seu potencial máximo com nosso plano Hipertrofia."}
           </p>
         </div>
         {isSubscribed ? (
           <Button asChild>
             <Link href="/dashboard/personalized-plan">
-              <Brain className="mr-2 h-4 w-4" /> Get Your AI Hypertrophy Plan
+              <Brain className="mr-2 h-4 w-4" /> Obtenha Seu Plano de Hipertrofia com IA
             </Link>
           </Button>
         ) : (
           <Button asChild>
             <Link href="/subscribe">
-              <Gift className="mr-2 h-4 w-4" /> Subscribe to FitFlow Hypertrophy
+              <Gift className="mr-2 h-4 w-4" /> Assine o FitFlow Hipertrofia
             </Link>
           </Button>
         )}
@@ -40,19 +40,19 @@ export default function DashboardPage() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card className="shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Current Training Plan</CardTitle>
+            <CardTitle className="text-sm font-medium">Plano de Treino Atual</CardTitle>
             <Dumbbell className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {isSubscribed ? "Hypertrophy Focus" : "Plan Locked"}
+              {isSubscribed ? "Foco em Hipertrofia" : "Plano Bloqueado"}
             </div>
             <p className="text-xs text-muted-foreground">
-              {isSubscribed ? "Based on your AI-generated plan" : "Subscribe to unlock your AI plan"}
+              {isSubscribed ? "Baseado no seu plano gerado por IA" : "Assine para desbloquear seu plano IA"}
             </p>
             <Button variant="outline" size="sm" className="mt-4" asChild disabled={!isSubscribed}>
               <Link href={isSubscribed ? "/dashboard/workouts" : "/subscribe"}>
-                {isSubscribed ? "View My Plan" : "View Plan (Locked)"}
+                {isSubscribed ? "Ver Meu Plano" : "Ver Plano (Bloqueado)"}
               </Link>
             </Button>
           </CardContent>
@@ -60,19 +60,19 @@ export default function DashboardPage() {
 
         <Card className="shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Logged Lifts</CardTitle>
+            <CardTitle className="text-sm font-medium">Levantamentos Registrados</CardTitle>
             <Activity className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-                {isSubscribed ? "12 Logged" : "Progress Locked"}
+                {isSubscribed ? "12 Registrados" : "Progresso Bloqueado"}
             </div>
             <p className="text-xs text-muted-foreground">
-                {isSubscribed ? "Exercises tracked this week" : "Subscribe to log progress"}
+                {isSubscribed ? "Exercícios acompanhados esta semana" : "Assine para registrar o progresso"}
             </p>
              <Button variant="outline" size="sm" className="mt-4" asChild disabled={!isSubscribed}>
               <Link href={isSubscribed ? "/dashboard/progress" : "/subscribe"}>
-                {isSubscribed ? "Track Progress" : "Log Progress (Locked)"}
+                {isSubscribed ? "Registrar Progresso" : "Registrar Progresso (Bloqueado)"}
               </Link>
             </Button>
           </CardContent>
@@ -80,19 +80,19 @@ export default function DashboardPage() {
 
         <Card className="shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Next Strength Goal</CardTitle>
+            <CardTitle className="text-sm font-medium">Próxima Meta de Força</CardTitle>
             <LineChart className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-                {isSubscribed ? "Bench Press 85kg x 5" : "Goals Locked"}
+                {isSubscribed ? "Supino 85kg x 5" : "Metas Bloqueadas"}
             </div>
             <p className="text-xs text-muted-foreground">
-                {isSubscribed ? "Target for progressive overload" : "Subscribe to set & track goals"}
+                {isSubscribed ? "Alvo para sobrecarga progressiva" : "Assine para definir e acompanhar metas"}
             </p>
              <Button variant="outline" size="sm" className="mt-4" asChild disabled={!isSubscribed}>
               <Link href={isSubscribed ? "/dashboard/progress" : "/subscribe"}>
-                {isSubscribed ? "Set & Track Goals" : "Goals (Locked)"}
+                {isSubscribed ? "Definir & Acompanhar Metas" : "Metas (Bloqueado)"}
               </Link>
             </Button>
           </CardContent>
@@ -102,26 +102,26 @@ export default function DashboardPage() {
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center">
-            <Utensils className="mr-2 h-5 w-5 text-primary" /> Your Hypertrophy Tip of the Day
+            <Utensils className="mr-2 h-5 w-5 text-primary" /> Sua Dica de Hipertrofia do Dia
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col md:flex-row items-center gap-6">
           <Image 
             src="https://placehold.co/300x200.png" 
-            alt="Hypertrophy Tip" 
+            alt="Dica de Hipertrofia" 
             width={300} 
             height={200} 
             className="rounded-lg object-cover"
             data-ai-hint="muscle growth nutrition" 
           />
           <div>
-            <p className="text-lg font-semibold mb-2">Protein Pacing for Muscle Growth!</p>
+            <p className="text-lg font-semibold mb-2">Distribuição de Proteína para Ganho Muscular!</p>
             <p className="text-muted-foreground">
-              For optimal muscle protein synthesis (MPS), aim to distribute your daily protein intake evenly across 4-5 meals/snacks. Consuming 20-40g of high-quality protein per meal can significantly enhance recovery and hypertrophy.
+              Para otimizar a síntese de proteína muscular (MPS), distribua sua ingestão diária de proteína uniformemente em 4-5 refeições/lanches. Consumir 20-40g de proteína de alta qualidade por refeição pode melhorar significativamente a recuperação e a hipertrofia.
             </p>
             {!isSubscribed && (
                 <p className="text-sm text-primary mt-3">
-                    <Link href="/subscribe" className="underline hover:text-primary/80">Subscribe to FitFlow Hypertrophy</Link> for AI-driven diet plans tailored to your protein needs!
+                    <Link href="/subscribe" className="underline hover:text-primary/80">Assine o FitFlow Hipertrofia</Link> para planos de dieta orientados por IA e adaptados às suas necessidades de proteína!
                 </p>
             )}
           </div>
@@ -130,3 +130,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+

@@ -15,7 +15,7 @@ const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
   : null;
 if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
-    console.warn("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is not set. Stripe functionality will be limited.");
+    console.warn("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY não está definido. A funcionalidade do Stripe será limitada.");
 }
 
 export default function SubscribePage() {
@@ -27,16 +27,16 @@ export default function SubscribePage() {
 
   useEffect(() => {
     if (!stripePromise && process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) { 
-      console.error("Stripe.js failed to load, even though a key is present. Check network or Stripe status.");
+      console.error("Stripe.js falhou ao carregar, mesmo com uma chave presente. Verifique a rede ou o status do Stripe.");
        toast({
-        title: "Payment System Error",
-        description: "Could not initialize payment system. Please try again later.",
+        title: "Erro no Sistema de Pagamento",
+        description: "Não foi possível inicializar o sistema de pagamento. Por favor, tente novamente mais tarde.",
         variant: "destructive",
       });
-    } else if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY && MOCK_SUBSCRIPTION_PLANS.some(p => p.id !== 'free')) { // Only warn if there are paid plans
+    } else if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY && MOCK_SUBSCRIPTION_PLANS.some(p => p.id !== 'free')) {
          toast({
-            title: "Configuration Error",
-            description: "Stripe payments are not configured correctly for paid plans.",
+            title: "Erro de Configuração",
+            description: "Os pagamentos Stripe não estão configurados corretamente para planos pagos.",
             variant: "destructive",
         });
     }
@@ -48,16 +48,16 @@ export default function SubscribePage() {
     
     if (success) {
       toast({
-        title: "Subscription Successful!",
-        description: "Your FitFlow Hypertrophy plan is now active. Let's build some muscle!",
+        title: "Assinatura Realizada com Sucesso!",
+        description: "Seu plano FitFlow Hipertrofia está ativo. Vamos construir músculos!",
       });
       if (user) router.push("/dashboard");
     }
 
     if (canceled) {
       toast({
-        title: "Subscription Canceled",
-        description: "Your subscription process was canceled. You can try again anytime.",
+        title: "Assinatura Cancelada",
+        description: "O processo de assinatura foi cancelado. Você pode tentar novamente a qualquer momento.",
         variant: "destructive",
       });
     }
@@ -67,7 +67,6 @@ export default function SubscribePage() {
         current.delete('success');
         current.delete('canceled');
         current.delete('session_id');
-        // Use replace to avoid adding to history if already on /subscribe
         const newPath = `/subscribe?${current.toString()}`;
         if (window.location.pathname + window.location.search !== newPath) {
             router.replace(newPath);
@@ -82,22 +81,19 @@ export default function SubscribePage() {
 
     if (plan.id === 'free') {
         toast({
-            title: "Switched to Basic Plan",
-            description: "You are now on the FitFlow Basic plan.",
+            title: "Mudou para o Plano Básico",
+            description: "Você agora está no plano FitFlow Básico.",
         });
         if (user) {
-            // Mock update for free plan
-            const updatedUser = { ...user, subscriptionTier: 'free' as 'free' | 'hypertrophy' };
-            localStorage.setItem('fitflowUser', JSON.stringify(updatedUser));
-             // TODO: Force AuthContext update or API call if backend manages this
+            // TODO: Implementar lógica de atualização do plano do usuário para gratuito no backend
         }
         return;
     }
 
     if (!user) {
       toast({
-        title: "Login Required",
-        description: "Please log in or sign up to subscribe to the Hypertrophy plan.",
+        title: "Login Necessário",
+        description: "Por favor, faça login ou cadastre-se para assinar o plano Hipertrofia.",
         variant: "destructive",
       });
       router.push(`/login?redirect=/subscribe&planId=${planId}`);
@@ -106,8 +102,8 @@ export default function SubscribePage() {
 
     if (!stripePromise || !plan.stripePriceId) {
       toast({
-        title: "Payment Error",
-        description: "Stripe is not configured, the plan has no price ID, or failed to load. Please contact support.",
+        title: "Erro de Pagamento",
+        description: "Stripe não configurado, o plano não tem ID de preço, ou falhou ao carregar. Contate o suporte.",
         variant: "destructive",
       });
       return;
@@ -125,31 +121,31 @@ export default function SubscribePage() {
       const data = await response.json();
 
       if (!response.ok || data.error) {
-        throw new Error(data.error || 'Failed to initiate subscription.');
+        throw new Error(data.error || 'Falha ao iniciar a assinatura.');
       }
 
       const stripe = await stripePromise;
       if (!stripe) {
-        throw new Error('Stripe.js failed to load.');
+        throw new Error('Stripe.js falhou ao carregar.');
       }
       
-      console.log("Attempting to redirect to Stripe Checkout with Session ID:", data.sessionId);
+      console.log("Tentando redirecionar para o Stripe Checkout com o ID da Sessão:", data.sessionId);
 
       const { error: stripeError } = await stripe.redirectToCheckout({ sessionId: data.sessionId });
 
       if (stripeError) {
-        console.error("Stripe redirect error:", stripeError);
+        console.error("Erro de redirecionamento do Stripe:", stripeError);
         toast({
-          title: "Payment Error",
-          description: stripeError.message || "Could not redirect to Stripe. Please try again.",
+          title: "Erro de Pagamento",
+          description: stripeError.message || "Não foi possível redirecionar para o Stripe. Tente novamente.",
           variant: "destructive",
         });
       }
     } catch (error: any) {
-      console.error("Subscription error:", error);
+      console.error("Erro na assinatura:", error);
       toast({
-        title: "Subscription Failed",
-        description: error.message || "An unexpected error occurred.",
+        title: "Falha na Assinatura",
+        description: error.message || "Ocorreu um erro inesperado.",
         variant: "destructive",
       });
     } finally {
@@ -161,10 +157,10 @@ export default function SubscribePage() {
     <div className="container mx-auto px-4 py-12 md:py-16">
       <div className="text-center mb-12">
         <h1 className="text-4xl font-extrabold tracking-tight text-primary sm:text-5xl">
-          Choose Your FitFlow Hypertrophy Plan
+          Escolha Seu Plano FitFlow Hipertrofia
         </h1>
         <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground sm:text-xl">
-          Unlock AI-powered, science-based training and nutrition for serious muscle growth.
+          Desbloqueie treinos e nutrição baseados em ciência e IA para um crescimento muscular sério.
         </p>
       </div>
 
@@ -175,7 +171,7 @@ export default function SubscribePage() {
                {plan.id === 'hypertrophy' && <Zap className="h-8 w-8 text-accent mx-auto mb-2" />}
               <CardTitle className="text-2xl font-semibold text-primary">{plan.name}</CardTitle>
               <CardDescription className="text-4xl font-bold text-foreground mt-2">{plan.price}</CardDescription>
-              {plan.id === 'hypertrophy' && <p className="text-sm font-medium text-accent">Full Power</p>}
+              {plan.id === 'hypertrophy' && <p className="text-sm font-medium text-accent">Potência Total</p>}
             </CardHeader>
             <CardContent className="flex-grow">
               <ul className="space-y-3">
@@ -196,17 +192,17 @@ export default function SubscribePage() {
               >
                 {isSubscribing === plan.id ? (
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                ) : (user?.subscriptionTier === plan.id && plan.id !== 'free') ? "Current Plan" : `Choose ${plan.name}`}
+                ) : (user?.subscriptionTier === plan.id && plan.id !== 'free') ? "Plano Atual" : `Escolher ${plan.name}`}
               </Button>
             </CardFooter>
           </Card>
         ))}
       </div>
        <p className="text-center mt-12 text-sm text-muted-foreground">
-        Ensure your Stripe Price IDs are correctly configured in the constants file for paid plans.
+        Certifique-se de que seus IDs de Preço do Stripe estão configurados corretamente no arquivo de constantes para planos pagos.
       </p>
        <p className="text-center mt-2 text-sm text-muted-foreground">
-        Stripe Webhook Endpoint: `/api/stripe/webhook`
+        Endpoint do Webhook Stripe: `/api/stripe/webhook`
       </p>
     </div>
   );
@@ -219,7 +215,6 @@ export default function SubscribePage() {
     );
   }
   
-  // Render content whether user is logged in or not, handle auth within `handleSubscribe`
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -228,9 +223,10 @@ export default function SubscribePage() {
       </main>
       <footer className="py-8 bg-background border-t">
         <div className="container mx-auto px-4 text-center text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} FitFlow. Engineered for Hypertrophy.</p>
+          <p>&copy; {new Date().getFullYear()} FitFlow. Projetado para Hipertrofia.</p>
         </div>
       </footer>
     </div>
   );
 }
+

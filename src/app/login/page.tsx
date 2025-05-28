@@ -19,8 +19,8 @@ import { AuthFormWrapper } from "@/components/auth/auth-form-wrapper";
 import { Loader2 } from "lucide-react";
 
 const loginSchema = z.object({
-  email: z.string().email({ message: "Invalid email address." }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters." }),
+  email: z.string().email({ message: "Endereço de e-mail inválido." }),
+  password: z.string().min(6, { message: "A senha deve ter pelo menos 6 caracteres." }),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -42,10 +42,10 @@ export default function LoginPage() {
 
   return (
     <AuthFormWrapper
-      title="Welcome Back, Lifter!"
-      description="Log in to FitFlow to access your hypertrophy plans and track your gains."
-      footerText="Don't have an account?"
-      footerLinkText="Sign up"
+      title="Bem-vindo de volta, Maromba!"
+      description="Faça login no FitFlow para acessar seus planos de hipertrofia e acompanhar seus ganhos."
+      footerText="Não tem uma conta?"
+      footerLinkText="Cadastre-se"
       footerLinkHref="/signup"
     >
       <Form {...form}>
@@ -55,9 +55,9 @@ export default function LoginPage() {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel>E-mail</FormLabel>
                 <FormControl>
-                  <Input placeholder="you@example.com" {...field} />
+                  <Input placeholder="voce@exemplo.com" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -68,7 +68,7 @@ export default function LoginPage() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Password</FormLabel>
+                <FormLabel>Senha</FormLabel>
                 <FormControl>
                   <Input type="password" placeholder="••••••••" {...field} />
                 </FormControl>
@@ -78,10 +78,11 @@ export default function LoginPage() {
           />
           <Button type="submit" className="w-full" disabled={loading}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Log In & Lift
+            Entrar & Treinar
           </Button>
         </form>
       </Form>
     </AuthFormWrapper>
   );
 }
+

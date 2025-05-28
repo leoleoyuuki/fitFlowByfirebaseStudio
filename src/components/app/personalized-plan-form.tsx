@@ -21,7 +21,7 @@ import type { PersonalizedPlanInput, PersonalizedPlanOutput } from "@/ai/flows/g
 import { generatePersonalizedPlan } from "@/ai/flows/generate-personalized-plan";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription as ShadCnCardDescription, CardFooter } from "@/components/ui/card";
-import { Loader2, Wand2, Dumbbell, Utensils, Save, CheckCircle } from "lucide-react"; 
+import { Loader2, Wand2, Dumbbell, Utensils, Save } from "lucide-react"; 
 import ReactMarkdown from 'react-markdown';
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
@@ -30,15 +30,15 @@ import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 
 const ClientPersonalizedPlanInputSchema = z.object({
-  goalPhase: z.enum(["bulking", "cutting", "maintenance"], { required_error: "Please select your primary goal." }),
-  trainingExperience: z.enum(["beginner", "intermediate", "advanced"], { required_error: "Please select your training experience." }),
-  trainingFrequency: z.coerce.number({invalid_type_error: "Must be a number"}).min(2, "Minimum 2 days").max(6, "Maximum 6 days").default(3),
-  trainingVolumePreference: z.enum(["low", "medium", "high"], { required_error: "Please select your preferred training volume."}),
-  availableEquipment: z.string().min(5, { message: "List equipment (min 5 chars, e.g., 'dumbbells, bands' or 'full gym')." }),
-  heightCm: z.coerce.number({invalid_type_error: "Must be a number"}).positive({message: "Height must be positive."}).optional().or(z.literal("")),
-  weightKg: z.coerce.number({invalid_type_error: "Must be a number"}).positive({message: "Weight must be positive."}).optional().or(z.literal("")),
-  age: z.coerce.number({invalid_type_error: "Must be a number"}).positive({message: "Age must be positive."}).optional().or(z.literal("")),
-  sex: z.enum(["male", "female", "prefer_not_to_say", ""], { required_error: "Please select an option." }).optional(),
+  goalPhase: z.enum(["bulking", "cutting", "maintenance"], { required_error: "Por favor, selecione seu objetivo principal." }),
+  trainingExperience: z.enum(["beginner", "intermediate", "advanced"], { required_error: "Por favor, selecione sua experiência de treino." }),
+  trainingFrequency: z.coerce.number({invalid_type_error: "Deve ser um número"}).min(2, "Mínimo de 2 dias").max(6, "Máximo de 6 dias").default(3),
+  trainingVolumePreference: z.enum(["low", "medium", "high"], { required_error: "Por favor, selecione sua preferência de volume de treino."}),
+  availableEquipment: z.string().min(5, { message: "Liste os equipamentos (mín. 5 caracteres, ex: 'halteres, anilhas' ou 'academia completa')." }),
+  heightCm: z.coerce.number({invalid_type_error: "Deve ser um número"}).positive({message: "Altura deve ser positiva."}).optional().or(z.literal("")),
+  weightKg: z.coerce.number({invalid_type_error: "Deve ser um número"}).positive({message: "Peso deve ser positivo."}).optional().or(z.literal("")),
+  age: z.coerce.number({invalid_type_error: "Deve ser um número"}).positive({message: "Idade deve ser positiva."}).optional().or(z.literal("")),
+  sex: z.enum(["male", "female", "prefer_not_to_say", ""], { required_error: "Por favor, selecione uma opção." }).optional(),
   dietaryPreferences: z.string().optional(),
 });
 
@@ -63,7 +63,7 @@ export function PersonalizedPlanForm() {
       heightCm: "",
       weightKg: "",
       age: "",
-      sex: "", 
+      sex: "prefer_not_to_say", 
       dietaryPreferences: "",
     },
   });
@@ -89,7 +89,7 @@ export function PersonalizedPlanForm() {
       setGeneratedPlan(result);
     } catch (e: any) {
       console.error(e);
-      setError(e.message || "Failed to generate plan. The AI model might be busy or the request too complex. Please try again with simpler inputs or check back later.");
+      setError(e.message || "Falha ao gerar o plano. O modelo de IA pode estar ocupado ou a solicitação muito complexa. Por favor, tente novamente com entradas mais simples ou verifique mais tarde.");
     }
     setIsLoading(false);
   }
@@ -123,7 +123,7 @@ export function PersonalizedPlanForm() {
         ),
       });
     } catch (e: any) {
-      console.error("Error saving plan:", e);
+      console.error("Erro ao salvar plano:", e);
       toast({
         title: "Erro ao Salvar Plano",
         description: e.message || "Não foi possível salvar o plano. Tente novamente.",
@@ -284,7 +284,7 @@ export function PersonalizedPlanForm() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Sexo Biológico</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value ?? ""}>
+                      <Select onValueChange={field.onChange} defaultValue={field.value ?? "prefer_not_to_say"}>
                         <FormControl>
                           <SelectTrigger><SelectValue placeholder="Selecione o sexo" /></SelectTrigger>
                         </FormControl>
@@ -307,7 +307,7 @@ export function PersonalizedPlanForm() {
                   <FormItem>
                     <FormLabel>Preferências/Restrições Alimentares (Opcional)</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="Ex: Vegetariano, vegano, sem lactose, alergia a glúten" {...field} rows={2} />
+                      <Textarea placeholder="Ex: Vegetariano, vegano, sem lactose, alergia a glúten, ou até mesmo alimentos que não gosta..." {...field} rows={3} />
                     </FormControl>
                     <FormDescription>Liste quaisquer preferências ou alergias específicas. Não poupe detalhes, você pode dizer até o que come no dia-a-dia, queremos te entregar algo que você realmente vai seguir &#128513;
                     </FormDescription>
@@ -379,7 +379,7 @@ export function PersonalizedPlanForm() {
                                 {workoutDay.exercises.map((ex, exIndex) => (
                                     <li key={exIndex}>
                                         <strong>{ex.name}:</strong> {ex.sets} séries de {ex.reps} reps.
-                                        {ex.restSeconds && ` Descanso: ${ex.restSeconds}s.`}
+                                        {ex.restSeconds && <span className="text-muted-foreground"> Descanso: {ex.restSeconds / 60} min.</span>}
                                         {ex.notes && <span className="block text-xs text-muted-foreground italic pl-4">- {ex.notes}</span>}
                                     </li>
                                 ))}
@@ -438,3 +438,4 @@ export function PersonalizedPlanForm() {
     </div>
   );
 }
+

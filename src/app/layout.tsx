@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'FitFlow - AI Hypertrophy Training & Nutrition',
-  description: 'Achieve your muscle building goals with AI-powered, science-based hypertrophy plans, diet guidance for bulking/cutting, and progress tracking.',
+  title: 'FitFlow - Treino e Nutrição para Hipertrofia com IA',
+  description: 'Alcance seus objetivos de ganho muscular com planos de hipertrofia baseados em ciência, orientação dietética para bulking/cutting e acompanhamento de progresso, tudo com IA.',
 };
 
 export default function RootLayout({
@@ -26,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="pt-BR">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans`}>
         <AuthProvider>
           {children}
@@ -36,3 +36,4 @@ export default function RootLayout({
     </html>
   );
 }
+

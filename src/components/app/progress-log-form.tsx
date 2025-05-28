@@ -20,37 +20,35 @@ import { CalendarIcon, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { MOCK_EXERCISES } from "@/lib/constants";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { ProgressLog } from "@/types";
 import { useState, useEffect } from "react";
 
-// Schema for form values
 const progressLogFormSchema = z.object({
-  date: z.date({ required_error: "Date is required." }),
-  exerciseId: z.string().min(1, { message: "Please select an exercise." }),
-  sets: z.coerce.number().min(1, { message: "Sets must be at least 1." }),
-  reps: z.coerce.number().min(1, { message: "Reps must be at least 1." }),
+  date: z.date({ required_error: "Data é obrigatória." }),
+  exerciseId: z.string().min(1, { message: "Por favor, selecione um exercício." }),
+  sets: z.coerce.number().min(1, { message: "Séries devem ser pelo menos 1." }),
+  reps: z.coerce.number().min(1, { message: "Repetições devem ser pelo menos 1." }),
   weight: z.preprocess(
     (val) => (val === "" || val === null ? undefined : val),
-    z.coerce.number().nonnegative({message: "Weight cannot be negative."}).optional()
+    z.coerce.number().nonnegative({message: "Peso não pode ser negativo."}).optional()
   ),
   duration: z.preprocess(
     (val) => (val === "" || val === null ? undefined : val),
-    z.coerce.number().nonnegative({message: "Duration cannot be negative."}).optional()
+    z.coerce.number().nonnegative({message: "Duração não pode ser negativa."}).optional()
   ),
   notes: z.string().optional(),
 });
 
 type ProgressLogFormValues = z.infer<typeof progressLogFormSchema>;
-
-// Data type for submission callback (omits fields auto-generated or from user context)
 type ProgressLogSubmissionData = Omit<ProgressLogFormValues, 'exerciseName'>;
 
 
 interface ProgressLogFormProps {
-  onLogAdded: (data: ProgressLogSubmissionData) => void; // Callback with form data
-  existingLog?: Omit<ProgressLog, "userId" | "exerciseName"> & {date: Date}; // For editing, ensure date is Date object
+  onLogAdded: (data: ProgressLogSubmissionData) => void;
+  existingLog?: Omit<ProgressLog, "userId" | "exerciseName"> & {date: Date};
 }
 
 export function ProgressLogForm({ onLogAdded, existingLog }: ProgressLogFormProps) {
@@ -60,7 +58,6 @@ export function ProgressLogForm({ onLogAdded, existingLog }: ProgressLogFormProp
     resolver: zodResolver(progressLogFormSchema),
     defaultValues: existingLog ? {
         ...existingLog,
-        // Ensure existingLog.date is a Date object, it might come as string from state
         date: existingLog.date instanceof Date ? existingLog.date : new Date(existingLog.date), 
     } : {
       date: new Date(),
@@ -73,7 +70,6 @@ export function ProgressLogForm({ onLogAdded, existingLog }: ProgressLogFormProp
     },
   });
 
-  // Reset form if existingLog changes (e.g., dialog reopens for new log after editing)
   useEffect(() => {
     if (existingLog) {
         form.reset({
@@ -97,12 +93,9 @@ export function ProgressLogForm({ onLogAdded, existingLog }: ProgressLogFormProp
   async function onSubmit(values: ProgressLogFormValues) {
     setIsLoading(true);
     try {
-      // The parent component (ProgressPage) will handle Firestore interaction
       await onLogAdded(values); 
-      // Form reset is handled by parent dialog close or by useEffect if existingLog becomes undefined
     } catch (error) {
-        console.error("Error in form submission callback", error);
-        // Optionally show a local error message in the form if needed
+        console.error("Erro na submissão do formulário", error);
     } finally {
         setIsLoading(false);
     }
@@ -128,7 +121,7 @@ export function ProgressLogForm({ onLogAdded, existingLog }: ProgressLogFormProp
                           !field.value && "text-muted-foreground"
                         )}
                       >
-                        {field.value ? format(field.value, "PPP") : <span>Escolha uma data</span>}
+                        {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </FormControl>
@@ -140,6 +133,7 @@ export function ProgressLogForm({ onLogAdded, existingLog }: ProgressLogFormProp
                       onSelect={field.onChange}
                       disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
                       initialFocus
+                      locale={ptBR}
                     />
                   </PopoverContent>
                 </Popover>
@@ -249,3 +243,4 @@ export function ProgressLogForm({ onLogAdded, existingLog }: ProgressLogFormProp
     </Form>
   );
 }
+

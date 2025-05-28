@@ -9,7 +9,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Loader2, Dumbbell, Wand2, ClipboardX, Eye, Info, Gift } from "lucide-react";
+import { Loader2, Dumbbell, Wand2, ClipboardX, Eye, Info } from "lucide-react";
 import { SubscriptionRequiredBlock } from "@/components/app/subscription-required-block";
 
 export default function WorkoutsPage() {
@@ -21,16 +21,16 @@ export default function WorkoutsPage() {
   const isSubscribed = user && user.subscriptionTier === 'hypertrophy' && user.subscriptionStatus === 'active';
 
   useEffect(() => {
-    if (authLoading) return; // Wait for auth context to load
+    if (authLoading) return; 
 
     if (!user) {
-      setIsLoading(false); // Not logged in, not loading a plan
+      setIsLoading(false); 
       setSavedPlanData(null);
       return;
     }
 
     if (!isSubscribed) {
-        setIsLoading(false); // Not subscribed, not loading a plan
+        setIsLoading(false); 
         setSavedPlanData(null);
         return;
     }
@@ -45,10 +45,10 @@ export default function WorkoutsPage() {
           if (planSnap.exists()) {
             setSavedPlanData(planSnap.data() as { latestPlan: PersonalizedPlanOutput, goalPhase: string, trainingFrequency: number, savedAt: any });
           } else {
-            setSavedPlanData(null); // No plan found for this user
+            setSavedPlanData(null); 
           }
         } catch (err: any) {
-          console.error("Error fetching plan:", err);
+          console.error("Erro ao buscar plano:", err);
           setError("Falha ao carregar o plano. Tente novamente.");
         } finally {
           setIsLoading(false);
@@ -61,7 +61,7 @@ export default function WorkoutsPage() {
     }
   }, [user, authLoading, isSubscribed]);
 
-  if (authLoading || (isLoading && isSubscribed) ) { // Only show main loader if expecting to load a plan
+  if (authLoading || (isLoading && isSubscribed) ) {
     return (
       <div className="flex flex-col items-center justify-center space-y-4 py-12">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -164,3 +164,4 @@ export default function WorkoutsPage() {
     </div>
   );
 }
+

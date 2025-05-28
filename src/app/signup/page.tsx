@@ -19,9 +19,9 @@ import { AuthFormWrapper } from "@/components/auth/auth-form-wrapper";
 import { Loader2 } from "lucide-react";
 
 const signupSchema = z.object({
-  displayName: z.string().min(2, { message: "Name must be at least 2 characters." }),
-  email: z.string().email({ message: "Invalid email address." }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters." }),
+  displayName: z.string().min(2, { message: "O nome deve ter pelo menos 2 caracteres." }),
+  email: z.string().email({ message: "Endereço de e-mail inválido." }),
+  password: z.string().min(6, { message: "A senha deve ter pelo menos 6 caracteres." }),
 });
 
 type SignupFormValues = z.infer<typeof signupSchema>;
@@ -44,10 +44,10 @@ export default function SignupPage() {
 
   return (
     <AuthFormWrapper
-      title="Join FitFlow & Build Muscle"
-      description="Sign up to get your AI-powered hypertrophy training and nutrition plan."
-      footerText="Already have an account?"
-      footerLinkText="Log in"
+      title="Junte-se ao FitFlow & Construa Músculos"
+      description="Cadastre-se para obter seu plano de treino e nutrição para hipertrofia com IA."
+      footerText="Já tem uma conta?"
+      footerLinkText="Faça login"
       footerLinkHref="/login"
     >
       <Form {...form}>
@@ -57,9 +57,9 @@ export default function SignupPage() {
             name="displayName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Full Name</FormLabel>
+                <FormLabel>Nome Completo</FormLabel>
                 <FormControl>
-                  <Input placeholder="Your Name" {...field} />
+                  <Input placeholder="Seu Nome" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -70,9 +70,9 @@ export default function SignupPage() {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel>E-mail</FormLabel>
                 <FormControl>
-                  <Input placeholder="you@example.com" {...field} />
+                  <Input placeholder="voce@exemplo.com" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -83,9 +83,9 @@ export default function SignupPage() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Password</FormLabel>
+                <FormLabel>Senha</FormLabel>
                 <FormControl>
-                  <Input type="password" placeholder="•••••••• (min. 6 characters)" {...field} />
+                  <Input type="password" placeholder="•••••••• (mín. 6 caracteres)" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -93,10 +93,11 @@ export default function SignupPage() {
           />
           <Button type="submit" className="w-full" disabled={loading}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Sign Up & Start Building
+            Cadastrar & Começar a Construir
           </Button>
         </form>
       </Form>
     </AuthFormWrapper>
   );
 }
+

@@ -19,9 +19,9 @@ export default function WorkoutDetailPage() {
   if (!workout) {
     return (
       <div className="text-center py-10">
-        <h1 className="text-2xl font-bold">Workout not found</h1>
+        <h1 className="text-2xl font-bold">Treino não encontrado</h1>
         <Button onClick={() => router.back()} variant="outline" className="mt-4">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Go Back
+          <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
         </Button>
       </div>
     );
@@ -35,7 +35,7 @@ export default function WorkoutDetailPage() {
     <div className="space-y-8">
       <div>
         <Button onClick={() => router.back()} variant="outline" size="sm" className="mb-4">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Workouts
+          <ArrowLeft className="mr-2 h-4 w-4" /> Voltar para Treinos
         </Button>
         <div className="flex items-center gap-4 mb-2">
            <workout.icon className="h-10 w-10 text-primary" />
@@ -45,16 +45,16 @@ export default function WorkoutDetailPage() {
         <div className="mt-4 flex flex-wrap gap-4 text-sm text-muted-foreground">
           <div className="flex items-center"><Clock className="h-4 w-4 mr-1" /> {workout.duration}</div>
           <div className="flex items-center"><TrendingUp className="h-4 w-4 mr-1" /> {workout.difficulty}</div>
-          <div className="flex items-center"><ListChecks className="h-4 w-4 mr-1" /> {exercisesForWorkout.length} exercises</div>
+          <div className="flex items-center"><ListChecks className="h-4 w-4 mr-1" /> {exercisesForWorkout.length} exercícios</div>
         </div>
       </div>
 
       <Button size="lg" className="w-full md:w-auto text-lg py-6">
-        <PlayCircle className="mr-2 h-5 w-5" /> Start Workout Session
+        <PlayCircle className="mr-2 h-5 w-5" /> Iniciar Sessão de Treino
       </Button>
 
       <div className="space-y-6">
-        <h2 className="text-2xl font-semibold">Exercises in this Workout</h2>
+        <h2 className="text-2xl font-semibold">Exercícios neste Treino</h2>
         {exercisesForWorkout.map((exercise, index) => (
           <Card key={exercise.id} className="shadow-md hover:shadow-lg transition-shadow">
             <CardHeader>
@@ -72,7 +72,7 @@ export default function WorkoutDetailPage() {
               <div className="flex-grow">
                 <p className="text-muted-foreground mb-2">{exercise.description}</p>
                 <Button variant="outline" size="sm" asChild>
-                  <Link href={`/dashboard/exercises/${exercise.id}`}>View Instructions</Link>
+                  <Link href={`/dashboard/exercises/${exercise.id}`}>Ver Instruções</Link>
                 </Button>
               </div>
             </CardContent>
@@ -82,3 +82,4 @@ export default function WorkoutDetailPage() {
     </div>
   );
 }
+

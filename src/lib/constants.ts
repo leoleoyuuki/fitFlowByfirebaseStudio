@@ -1,6 +1,6 @@
 
 import type { NavItem, Workout, Exercise, SubscriptionPlan, ProgressLog } from '@/types';
-import { Dumbbell, Zap, Heart, Target, Brain, User, Settings, LayoutDashboard, BookOpen, Activity, Gift, Flame, Pizza } from 'lucide-react';
+import { Dumbbell, Zap, Heart, Target, Brain, User, Settings, LayoutDashboard, BookOpen, Activity, Gift, Flame, Pizza, Utensils } from 'lucide-react';
 
 export const APP_NAME = "FitFlow";
 
@@ -10,7 +10,7 @@ export const mainNavItems: NavItem[] = [
 ];
 
 export const dashboardNavItems: NavItem[] = [
-  { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { title: "Painel Principal", href: "/dashboard", icon: LayoutDashboard },
   { title: "Meu Plano (IA)", href: "/dashboard/workouts", icon: Dumbbell }, 
   { title: "Biblioteca de Exercícios", href: "/dashboard/exercises", icon: BookOpen },
   { title: "Registrar Progresso", href: "/dashboard/progress", icon: Activity },
@@ -19,9 +19,12 @@ export const dashboardNavItems: NavItem[] = [
   { title: "Configurações", href: "/dashboard/settings", icon: Settings },
 ];
 
+// MOCK_WORKOUTS e MOCK_EXERCISES já foram traduzidos na etapa anterior.
+// Vou garantir que os nomes e descrições estejam consistentes.
+
 export const MOCK_WORKOUTS: Workout[] = [
-  { id: "1", name: "Hipertrofia Corpo Inteiro", goal: "Hypertrophy", difficulty: "Intermediate", duration: "75 mins", description: "Um treino de corpo inteiro baseado em ciência, otimizado para o crescimento muscular, atingindo todos os principais grupos musculares.", icon: Dumbbell, exercises: ["1", "5", "2", "10", "11", "8"] },
-  { id: "2", name: "Força e Pump Superior", goal: "Hypertrophy", difficulty: "Intermediate", duration: "60 mins", description: "Foco na construção de força e tamanho no peito, costas, ombros e braços.", icon: Dumbbell, exercises: ["2", "10", "12", "13", "14"] },
+  { id: "1", name: "Hipertrofia Corpo Inteiro", goal: "Hypertrophy", difficulty: "Intermediário", duration: "75 min", description: "Um treino de corpo inteiro baseado em ciência, otimizado para o crescimento muscular, atingindo todos os principais grupos musculares.", icon: Dumbbell, exercises: ["1", "5", "2", "10", "11", "8"] },
+  { id: "2", name: "Força e Pump Superior", goal: "Hypertrophy", difficulty: "Intermediário", duration: "60 min", description: "Foco na construção de força e tamanho no peito, costas, ombros e braços.", icon: Dumbbell, exercises: ["2", "10", "12", "13", "14"] },
 ];
 
 export const MOCK_EXERCISES: Exercise[] = [
@@ -60,13 +63,13 @@ export const MOCK_EXERCISES: Exercise[] = [
 
 export const MOCK_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   { id: "free", name: "FitFlow Básico", price: "Grátis", features: ["Acesso ao registro de progresso", "Visualizar 1 plano de treino de exemplo", "Acesso limitado à biblioteca de exercícios"], stripePriceId: "" },
-  { id: "hypertrophy", name: "FitFlow Hipertrofia", price: "$14.99/mês", features: ["Gerador de Planos de Treino e Dieta para Hipertrofia com IA (Bulking/Cutting)", "Salve e visualize seu plano de IA personalizado", "Acesso completo a todos os planos de treino e exercícios", "Acompanhamento avançado de progresso e análises", "Recursos de hipertrofia baseados em ciência"], stripePriceId: "price_1RTTxuLZkqAmFk4bPvEANF0J" },
+  { id: "hypertrophy", name: "FitFlow Hipertrofia", price: "R$14,99/mês", features: ["Gerador de Planos de Treino e Dieta para Hipertrofia com IA (Bulking/Cutting)", "Salve e visualize seu plano de IA personalizado", "Acesso completo a todos os planos de treino e exercícios", "Acompanhamento avançado de progresso e análises", "Recursos de hipertrofia baseados em ciência"], stripePriceId: "price_1RTTxuLZkqAmFk4bPvEANF0J" },
 ];
 
 export const MOCK_PROGRESS_LOGS: ProgressLog[] = [
   { id: "log1", date: new Date(2024, 6, 20).toISOString(), exerciseId: "1", exerciseName: "Agachamento Livre com Barra", sets: 4, reps: 8, weight: 100, userId: "mockUser" },
   { id: "log2", date: new Date(2024, 6, 20).toISOString(), exerciseId: "2", exerciseName: "Supino Reto com Barra", sets: 3, reps: 10, weight: 80, userId: "mockUser" },
   { id: "log3", date: new Date(2024, 6, 22).toISOString(), exerciseId: "1", exerciseName: "Agachamento Livre com Barra", sets: 4, reps: 8, weight: 102.5, userId: "mockUser" },
-  { id: "log4", date: new Date(2024, 6, 22).toISOString(), exerciseId: "5", exerciseName: "Levantamento Terra Convencional", sets: 1, reps: 5, weight: 140, userId: "mockUser" },
   { id: "log5", date: new Date(2024, 6, 24).toISOString(), exerciseId: "10", exerciseName: "Remada Curvada", sets: 3, reps: 12, weight: 60, userId: "mockUser" },
 ];
+

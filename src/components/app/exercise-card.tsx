@@ -17,7 +17,7 @@ export function ExerciseCard({ exercise }: ExerciseCardProps) {
         <CardTitle className="text-xl">{exercise.name}</CardTitle>
         {exercise.muscleGroups && exercise.muscleGroups.length > 0 && (
           <CardDescription className="text-xs text-primary">
-            Targets: {exercise.muscleGroups.join(", ")}
+            Alvos: {exercise.muscleGroups.join(", ")}
           </CardDescription>
         )}
       </CardHeader>
@@ -38,10 +38,11 @@ export function ExerciseCard({ exercise }: ExerciseCardProps) {
       <CardFooter>
         <Button className="w-full" asChild variant="outline">
           <Link href={`/dashboard/exercises/${exercise.id}`}>
-            <Eye className="mr-2 h-4 w-4" /> View Details
+            <Eye className="mr-2 h-4 w-4" /> Ver Detalhes
           </Link>
         </Button>
       </CardFooter>
     </Card>
   );
 }
+

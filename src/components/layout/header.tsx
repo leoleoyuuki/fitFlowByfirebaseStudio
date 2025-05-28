@@ -51,7 +51,7 @@ export function Header() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.photoURL || ""} alt={user.displayName || "User"} />
+                    <AvatarImage src={user.photoURL || ""} alt={user.displayName || "Usuário"} />
                     <AvatarFallback>{getInitials(user.displayName)}</AvatarFallback>
                   </Avatar>
                 </Button>
@@ -59,7 +59,7 @@ export function Header() {
               <DropdownMenuContent className="w-56" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{user.displayName || "User"}</p>
+                    <p className="text-sm font-medium leading-none">{user.displayName || "Usuário"}</p>
                     <p className="text-xs leading-none text-muted-foreground">
                       {user.email}
                     </p>
@@ -68,25 +68,25 @@ export function Header() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => router.push('/dashboard')}>
                   <LayoutDashboard className="mr-2 h-4 w-4" />
-                  Dashboard
+                  Painel Principal
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => router.push('/dashboard/settings')}>
                   <Settings className="mr-2 h-4 w-4" />
-                  Settings
+                  Configurações
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={logout}>
                   <LogOut className="mr-2 h-4 w-4" />
-                  Log out
+                  Sair
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
             <>
               <Button variant="ghost" onClick={() => router.push("/login")}>
-                <LogIn className="mr-2 h-4 w-4" /> Login
+                <LogIn className="mr-2 h-4 w-4" /> Entrar
               </Button>
-              <Button onClick={() => router.push("/signup")}>Sign Up</Button>
+              <Button onClick={() => router.push("/signup")}>Cadastrar</Button>
             </>
           )}
         </div>
@@ -94,3 +94,4 @@ export function Header() {
     </header>
   );
 }
+

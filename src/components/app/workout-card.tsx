@@ -2,7 +2,7 @@
 import type { Workout } from "@/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Clock, TrendingUp, Zap, Dumbbell } from "lucide-react"; // Changed Barbell to Dumbbell
+import { Clock, TrendingUp, Zap, Dumbbell } from "lucide-react";
 import Link from "next/link";
 
 interface WorkoutCardProps {
@@ -15,7 +15,7 @@ export function WorkoutCard({ workout }: WorkoutCardProps) {
       <CardHeader>
         <div className="flex items-center justify-between mb-2">
           <workout.icon className="h-8 w-8 text-primary" />
-          <span className="px-2 py-1 text-xs rounded-full bg-accent text-accent-foreground">{workout.goal}</span>
+          <span className="px-2 py-1 text-xs rounded-full bg-accent text-accent-foreground">{workout.goal === "Hypertrophy" ? "Hipertrofia" : workout.goal}</span>
         </div>
         <CardTitle className="text-xl">{workout.name}</CardTitle>
         <CardDescription className="h-16 overflow-hidden text-ellipsis">{workout.description}</CardDescription> 
@@ -27,9 +27,9 @@ export function WorkoutCard({ workout }: WorkoutCardProps) {
             <span>{workout.duration}</span>
           </div>
           <div className="flex items-center">
-             {workout.difficulty === "Beginner" && <TrendingUp className="h-4 w-4 mr-1 text-green-500" />}
-             {workout.difficulty === "Intermediate" && <TrendingUp className="h-4 w-4 mr-1 text-yellow-500" />}
-             {workout.difficulty === "Advanced" && <TrendingUp className="h-4 w-4 mr-1 text-red-500" />}
+             {workout.difficulty === "Iniciante" && <TrendingUp className="h-4 w-4 mr-1 text-green-500" />}
+             {workout.difficulty === "Intermediário" && <TrendingUp className="h-4 w-4 mr-1 text-yellow-500" />}
+             {workout.difficulty === "Avançado" && <TrendingUp className="h-4 w-4 mr-1 text-red-500" />}
             <span>{workout.difficulty}</span>
           </div>
         </div>
@@ -37,10 +37,11 @@ export function WorkoutCard({ workout }: WorkoutCardProps) {
       <CardFooter>
         <Button className="w-full" asChild>
           <Link href={`/dashboard/workouts/${workout.id}`}>
-            <Dumbbell className="mr-2 h-4 w-4" /> View Workout Details {/* Changed Barbell to Dumbbell */}
+            <Dumbbell className="mr-2 h-4 w-4" /> Ver Detalhes do Treino
           </Link>
         </Button>
       </CardFooter>
     </Card>
   );
 }
+
