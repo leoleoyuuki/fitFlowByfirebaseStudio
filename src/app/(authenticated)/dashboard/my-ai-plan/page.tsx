@@ -112,73 +112,79 @@ export default function MyAiPlanPage() {
             <p className="text-muted-foreground">Gerado em: {planDisplayDate} | Objetivo: <span className="capitalize">{goalPhase}</span> | Dias de Treino: {trainingFrequency}</p>
         </div>
 
-        <Card className="shadow-lg">
-            <CardHeader>
-                <CardTitle className="text-xl text-primary">
-                    <Dumbbell className="inline-block mr-2 h-5 w-5" /> Plano de Treino
-                </CardTitle>
-                <CardDescription>
-                    {latestPlan.trainingPlan.weeklySplitDescription}
-                    <br />
-                    {latestPlan.trainingPlan.weeklyVolumeSummary}
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                {latestPlan.trainingPlan.workouts.map((workoutDay, dayIndex) => (
-                    <div key={dayIndex} className="border-t pt-4 first:border-t-0 first:pt-0">
-                        <h3 className="text-lg font-semibold mb-2 text-foreground">{workoutDay.day} {workoutDay.focus ? `(${workoutDay.focus})` : ''}</h3>
-                        <ul className="space-y-2 list-disc list-inside pl-2 text-sm">
-                            {workoutDay.exercises.map((ex, exIndex) => (
-                                <li key={exIndex} className="mb-1">
-                                    <strong className="font-medium">{ex.name}:</strong> {ex.sets} séries de {ex.reps} reps.
-                                    {ex.restSeconds && <span className="text-muted-foreground"> Descanso: {ex.restSeconds / 60} min.</span>}
-                                    {ex.notes && <p className="block text-xs text-muted-foreground italic pl-5">- {ex.notes}</p>}
+        {latestPlan.trainingPlan && (
+            <Card className="shadow-lg">
+                <CardHeader>
+                    <CardTitle className="text-xl text-primary">
+                        <Dumbbell className="inline-block mr-2 h-5 w-5" /> Plano de Treino
+                    </CardTitle>
+                    <CardDescription>
+                        {latestPlan.trainingPlan.weeklySplitDescription}
+                        <br />
+                        {latestPlan.trainingPlan.weeklyVolumeSummary}
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    {latestPlan.trainingPlan.workouts?.map((workoutDay, dayIndex) => (
+                        <div key={dayIndex} className="border-t pt-4 first:border-t-0 first:pt-0">
+                            <h3 className="text-lg font-semibold mb-2 text-foreground">{workoutDay.day} {workoutDay.focus ? `(${workoutDay.focus})` : ''}</h3>
+                            <ul className="space-y-2 list-disc list-inside pl-2 text-sm">
+                                {workoutDay.exercises?.map((ex, exIndex) => (
+                                    <li key={exIndex} className="mb-1">
+                                        <strong className="font-medium">{ex.name}:</strong> {ex.sets} séries de {ex.reps} reps.
+                                        {ex.restSeconds && <span className="text-muted-foreground"> Descanso: {ex.restSeconds / 60} min.</span>}
+                                        {ex.notes && <p className="block text-xs text-muted-foreground italic pl-5">- {ex.notes}</p>}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    ))}
+                    {latestPlan.trainingPlan.notes && <p className="mt-6 text-sm text-muted-foreground italic border-t pt-4"><strong>Notas Gerais do Treino:</strong> {latestPlan.trainingPlan.notes}</p>}
+                </CardContent>
+            </Card>
+        )}
+
+        {latestPlan.dietGuidance && (
+            <Card className="shadow-lg">
+                <CardHeader>
+                    <CardTitle className="text-xl text-primary">
+                        <Utensils className="inline-block mr-2 h-5 w-5" /> Diretrizes de Dieta ({goalPhase})
+                    </CardTitle>
+                        <CardDescription>Metas Diárias Estimadas: ~{latestPlan.dietGuidance.estimatedDailyCalories} kcal | Proteínas: {latestPlan.dietGuidance.proteinGrams}g | Carboidratos: {latestPlan.dietGuidance.carbGrams}g | Gorduras: {latestPlan.dietGuidance.fatGrams}g</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    {latestPlan.dietGuidance.dailyMealPlans?.map((mealPlan, mealPlanIndex) => (
+                    <div key={mealPlanIndex} className="border-t pt-4 first:border-t-0 first:pt-0">
+                        <h4 className="text-lg font-semibold mb-3 text-foreground">{mealPlan.mealName}</h4>
+                        {mealPlan.mealOptions?.map((option, optionIndex) => (
+                        <div key={optionIndex} className="mb-4 pl-4 border-l-2 border-primary/30">
+                            <p className="text-sm font-medium text-primary mb-1">Opção {optionIndex + 1}{option.optionDescription ? `: ${option.optionDescription}` : ''}</p>
+                            <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                            {option.items?.map((foodItem, foodItemIndex) => (
+                                <li key={foodItemIndex}>
+                                {foodItem.foodName}: <span className="font-medium text-foreground/80">{foodItem.quantity}</span>
                                 </li>
                             ))}
-                        </ul>
+                            </ul>
+                        </div>
+                        ))}
                     </div>
-                ))}
-                {latestPlan.trainingPlan.notes && <p className="mt-6 text-sm text-muted-foreground italic border-t pt-4"><strong>Notas Gerais do Treino:</strong> {latestPlan.trainingPlan.notes}</p>}
-            </CardContent>
-        </Card>
-
-        <Card className="shadow-lg">
-            <CardHeader>
-                <CardTitle className="text-xl text-primary">
-                    <Utensils className="inline-block mr-2 h-5 w-5" /> Diretrizes de Dieta ({goalPhase})
-                </CardTitle>
-                    <CardDescription>Metas Diárias Estimadas: ~{latestPlan.dietGuidance.estimatedDailyCalories} kcal | Proteínas: {latestPlan.dietGuidance.proteinGrams}g | Carboidratos: {latestPlan.dietGuidance.carbGrams}g | Gorduras: {latestPlan.dietGuidance.fatGrams}g</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                {latestPlan.dietGuidance.dailyMealPlans.map((mealPlan, mealPlanIndex) => (
-                  <div key={mealPlanIndex} className="border-t pt-4 first:border-t-0 first:pt-0">
-                    <h4 className="text-lg font-semibold mb-3 text-foreground">{mealPlan.mealName}</h4>
-                    {mealPlan.mealOptions.map((option, optionIndex) => (
-                      <div key={optionIndex} className="mb-4 pl-4 border-l-2 border-primary/30">
-                        <p className="text-sm font-medium text-primary mb-1">Opção {optionIndex + 1}{option.optionDescription ? `: ${option.optionDescription}` : ''}</p>
-                        <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                          {option.items.map((foodItem, foodItemIndex) => (
-                            <li key={foodItemIndex}>
-                              {foodItem.foodName}: <span className="font-medium text-foreground/80">{foodItem.quantity}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
                     ))}
-                  </div>
-                ))}
-                {latestPlan.dietGuidance.notes && <p className="mt-4 text-sm text-muted-foreground italic border-t pt-4"><strong>Notas Gerais da Dieta:</strong> {latestPlan.dietGuidance.notes}</p>}
-            </CardContent>
-        </Card>
+                    {latestPlan.dietGuidance.notes && <p className="mt-4 text-sm text-muted-foreground italic border-t pt-4"><strong>Notas Gerais da Dieta:</strong> {latestPlan.dietGuidance.notes}</p>}
+                </CardContent>
+            </Card>
+        )}
         
-        <Card className="shadow-lg">
-            <CardHeader>
-                <CardTitle className="text-xl text-primary">Resumo Geral do Plano</CardTitle>
-            </CardHeader>
-            <CardContent className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground">
-                <ReactMarkdown>{latestPlan.overallSummary}</ReactMarkdown>
-            </CardContent>
-        </Card>
+        {latestPlan.overallSummary && (
+            <Card className="shadow-lg">
+                <CardHeader>
+                    <CardTitle className="text-xl text-primary">Resumo Geral do Plano</CardTitle>
+                </CardHeader>
+                <CardContent className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground">
+                    <ReactMarkdown>{latestPlan.overallSummary}</ReactMarkdown>
+                </CardContent>
+            </Card>
+        )}
          <Card className="bg-secondary/50 border-dashed">
           <CardHeader>
             <CardTitle className="text-lg flex items-center"><Info className="mr-2 h-5 w-5 text-primary" /> Lembrete</CardTitle>
@@ -198,3 +204,4 @@ export default function MyAiPlanPage() {
   );
 }
 
+    
