@@ -16,7 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { auth, db } from "@/lib/firebase"; // Import auth and db
 import { updateProfile } from "firebase/auth";
 import { doc, updateDoc } from "firebase/firestore";
-import { useState } from "react";
+import { useState, useEffect } from "react"; // Imported useEffect
 
 const profileFormSchema = z.object({
   displayName: z.string().min(2, { message: "O nome deve ter pelo menos 2 caracteres." }),
@@ -39,7 +39,7 @@ export default function SettingsPage() {
   });
 
   // Update defaultValues when user data is available
-  React.useEffect(() => {
+  useEffect(() => { // Changed React.useEffect to useEffect
     if (user) {
       profileForm.reset({ displayName: user.displayName || "" });
     }
