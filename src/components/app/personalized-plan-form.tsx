@@ -309,7 +309,8 @@ export function PersonalizedPlanForm() {
                     <FormControl>
                       <Textarea placeholder="Ex: Vegetariano, vegano, sem lactose, alergia a glúten" {...field} rows={2} />
                     </FormControl>
-                    <FormDescription>Liste quaisquer preferências ou alergias específicas.</FormDescription>
+                    <FormDescription>Liste quaisquer preferências ou alergias específicas. Não poupe detalhes, você pode dizer até o que come no dia-a-dia, queremos te entregar algo que você realmente vai seguir &#128513;
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
