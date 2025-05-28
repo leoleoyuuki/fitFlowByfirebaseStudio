@@ -23,37 +23,39 @@ import { format } from "date-fns";
 import { MOCK_EXERCISES } from "@/lib/constants";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { ProgressLog } from "@/types";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-const progressLogSchema = z.object({
+// Schema for form values
+const progressLogFormSchema = z.object({
   date: z.date({ required_error: "Date is required." }),
   exerciseId: z.string().min(1, { message: "Please select an exercise." }),
   sets: z.coerce.number().min(1, { message: "Sets must be at least 1." }),
   reps: z.coerce.number().min(1, { message: "Reps must be at least 1." }),
-  weight: z.coerce.number().optional(),
-  duration: z.coerce.number().optional(),
+  weight: z.coerce.number().nonnegative({message: "Weight cannot be negative."}).optional(),
+  duration: z.coerce.number().nonnegative({message: "Duration cannot be negative."}).optional(),
   notes: z.string().optional(),
 });
 
-type ProgressLogFormValues = z.infer<typeof progressLogSchema>;
+type ProgressLogFormValues = z.infer<typeof progressLogFormSchema>;
+
+// Data type for submission callback (omits fields auto-generated or from user context)
+type ProgressLogSubmissionData = Omit<ProgressLogFormValues, 'exerciseName'>;
+
 
 interface ProgressLogFormProps {
-  onLogAdded: (log: ProgressLog) => void;
-  existingLog?: ProgressLog; // For editing
+  onLogAdded: (data: ProgressLogSubmissionData) => void; // Callback with form data
+  existingLog?: Omit<ProgressLog, "userId" | "exerciseName"> & {date: Date}; // For editing, ensure date is Date object
 }
 
 export function ProgressLogForm({ onLogAdded, existingLog }: ProgressLogFormProps) {
   const [isLoading, setIsLoading] = useState(false);
+  
   const form = useForm<ProgressLogFormValues>({
-    resolver: zodResolver(progressLogSchema),
+    resolver: zodResolver(progressLogFormSchema),
     defaultValues: existingLog ? {
-        date: new Date(existingLog.date),
-        exerciseId: existingLog.exerciseId,
-        sets: existingLog.sets,
-        reps: existingLog.reps,
-        weight: existingLog.weight,
-        duration: existingLog.duration,
-        notes: existingLog.notes,
+        ...existingLog,
+        // Ensure existingLog.date is a Date object, it might come as string from state
+        date: existingLog.date instanceof Date ? existingLog.date : new Date(existingLog.date), 
     } : {
       date: new Date(),
       exerciseId: "",
@@ -65,26 +67,39 @@ export function ProgressLogForm({ onLogAdded, existingLog }: ProgressLogFormProp
     },
   });
 
+  // Reset form if existingLog changes (e.g., dialog reopens for new log after editing)
+  useEffect(() => {
+    if (existingLog) {
+        form.reset({
+            ...existingLog,
+            date: existingLog.date instanceof Date ? existingLog.date : new Date(existingLog.date),
+        });
+    } else {
+        form.reset({
+            date: new Date(),
+            exerciseId: "",
+            sets: 3,
+            reps: 10,
+            weight: undefined,
+            duration: undefined,
+            notes: "",
+        });
+    }
+  }, [existingLog, form]);
+
+
   async function onSubmit(values: ProgressLogFormValues) {
     setIsLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const exerciseName = MOCK_EXERCISES.find(ex => ex.id === values.exerciseId)?.name || "Unknown Exercise";
-    const newLog: ProgressLog = {
-      id: existingLog?.id || Date.now().toString(), // Use existing ID or generate new
-      date: values.date.toISOString(),
-      exerciseId: values.exerciseId,
-      exerciseName: exerciseName,
-      sets: values.sets,
-      reps: values.reps,
-      weight: values.weight,
-      duration: values.duration,
-      notes: values.notes,
-    };
-    onLogAdded(newLog);
-    form.reset();
-    setIsLoading(false);
+    try {
+      // The parent component (ProgressPage) will handle Firestore interaction
+      await onLogAdded(values); 
+      // Form reset is handled by parent dialog close or by useEffect if existingLog becomes undefined
+    } catch (error) {
+        console.error("Error in form submission callback", error);
+        // Optionally show a local error message in the form if needed
+    } finally {
+        setIsLoading(false);
+    }
   }
 
   return (
@@ -96,7 +111,7 @@ export function ProgressLogForm({ onLogAdded, existingLog }: ProgressLogFormProp
             name="date"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel>Date</FormLabel>
+                <FormLabel>Data</FormLabel>
                 <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
@@ -107,7 +122,7 @@ export function ProgressLogForm({ onLogAdded, existingLog }: ProgressLogFormProp
                           !field.value && "text-muted-foreground"
                         )}
                       >
-                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                        {field.value ? format(field.value, "PPP") : <span>Escolha uma data</span>}
                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </FormControl>
@@ -132,11 +147,11 @@ export function ProgressLogForm({ onLogAdded, existingLog }: ProgressLogFormProp
             name="exerciseId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Exercise</FormLabel>
+                <FormLabel>Exercício</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select an exercise" />
+                      <SelectValue placeholder="Selecione um exercício" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -157,9 +172,9 @@ export function ProgressLogForm({ onLogAdded, existingLog }: ProgressLogFormProp
             name="sets"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Sets</FormLabel>
+                <FormLabel>Séries</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="e.g., 3" {...field} />
+                  <Input type="number" placeholder="Ex: 3" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -172,7 +187,7 @@ export function ProgressLogForm({ onLogAdded, existingLog }: ProgressLogFormProp
               <FormItem>
                 <FormLabel>Reps</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="e.g., 10" {...field} />
+                  <Input type="number" placeholder="Ex: 10" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -183,9 +198,9 @@ export function ProgressLogForm({ onLogAdded, existingLog }: ProgressLogFormProp
             name="weight"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Weight (kg)</FormLabel>
+                <FormLabel>Peso (kg)</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="e.g., 50 (optional)" {...field} value={field.value ?? ""} />
+                  <Input type="number" step="0.01" placeholder="Ex: 50 (opcional)" {...field} value={field.value ?? ""} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -196,9 +211,9 @@ export function ProgressLogForm({ onLogAdded, existingLog }: ProgressLogFormProp
             name="duration"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Duration (min)</FormLabel>
+                <FormLabel>Duração (min)</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="e.g., 30 (optional)" {...field} value={field.value ?? ""} />
+                  <Input type="number" placeholder="Ex: 30 (opcional)" {...field} value={field.value ?? ""} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -211,9 +226,9 @@ export function ProgressLogForm({ onLogAdded, existingLog }: ProgressLogFormProp
           name="notes"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Notes</FormLabel>
+              <FormLabel>Notas</FormLabel>
               <FormControl>
-                <Textarea placeholder="Any additional notes about your workout..." {...field} value={field.value ?? ""} />
+                <Textarea placeholder="Notas adicionais sobre seu treino..." {...field} value={field.value ?? ""} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -222,9 +237,10 @@ export function ProgressLogForm({ onLogAdded, existingLog }: ProgressLogFormProp
 
         <Button type="submit" className="w-full md:w-auto" disabled={isLoading}>
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {existingLog ? "Update Log" : "Add Log"}
+          {existingLog ? "Atualizar Registro" : "Adicionar Registro"}
         </Button>
       </form>
     </Form>
   );
 }
+

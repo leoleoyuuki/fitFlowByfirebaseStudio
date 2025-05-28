@@ -2,13 +2,12 @@
 "use client";
 import { useState, useMemo, useEffect } from "react";
 import type { ProgressLog } from "@/types";
-import { MOCK_PROGRESS_LOGS } from "@/lib/constants";
 import { ProgressLogForm } from "@/components/app/progress-log-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
-import { PlusCircle, Edit, Trash2, TrendingUp, BarChartHorizontalBig, Loader2 } from "lucide-react";
+import { PlusCircle, Edit, Trash2, BarChartHorizontalBig, Loader2 } from "lucide-react";
 import {
   ChartContainer,
   ChartTooltip,
@@ -17,13 +16,15 @@ import {
   ChartLegendContent,
 } from "@/components/ui/chart";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/contexts/auth-context";
 import { SubscriptionRequiredBlock } from "@/components/app/subscription-required-block";
+import { db } from "@/lib/firebase";
+import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc, orderBy, Timestamp } from "firebase/firestore";
+import { MOCK_EXERCISES } from "@/lib/constants"; // Keep for exercise names if not stored in log
 
-
-const chartConfig = {
+const chartConfigBase = {
   weight: { label: "Weight (kg)", color: "hsl(var(--primary))" },
   reps: { label: "Reps", color: "hsl(var(--accent))" },
 };
@@ -31,52 +32,144 @@ const chartConfig = {
 export default function ProgressPage() {
   const { user, loading: authLoading } = useAuth();
   const [logs, setLogs] = useState<ProgressLog[]>([]);
-  const [showForm, setShowForm] = useState(false);
+  const [isLoadingLogs, setIsLoadingLogs] = useState(true);
+  const [errorLogs, setErrorLogs] = useState<string | null>(null);
+
+  const [showFormDialog, setShowFormDialog] = useState(false);
   const [editingLog, setEditingLog] = useState<ProgressLog | undefined>(undefined);
-  const [logToDelete, setLogToDelete] = useState<string | null>(null);
+  const [logToDeleteId, setLogToDeleteId] = useState<string | null>(null);
+
+
+  const fetchUserLogs = async () => {
+    if (!user?.id) return;
+    setIsLoadingLogs(true);
+    setErrorLogs(null);
+    try {
+      const logsCollectionRef = collection(db, "userProgressLogs");
+      const q = query(logsCollectionRef, where("userId", "==", user.id), orderBy("date", "desc"));
+      const querySnapshot = await getDocs(q);
+      const fetchedLogs = querySnapshot.docs.map(docSnap => {
+        const data = docSnap.data();
+        // Ensure date is a string; Firestore Timestamps need to be converted
+        const dateString = data.date instanceof Timestamp ? data.date.toDate().toISOString() : data.date;
+        return { 
+          id: docSnap.id, 
+          ...data,
+          date: dateString,
+         } as ProgressLog;
+      });
+      setLogs(fetchedLogs);
+    } catch (err) {
+      console.error("Error fetching progress logs:", err);
+      setErrorLogs("Failed to load progress logs. Please try again.");
+    } finally {
+      setIsLoadingLogs(false);
+    }
+  };
 
   useEffect(() => {
-    // Simulate fetching data - In a real app, this would fetch from Firestore
+    if (authLoading) return; 
+
     if (user && user.subscriptionTier === 'hypertrophy' && user.subscriptionStatus === 'active') {
-      setLogs(MOCK_PROGRESS_LOGS.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime() ));
-    } else {
+      fetchUserLogs();
+    } else if (user && (user.subscriptionTier !== 'hypertrophy' || user.subscriptionStatus !== 'active')) {
       setLogs([]);
+      setIsLoadingLogs(false); // Not subscribed, no logs to load or show error for
+    } else if (!user) {
+        setLogs([]);
+        setIsLoadingLogs(false); // Not logged in
     }
-  }, [user]);
+  }, [user, authLoading]);
 
-
-  const handleLogAddedOrUpdated = (log: ProgressLog) => {
-    if(editingLog){
-        setLogs(prevLogs => prevLogs.map(l => l.id === log.id ? log : l).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime() ));
-    } else {
-        setLogs(prevLogs => [log, ...prevLogs].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime() ));
+  const handleLogSubmit = async (logData: Omit<ProgressLog, "id" | "userId" | "exerciseName"> & {exerciseId: string}) => {
+    if (!user?.id) {
+      setErrorLogs("User not authenticated.");
+      return;
     }
-    setShowForm(false);
-    setEditingLog(undefined);
+    
+    const exerciseName = MOCK_EXERCISES.find(ex => ex.id === logData.exerciseId)?.name || "Unknown Exercise";
+    
+    setIsLoadingLogs(true); // Use general loading state or a specific one for submissions
+    try {
+      if (editingLog) {
+        const logRef = doc(db, "userProgressLogs", editingLog.id);
+        await updateDoc(logRef, { 
+            ...logData, 
+            userId: user.id, 
+            exerciseName,
+            date: new Date(logData.date).toISOString() // Ensure date is ISO string
+        });
+      } else {
+        await addDoc(collection(db, "userProgressLogs"), { 
+            ...logData, 
+            userId: user.id, 
+            exerciseName,
+            date: new Date(logData.date).toISOString() // Ensure date is ISO string
+        });
+      }
+      setEditingLog(undefined);
+      setShowFormDialog(false);
+      await fetchUserLogs(); // Re-fetch logs to show the new/updated one
+    } catch (err) {
+      console.error("Error submitting log:", err);
+      setErrorLogs("Failed to save log. Please try again.");
+    } finally {
+       // setIsLoadingLogs(false); // fetchUserLogs will handle this
+    }
   };
 
   const handleEditLog = (log: ProgressLog) => {
     setEditingLog(log);
-    setShowForm(true);
+    setShowFormDialog(true);
   };
 
-  const handleDeleteLog = (logId: string) => {
-    setLogs(prevLogs => prevLogs.filter(log => log.id !== logId));
-    setLogToDelete(null);
+  const confirmDeleteLog = async () => {
+    if (!logToDeleteId) return;
+    setIsLoadingLogs(true);
+    try {
+      const logRef = doc(db, "userProgressLogs", logToDeleteId);
+      await deleteDoc(logRef);
+      setLogToDeleteId(null);
+      await fetchUserLogs(); // Re-fetch logs
+    } catch (err) {
+      console.error("Error deleting log:", err);
+      setErrorLogs("Failed to delete log. Please try again.");
+    } finally {
+      // setIsLoadingLogs(false); // fetchUserLogs will handle this
+    }
   };
+  
+  const groupedChartData = useMemo(() => {
+    if (!logs.length) return {};
+    const exercisesData: Record<string, { exerciseName: string; data: Array<{ date: string; weight?: number; reps?: number; originalDate: Date }> }> = {};
 
-  const chartData = useMemo(() => {
-    // Aggregate data for a specific exercise, e.g., "Squats" (ID "1")
-    return logs
-      .filter(log => log.exerciseId === "1" && log.weight)
-      .map(log => ({
-        date: format(new Date(log.date), "MMM d"),
-        weight: log.weight,
-        reps: log.reps,
-      }))
-      .slice(0, 10) // Take last 10 for chart
-      .reverse(); // Show oldest first for chart
+    logs.forEach(log => {
+        // Ensure log.weight is a number before trying to chart it
+        if (!log.exerciseId || typeof log.weight !== 'number') return; 
+
+        if (!exercisesData[log.exerciseId]) {
+            exercisesData[log.exerciseId] = {
+                exerciseName: log.exerciseName,
+                data: [],
+            };
+        }
+        exercisesData[log.exerciseId].data.push({
+            date: log.date, // Keep ISO string for originalDate reference
+            weight: log.weight,
+            reps: log.reps,
+            originalDate: new Date(log.date),
+        });
+    });
+
+    for (const exId in exercisesData) {
+        exercisesData[exId].data = exercisesData[exId].data
+            .sort((a, b) => a.originalDate.getTime() - b.originalDate.getTime())
+            .slice(-10) // Take last 10 logs
+            .map(d => ({ ...d, date: format(d.originalDate, "MMM d") })); // Format date for XAxis display
+    }
+    return exercisesData;
   }, [logs]);
+
 
   if (authLoading) {
     return (
@@ -90,133 +183,166 @@ export default function ProgressPage() {
   if (!user || user.subscriptionTier !== 'hypertrophy' || user.subscriptionStatus !== 'active') {
     return <SubscriptionRequiredBlock featureName="o Log de Progresso" />;
   }
+  
+  const renderContent = () => {
+    if (isLoadingLogs && logs.length === 0) { // Initial load
+      return (
+        <div className="flex flex-col items-center justify-center space-y-4 py-12">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <p className="text-muted-foreground">Carregando seus logs...</p>
+        </div>
+      );
+    }
+    if (errorLogs) {
+      return <p className="text-destructive text-center">{errorLogs}</p>;
+    }
+    if (logs.length === 0 && !isLoadingLogs) {
+      return (
+        <Card className="text-center py-12">
+          <CardHeader>
+            <BarChartHorizontalBig className="mx-auto h-12 w-12 text-muted-foreground" />
+            <CardTitle className="mt-4">Nenhum Progresso Registrado Ainda</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground mb-4">Comece registrando seus treinos para ver seu progresso aqui.</p>
+            <Button onClick={() => { setEditingLog(undefined); setShowFormDialog(true); }}>
+              <PlusCircle className="mr-2 h-4 w-4" /> Registrar Seu Primeiro Treino
+            </Button>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    return (
+      <>
+        <Card>
+          <CardHeader>
+            <CardTitle>Histórico de Logs de Treino</CardTitle>
+            <CardDescription>Um registro dos seus treinos completados.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoadingLogs && logs.length > 0 && <p className="text-sm text-muted-foreground text-center py-2">Atualizando logs... <Loader2 className="inline-block h-4 w-4 animate-spin" /></p>}
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Exercício</TableHead>
+                  <TableHead className="text-center">Séries</TableHead>
+                  <TableHead className="text-center">Reps</TableHead>
+                  <TableHead className="text-center">Peso (kg)</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {logs.map((log) => (
+                  <TableRow key={log.id}>
+                    <TableCell>{format(new Date(log.date), "MMM d, yyyy")}</TableCell>
+                    <TableCell className="font-medium">{log.exerciseName}</TableCell>
+                    <TableCell className="text-center">{log.sets}</TableCell>
+                    <TableCell className="text-center">{log.reps}</TableCell>
+                    <TableCell className="text-center">{log.weight ?? "-"}</TableCell>
+                    <TableCell className="text-right space-x-2">
+                      <Button variant="ghost" size="icon" onClick={() => handleEditLog(log)}>
+                        <Edit className="h-4 w-4" />
+                        <span className="sr-only">Editar</span>
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                           <Button variant="ghost" size="icon" onClick={() => setLogToDeleteId(log.id)}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                              <span className="sr-only">Deletar</span>
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esta ação não pode ser desfeita. Isso irá deletar permanentemente este log de treino.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel onClick={() => setLogToDeleteId(null)}>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={confirmDeleteLog} className="bg-destructive hover:bg-destructive/90">
+                              Deletar
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+          {Object.entries(groupedChartData).map(([exerciseId, chartInfo]) => (
+            chartInfo.data.length > 0 && (
+              <Card key={exerciseId}>
+                <CardHeader>
+                  <CardTitle>{chartInfo.exerciseName} - Progresso (Peso)</CardTitle>
+                  <CardDescription>Últimas {chartInfo.data.length} sessões registradas.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ChartContainer config={chartConfigBase} className="h-[300px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={chartInfo.data} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                        <XAxis dataKey="date" tickLine={false} axisLine={false} />
+                        <YAxis yAxisId="left" dataKey="weight" orientation="left" stroke="hsl(var(--primary))" tickLine={false} axisLine={false} name="Peso (kg)" />
+                        <YAxis yAxisId="right" dataKey="reps" orientation="right" stroke="hsl(var(--accent))" tickLine={false} axisLine={false} name="Reps" />
+                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <ChartLegend content={<ChartLegendContent />} />
+                        <Bar yAxisId="left" dataKey="weight" fill="var(--color-weight)" radius={4} name="Peso (kg)" />
+                        <Bar yAxisId="right" dataKey="reps" fill="var(--color-reps)" radius={4} name="Reps" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartContainer>
+                </CardContent>
+              </Card>
+            )
+          ))}
+        </div>
+        {Object.keys(groupedChartData).length === 0 && logs.length > 0 && !isLoadingLogs && (
+            <p className="text-center text-muted-foreground mt-8">Nenhum dado de progressão de peso para exibir nos gráficos. Registre treinos com peso para ver os gráficos.</p>
+        )}
+      </>
+    );
+  };
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Track Your Progress</h1>
-          <p className="text-muted-foreground">Log your workouts and see how far you've come.</p>
+          <h1 className="text-3xl font-bold tracking-tight">Acompanhe Seu Progresso</h1>
+          <p className="text-muted-foreground">Registre seus treinos e veja o quão longe você chegou.</p>
         </div>
-        <Dialog open={showForm} onOpenChange={(isOpen) => { setShowForm(isOpen); if(!isOpen) setEditingLog(undefined);}}>
+        <Dialog open={showFormDialog} onOpenChange={(isOpen) => { setShowFormDialog(isOpen); if(!isOpen) setEditingLog(undefined);}}>
           <DialogTrigger asChild>
-            <Button onClick={() => { setEditingLog(undefined); setShowForm(true); }}>
-              <PlusCircle className="mr-2 h-4 w-4" /> Log New Workout
+            <Button onClick={() => { setEditingLog(undefined); setShowFormDialog(true); }}>
+              <PlusCircle className="mr-2 h-4 w-4" /> {logs.length > 0 ? "Registrar Novo Treino" : "Registrar Primeiro Treino"}
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-2xl">
             <DialogHeader>
-              <DialogTitle>{editingLog ? "Edit Workout Log" : "Log New Workout"}</DialogTitle>
+              <DialogTitle>{editingLog ? "Editar Registro de Treino" : "Registrar Novo Treino"}</DialogTitle>
               <DialogDescription>
-                {editingLog ? "Update the details of your workout." : "Add a new workout log to track your progress."}
+                {editingLog ? "Atualize os detalhes do seu treino." : "Adicione um novo registro de treino para acompanhar seu progresso."}
               </DialogDescription>
             </DialogHeader>
-            <ProgressLogForm onLogAdded={handleLogAddedOrUpdated} existingLog={editingLog} />
+            <ProgressLogForm 
+                onLogAdded={handleLogSubmit} 
+                existingLog={editingLog ? {
+                    ...editingLog,
+                    // Ensure date is passed as Date object to form if stored as ISO string
+                    date: editingLog.date ? new Date(editingLog.date) : new Date() 
+                } : undefined} 
+            />
           </DialogContent>
         </Dialog>
       </div>
-
-      {logs.length === 0 && !showForm ? (
-         <Card className="text-center py-12">
-            <CardHeader>
-                <BarChartHorizontalBig className="mx-auto h-12 w-12 text-muted-foreground" />
-                <CardTitle className="mt-4">No Progress Logged Yet</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <p className="text-muted-foreground mb-4">Start logging your workouts to see your progress here.</p>
-                <Button onClick={() => setShowForm(true)}>
-                    <PlusCircle className="mr-2 h-4 w-4" /> Log Your First Workout
-                </Button>
-            </CardContent>
-        </Card>
-      ) : (
-        <>
-          {chartData.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Squats Progress (Weight Lifted)</CardTitle>
-                <CardDescription>Showing last 10 logged sessions for Squats.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ChartContainer config={chartConfig} className="h-[300px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                      <XAxis dataKey="date" tickLine={false} axisLine={false} />
-                      <YAxis yAxisId="left" orientation="left" stroke="hsl(var(--primary))" tickLine={false} axisLine={false}/>
-                      <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--accent))" tickLine={false} axisLine={false}/>
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <ChartLegend content={<ChartLegendContent />} />
-                      <Bar yAxisId="left" dataKey="weight" fill="var(--color-weight)" radius={4} />
-                      <Bar yAxisId="right" dataKey="reps" fill="var(--color-reps)" radius={4} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
-              </CardContent>
-            </Card>
-          )}
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Workout Log History</CardTitle>
-              <CardDescription>A record of your completed workouts.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Exercise</TableHead>
-                    <TableHead className="text-center">Sets</TableHead>
-                    <TableHead className="text-center">Reps</TableHead>
-                    <TableHead className="text-center">Weight (kg)</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {logs.map((log) => (
-                    <TableRow key={log.id}>
-                      <TableCell>{format(new Date(log.date), "MMM d, yyyy")}</TableCell>
-                      <TableCell className="font-medium">{log.exerciseName}</TableCell>
-                      <TableCell className="text-center">{log.sets}</TableCell>
-                      <TableCell className="text-center">{log.reps}</TableCell>
-                      <TableCell className="text-center">{log.weight || "-"}</TableCell>
-                      <TableCell className="text-right space-x-2">
-                        <Button variant="ghost" size="icon" onClick={() => handleEditLog(log)}>
-                          <Edit className="h-4 w-4" />
-                          <span className="sr-only">Edit</span>
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                             <Button variant="ghost" size="icon" onClick={() => setLogToDelete(log.id)}>
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                                <span className="sr-only">Delete</span>
-                              </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This action cannot be undone. This will permanently delete this workout log.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel onClick={() => setLogToDelete(null)}>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => logToDelete && handleDeleteLog(logToDelete)} className="bg-destructive hover:bg-destructive/90">
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </>
-      )}
+      {renderContent()}
     </div>
   );
 }

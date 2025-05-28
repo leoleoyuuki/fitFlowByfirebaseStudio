@@ -18,7 +18,7 @@ export interface UserProfile {
   subscriptionTier?: 'free' | 'hypertrophy';
   stripeCustomerId?: string | null;
   stripeSubscriptionId?: string | null;
-  subscriptionStatus?: 'active' | 'canceled' | 'past_due' | null;
+  subscriptionStatus?: 'active' | 'canceled' | 'past_due' | 'incomplete' | null;
 }
 
 export interface Workout {
@@ -52,8 +52,9 @@ export interface SubscriptionPlan {
 }
 
 export interface ProgressLog {
-  id: string;
-  date: string; // ISO string
+  id: string; // Firestore document ID
+  userId: string; // ID of the user who created the log
+  date: string; // ISO string for consistency, can be Timestamp in Firestore
   exerciseId: string;
   exerciseName: string;
   sets: number;
@@ -61,6 +62,5 @@ export interface ProgressLog {
   weight?: number; 
   duration?: number; 
   notes?: string;
-  // Could add RPE (Rate of Perceived Exertion) or other hypertrophy metrics
 }
 
