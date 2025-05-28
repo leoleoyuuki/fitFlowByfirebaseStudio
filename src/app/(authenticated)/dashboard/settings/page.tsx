@@ -6,17 +6,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { User as UserIcon, Mail, ShieldCheck, CreditCard, Bell, Loader2 } from "lucide-react"; // Renamed User to UserIcon to avoid conflict
+import { User as UserIcon, Mail, ShieldCheck, CreditCard, Bell, Loader2, KeyRound } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { auth, db } from "@/lib/firebase"; // Import auth and db
-import { updateProfile } from "firebase/auth";
+import { auth, db } from "@/lib/firebase";
+import { updateProfile, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth";
 import { doc, updateDoc } from "firebase/firestore";
-import { useState, useEffect } from "react"; // Imported useEffect
+import { useState, useEffect } from "react";
 
 const profileFormSchema = z.object({
   displayName: z.string().min(2, { message: "O nome deve ter pelo menos 2 caracteres." }),
@@ -24,12 +24,22 @@ const profileFormSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
+const passwordFormSchema = z.object({
+  currentPassword: z.string().min(1, { message: "Por favor, insira sua senha atual." }),
+  newPassword: z.string().min(6, { message: "A nova senha deve ter pelo menos 6 caracteres." }),
+  confirmPassword: z.string().min(6, { message: "A confirmação da senha deve ter pelo menos 6 caracteres." }),
+}).refine(data => data.newPassword === data.confirmPassword, {
+  message: "A nova senha e a confirmação não correspondem.",
+  path: ["confirmPassword"], // Atribui o erro ao campo confirmPassword
+});
+
+type PasswordFormValues = z.infer<typeof passwordFormSchema>;
+
 export default function SettingsPage() {
-  const { user, loading: authLoading } = useAuth(); // Added authLoading
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
-
 
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -38,8 +48,16 @@ export default function SettingsPage() {
     },
   });
 
-  // Update defaultValues when user data is available
-  useEffect(() => { // Changed React.useEffect to useEffect
+  const passwordForm = useForm<PasswordFormValues>({
+    resolver: zodResolver(passwordFormSchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
+  });
+
+  useEffect(() => {
     if (user) {
       profileForm.reset({ displayName: user.displayName || "" });
     }
@@ -57,10 +75,7 @@ export default function SettingsPage() {
 
     setIsUpdatingProfile(true);
     try {
-      // Update Firebase Auth profile
       await updateProfile(auth.currentUser, { displayName: values.displayName });
-
-      // Update Firestore document
       const userDocRef = doc(db, "users", user.id);
       await updateDoc(userDocRef, { displayName: values.displayName });
 
@@ -68,7 +83,6 @@ export default function SettingsPage() {
         title: "Perfil Atualizado!",
         description: "Seu nome foi atualizado com sucesso.",
       });
-      // AuthContext will automatically pick up the change via onAuthStateChanged
     } catch (error: any) {
       console.error("Erro ao atualizar perfil:", error);
       toast({
@@ -81,19 +95,39 @@ export default function SettingsPage() {
     }
   };
   
-  const handlePasswordChange = async (e: React.FormEvent) => {
-    e.preventDefault();
-    // This is still a simulation as password change requires more complex logic
-    // (re-authentication, handling current password, etc.)
+  const handlePasswordChange = async (values: PasswordFormValues) => {
+    if (!auth.currentUser || !auth.currentUser.email) {
+      toast({ title: "Erro", description: "Usuário não autenticado corretamente.", variant: "destructive" });
+      return;
+    }
     setIsUpdatingPassword(true);
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-    toast({
-      title: "Alteração de Senha (Simulação)",
-      description: "Funcionalidade de alteração de senha ainda não implementada.",
-    });
-    setIsUpdatingPassword(false);
+    try {
+      const credential = EmailAuthProvider.credential(auth.currentUser.email, values.currentPassword);
+      await reauthenticateWithCredential(auth.currentUser, credential);
+      await updatePassword(auth.currentUser, values.newPassword);
+      toast({ title: "Senha Alterada!", description: "Sua senha foi alterada com sucesso." });
+      passwordForm.reset(); // Limpa o formulário após o sucesso
+    } catch (error: any) {
+      console.error("Erro ao alterar senha:", error);
+      let description = "Não foi possível alterar sua senha. Tente novamente.";
+      if (error.code === 'auth/wrong-password') {
+        description = "A senha atual está incorreta. Verifique e tente novamente.";
+        passwordForm.setError("currentPassword", { type: "manual", message: description });
+      } else if (error.code === 'auth/weak-password') {
+        description = "A nova senha é muito fraca. Tente uma senha mais forte.";
+         passwordForm.setError("newPassword", { type: "manual", message: description });
+      } else if (error.code === 'auth/requires-recent-login') {
+        description = "Esta operação é sensível e requer autenticação recente. Por favor, faça login novamente e tente de novo.";
+      }
+      toast({
+        title: "Erro ao Alterar Senha",
+        description: description,
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdatingPassword(false);
+    }
   };
-
 
   if (authLoading) {
     return (
@@ -174,24 +208,62 @@ export default function SettingsPage() {
               <CardDescription>Gerencie sua senha e configurações de segurança.</CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handlePasswordChange} className="space-y-6">
-                <div className="space-y-2">
-                    <Label htmlFor="currentPassword">Senha Atual</Label>
-                    <Input id="currentPassword" type="password" placeholder="Digite a senha atual" disabled={isUpdatingPassword}/>
-                </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="newPassword">Nova Senha</Label>
-                    <Input id="newPassword" type="password" placeholder="Digite a nova senha" disabled={isUpdatingPassword}/>
-                </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
-                    <Input id="confirmPassword" type="password" placeholder="Confirme a nova senha" disabled={isUpdatingPassword}/>
-                </div>
-              <Button type="submit" variant="outline" disabled={isUpdatingPassword || authLoading}>
-                 {isUpdatingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Alterar Senha (Simulação)
-                </Button>
+              <Form {...passwordForm}>
+                <form onSubmit={passwordForm.handleSubmit(handlePasswordChange)} className="space-y-6">
+                  <FormField
+                    control={passwordForm.control}
+                    name="currentPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Senha Atual</FormLabel>
+                        <FormControl>
+                           <div className="relative">
+                            <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input type="password" placeholder="Digite sua senha atual" {...field} className="pl-10" disabled={isUpdatingPassword}/>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                 <FormField
+                    control={passwordForm.control}
+                    name="newPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nova Senha</FormLabel>
+                         <FormControl>
+                          <div className="relative">
+                            <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input type="password" placeholder="Digite a nova senha (mín. 6 caracteres)" {...field} className="pl-10" disabled={isUpdatingPassword}/>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                 <FormField
+                    control={passwordForm.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirmar Nova Senha</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input type="password" placeholder="Confirme a nova senha" {...field} className="pl-10" disabled={isUpdatingPassword}/>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit" variant="outline" disabled={isUpdatingPassword || authLoading}>
+                     {isUpdatingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Alterar Senha
+                  </Button>
               </form>
+             </Form>
             </CardContent>
           </Card>
         </div>
@@ -199,3 +271,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
