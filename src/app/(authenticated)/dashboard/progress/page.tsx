@@ -21,7 +21,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useAuth } from "@/contexts/auth-context";
 import { SubscriptionRequiredBlock } from "@/components/app/subscription-required-block";
 import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc, orderBy, Timestamp } from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc, Timestamp } from "firebase/firestore"; // Removed orderBy
 import { MOCK_EXERCISES } from "@/lib/constants"; // Keep for exercise names if not stored in log
 
 const chartConfigBase = {
@@ -46,50 +46,55 @@ export default function ProgressPage() {
     setErrorLogs(null);
     try {
       const logsCollectionRef = collection(db, "userProgressLogs");
-      const q = query(logsCollectionRef, where("userId", "==", user.id), orderBy("date", "desc"));
+      // Removed orderBy("date", "desc") from the query
+      const q = query(logsCollectionRef, where("userId", "==", user.id));
       const querySnapshot = await getDocs(q);
-      const fetchedLogs = querySnapshot.docs.map(docSnap => {
+      let fetchedLogs = querySnapshot.docs.map(docSnap => {
         const data = docSnap.data();
         // Ensure date is a string; Firestore Timestamps need to be converted
         const dateString = data.date instanceof Timestamp ? data.date.toDate().toISOString() : data.date;
-        return { 
-          id: docSnap.id, 
+        return {
+          id: docSnap.id,
           ...data,
           date: dateString,
          } as ProgressLog;
       });
+      // Client-side sorting (descending by date)
+      fetchedLogs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       setLogs(fetchedLogs);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error fetching progress logs:", err);
-      setErrorLogs("Failed to load progress logs. Please try again.");
+      if (err.code === 'failed-precondition' && err.message.includes('index')) {
+        setErrorLogs("O banco de dados requer um índice para esta consulta. Por favor, crie o índice no console do Firebase ou aguarde a propagação se já foi criado. Detalhes do erro: " + err.message);
+      } else {
+        setErrorLogs("Falha ao carregar os logs de progresso. Tente novamente.");
+      }
     } finally {
       setIsLoadingLogs(false);
     }
   };
 
   useEffect(() => {
-    if (authLoading) return; 
+    if (authLoading) return;
 
     if (user && user.subscriptionTier === 'hypertrophy' && user.subscriptionStatus === 'active') {
       fetchUserLogs();
     } else if (user && (user.subscriptionTier !== 'hypertrophy' || user.subscriptionStatus !== 'active')) {
       setLogs([]);
-      setIsLoadingLogs(false); 
+      setIsLoadingLogs(false);
     } else if (!user) {
         setLogs([]);
-        setIsLoadingLogs(false); 
+        setIsLoadingLogs(false);
     }
   }, [user, authLoading]);
 
   const handleLogSubmit = async (logData: Omit<ProgressLog, "id" | "userId" | "exerciseName"> & {exerciseId: string}) => {
     if (!user?.id) {
-      setErrorLogs("User not authenticated.");
+      setErrorLogs("Usuário não autenticado.");
       return;
     }
-    
+
     const exerciseName = MOCK_EXERCISES.find(ex => ex.id === logData.exerciseId)?.name || "Unknown Exercise";
-    
-    // setIsLoadingLogs(true); // This can be managed more granularly or by fetchUserLogs
 
     const baseData = {
       userId: user.id,
@@ -109,17 +114,10 @@ export default function ProgressPage() {
       optionalData.duration = logData.duration;
     }
     if (typeof logData.notes === 'string' && logData.notes.trim() !== "") {
-      // Ensure notes is not just an empty string if it was optional and not filled
       optionalData.notes = logData.notes.trim();
-    } else if (logData.notes === undefined && editingLog && editingLog.notes !== undefined) {
-        // If notes was explicitly cleared (became undefined from form) and we are editing, 
-        // we might want to set it to null or delete it from Firestore if that's the desired behavior
-        // For now, we'll just not include it if it's undefined or empty after trim.
     }
 
-
     const dataToSave = { ...baseData, ...optionalData };
-
     console.log("Data being sent to Firestore:", JSON.stringify(dataToSave, null, 2)); // DEBUG LOG
 
     try {
@@ -131,12 +129,10 @@ export default function ProgressPage() {
       }
       setEditingLog(undefined);
       setShowFormDialog(false);
-      await fetchUserLogs(); 
+      await fetchUserLogs();
     } catch (err: any) {
       console.error("Error submitting log:", err);
-      setErrorLogs(`Failed to save log: ${err.message}. Please try again.`);
-    } finally {
-       // setIsLoadingLogs(false); // fetchUserLogs will set this
+      setErrorLogs(`Falha ao salvar log: ${err.message}. Tente novamente.`);
     }
   };
 
@@ -147,26 +143,23 @@ export default function ProgressPage() {
 
   const confirmDeleteLog = async () => {
     if (!logToDeleteId) return;
-    // setIsLoadingLogs(true);
     try {
       const logRef = doc(db, "userProgressLogs", logToDeleteId);
       await deleteDoc(logRef);
       setLogToDeleteId(null);
-      await fetchUserLogs(); 
+      await fetchUserLogs();
     } catch (err: any) {
       console.error("Error deleting log:", err);
-      setErrorLogs("Failed to delete log. Please try again.");
-    } finally {
-      // setIsLoadingLogs(false);
+      setErrorLogs("Falha ao deletar log. Tente novamente.");
     }
   };
-  
+
   const groupedChartData = useMemo(() => {
     if (!logs.length) return {};
     const exercisesData: Record<string, { exerciseName: string; data: Array<{ date: string; weight?: number; reps?: number; originalDate: Date }> }> = {};
 
     logs.forEach(log => {
-        if (!log.exerciseId) return; 
+        if (!log.exerciseId) return;
 
         const weight = typeof log.weight === 'number' && !isNaN(log.weight) ? log.weight : undefined;
         const reps = typeof log.reps === 'number' && !isNaN(log.reps) ? log.reps : undefined;
@@ -177,13 +170,12 @@ export default function ProgressPage() {
                 data: [],
             };
         }
-        
-        // Only add to chart data if there's a weight, as that's the primary y-axis focus for these charts
+
         if (weight !== undefined) {
             exercisesData[log.exerciseId].data.push({
-                date: log.date, 
+                date: log.date,
                 weight: weight,
-                reps: reps, // Include reps if available
+                reps: reps,
                 originalDate: new Date(log.date),
             });
         }
@@ -192,8 +184,8 @@ export default function ProgressPage() {
     for (const exId in exercisesData) {
         exercisesData[exId].data = exercisesData[exId].data
             .sort((a, b) => a.originalDate.getTime() - b.originalDate.getTime())
-            .slice(-10) 
-            .map(d => ({ ...d, date: format(d.originalDate, "MMM d") })); 
+            .slice(-10)
+            .map(d => ({ ...d, date: format(d.originalDate, "MMM d") }));
     }
     return exercisesData;
   }, [logs]);
@@ -211,9 +203,9 @@ export default function ProgressPage() {
   if (!user || user.subscriptionTier !== 'hypertrophy' || user.subscriptionStatus !== 'active') {
     return <SubscriptionRequiredBlock featureName="o Log de Progresso" />;
   }
-  
+
   const renderContent = () => {
-    if (isLoadingLogs && logs.length === 0) { 
+    if (isLoadingLogs && logs.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center space-y-4 py-12">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -221,7 +213,7 @@ export default function ProgressPage() {
         </div>
       );
     }
-    if (errorLogs && !isLoadingLogs) { // Only show error if not currently loading
+    if (errorLogs && !isLoadingLogs) {
       return <p className="text-destructive text-center py-4">{errorLogs}</p>;
     }
     if (logs.length === 0 && !isLoadingLogs) {
@@ -306,7 +298,7 @@ export default function ProgressPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
           {Object.keys(groupedChartData).length > 0 ? Object.entries(groupedChartData).map(([exerciseId, chartInfo]) => (
-            chartInfo.data.length > 0 && ( // Ensure there's data to plot for this exercise
+            chartInfo.data.length > 0 && (
               <Card key={exerciseId}>
                 <CardHeader>
                   <CardTitle>{chartInfo.exerciseName} - Progresso (Peso & Reps)</CardTitle>
@@ -360,15 +352,15 @@ export default function ProgressPage() {
                 {editingLog ? "Atualize os detalhes do seu treino." : "Adicione um novo registro de treino para acompanhar seu progresso."}
               </DialogDescription>
             </DialogHeader>
-            <ProgressLogForm 
-                onLogAdded={handleLogSubmit} 
+            <ProgressLogForm
+                onLogAdded={handleLogSubmit}
                 existingLog={editingLog ? {
                     ...editingLog,
                     date: editingLog.date ? new Date(editingLog.date) : new Date(),
                     weight: editingLog.weight ?? undefined,
                     duration: editingLog.duration ?? undefined,
                     notes: editingLog.notes ?? "",
-                } : undefined} 
+                } : undefined}
             />
           </DialogContent>
         </Dialog>
@@ -378,3 +370,4 @@ export default function ProgressPage() {
   );
 }
 
+    
