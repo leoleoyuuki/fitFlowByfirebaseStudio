@@ -65,6 +65,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 displayName: firebaseUser.displayName || undefined,
                 photoURL: firebaseUser.photoURL || undefined,
                 subscriptionTier: 'free',
+                stripeCustomerId: null,
+                stripeSubscriptionId: null,
+                subscriptionStatus: null,
             };
             setUser(userProfile);
         }
@@ -85,8 +88,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       router.push('/dashboard');
     } catch (error: any) {
       console.error("Erro no login:", error);
-      toast({ title: "Falha no Login", description: error.message || "E-mail ou senha inválidos.", variant: "destructive" });
-      setLoading(false); // Explicitly set loading false on error
+      let description = "Ocorreu um erro ao tentar fazer login. Tente novamente.";
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+        description = "E-mail ou senha inválidos. Verifique suas credenciais e tente novamente.";
+      } else if (error.code === 'auth/too-many-requests') {
+        description = "Muitas tentativas de login. Por favor, tente novamente mais tarde.";
+      }
+      toast({ title: "Falha no Login", description: description, variant: "destructive" });
+      setLoading(false); 
     }
   };
 
@@ -119,8 +128,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       router.push('/dashboard');
     } catch (error: any) {
       console.error("Erro no cadastro:", error);
-      toast({ title: "Falha no Cadastro", description: error.message || "Não foi possível criar a conta.", variant: "destructive" });
-      setLoading(false); // Explicitly set loading false on error
+      let description = "Não foi possível criar a conta. Tente novamente.";
+      if (error.code === 'auth/email-already-in-use') {
+        description = "Este e-mail já está em uso. Tente outro e-mail ou faça login.";
+      } else if (error.code === 'auth/weak-password') {
+        description = "A senha é muito fraca. Por favor, use uma senha mais forte (mínimo 6 caracteres).";
+      }
+      toast({ title: "Falha no Cadastro", description: description, variant: "destructive" });
+      setLoading(false); 
     }
   };
 
@@ -133,7 +148,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error: any) {
       console.error("Erro no logout:", error);
       toast({ title: "Falha no Logout", description: error.message || "Não foi possível desconectar.", variant: "destructive" });
-      setLoading(false); // Explicitly set loading false on error
+      setLoading(false); 
     }
   };
 
