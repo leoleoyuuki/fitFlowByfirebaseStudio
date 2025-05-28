@@ -61,7 +61,7 @@ export default function SubscribePage() {
       toast({
         title: "Assinatura Cancelada",
         description: "O processo de assinatura foi cancelado. Você pode tentar novamente a qualquer momento.",
-        variant: "destructive", // Mantido como destructive para alerta
+        variant: "destructive", 
       });
     }
     
@@ -69,11 +69,10 @@ export default function SubscribePage() {
         const current = new URLSearchParams(Array.from(searchParams.entries()));
         current.delete('success');
         current.delete('canceled');
-        current.delete('session_id'); // Remover session_id também
+        current.delete('session_id'); 
         const newPathQuery = current.toString();
         const newPath = newPathQuery ? `/subscribe?${newPathQuery}` : '/subscribe';
 
-        // Apenas substitui a rota se ela for diferente para evitar loops
         if (window.location.pathname + window.location.search !== newPath) {
             router.replace(newPath, undefined);
         }
@@ -86,9 +85,6 @@ export default function SubscribePage() {
     if (!plan) return;
 
     if (plan.id === 'free') {
-        // Lógica para downgrade para plano gratuito via Stripe (se aplicável e configurado)
-        // Ou apenas atualização local se não houver ação no Stripe.
-        // Por agora, vamos assumir que o usuário faria isso pelo portal do Stripe.
         toast({
             title: "Plano Básico",
             description: "Para mudar para o plano básico, por favor, gerencie sua assinatura.",
@@ -180,11 +176,21 @@ export default function SubscribePage() {
         throw new Error(data.error || "Falha ao criar sessão do portal.");
       }
       window.location.href = data.url; // Redireciona para o portal do Stripe
-    } catch (error: any) {
+    } catch (error: any)
+     {
       console.error("Erro ao gerenciar assinatura:", error);
+      let errorMessage = error.message || "Não foi possível abrir o portal de gerenciamento. Tente novamente.";
+      if (typeof error.message === 'string') {
+        if (error.message.includes("a similar object exists in test mode, but a live mode key was used") ||
+            error.message.includes("a similar object exists in live mode, but a test mode key was used")) {
+          errorMessage = "Erro de configuração do Stripe: Há uma incompatibilidade entre as chaves de API (Live/Test) e o cliente. Verifique suas chaves no .env e os dados do cliente no Stripe.";
+        } else if (error.message.startsWith("No such customer")) {
+            errorMessage = "Cliente Stripe não encontrado. Verifique se o ID do cliente está correto e se corresponde ao ambiente (Live/Test) das suas chaves de API.";
+        }
+      }
       toast({
         title: "Erro ao Gerenciar Assinatura",
-        description: error.message || "Não foi possível abrir o portal de gerenciamento. Tente novamente.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -208,7 +214,7 @@ export default function SubscribePage() {
           <Button 
             onClick={handleManageSubscription} 
             className="mt-8 text-lg px-8 py-6"
-            disabled={isManagingSubscription}
+            disabled={isManagingSubscription || authLoading}
           >
             {isManagingSubscription ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Settings className="mr-2 h-5 w-5" />}
             Gerenciar Minha Assinatura
@@ -297,3 +303,5 @@ export default function SubscribePage() {
     </div>
   );
 }
+
+    
