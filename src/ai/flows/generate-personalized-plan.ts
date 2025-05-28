@@ -42,8 +42,7 @@ const ExerciseDetailSchema = z.object({
   name: z.string().describe("Name of the exercise."),
   sets: z.string().describe("Number of sets (e.g., '3-4' or '3')."),
   reps: z.string().describe("Repetition range (e.g., '8-12', '5', 'AMRAP')."),
-  restSeconds: z.number().optional().describe("Rest time in seconds between sets (e.g., 60, 90, 120)."),
-  tempo: z.string().optional().describe("Optional tempo for lifts (e.g., '2-0-1-0': 2s eccentric, 0s pause, 1s concentric, 0s pause)."),
+  restSeconds: z.number().optional().describe("Rest time in seconds between sets (e.g., 120, 180, 300). Aim for 2-5 minutes."),
   notes: z.string().optional().describe("Specific instructions or notes for the exercise (e.g., 'Focus on controlled eccentric', 'Go to failure on last set').")
 });
 
@@ -60,9 +59,19 @@ const TrainingPlanSchema = z.object({
   notes: z.string().optional().describe("General notes or advice for the training plan (e.g., 'Ensure progressive overload by increasing weight or reps over time', 'Warm-up before each session with light cardio and dynamic stretches').")
 });
 
-const FoodSuggestionCategorySchema = z.object({
-    category: z.string().describe("Macronutrient category, e.g., 'Proteins', 'Carbohydrates', 'Fats'."),
-    suggestions: z.array(z.string()).describe("List of 3-5 common Brazilian food options for this category.")
+const FoodItemWithQuantitySchema = z.object({
+  foodName: z.string().describe("Name of the food item (e.g., 'Arroz integral cozido', 'Peito de frango grelhado')."),
+  quantity: z.string().describe("Quantity of the food item with unit (e.g., '150g', '1 unidade média', '1 xícara').")
+});
+
+const MealOptionSchema = z.object({
+  optionDescription: z.string().optional().describe("Brief description for this meal option (e.g., 'High Protein Breakfast', 'Quick Lunch')."),
+  items: z.array(FoodItemWithQuantitySchema).describe("List of food items and their quantities for this meal option.")
+});
+
+const DailyMealPlanSchema = z.object({
+  mealName: z.string().describe("Name of the meal (e.g., Café da Manhã, Lanche da Manhã, Almoço, Lanche da Tarde, Jantar)."),
+  mealOptions: z.array(MealOptionSchema).min(1).describe("List of 1 to 3 different meal options for this meal. Main meals (Breakfast, Lunch, Dinner) should aim for 3 options, snacks (Morning Snack, Afternoon Snack) 1-2 options.")
 });
 
 const DietGuidanceSchema = z.object({
@@ -70,14 +79,13 @@ const DietGuidanceSchema = z.object({
   proteinGrams: z.number().describe("Daily protein target in grams."),
   carbGrams: z.number().describe("Daily carbohydrate target in grams."),
   fatGrams: z.number().describe("Daily fat target in grams."),
-  mealStructureExamples: z.array(z.string()).optional().describe("Example meal structures for the day (e.g., 'Breakfast: Protein + Carb', 'Lunch: Protein + Carb + Fat + Veggies')."),
-  brazilianFoodSuggestions: z.array(FoodSuggestionCategorySchema).optional().describe("Suggestions of common Brazilian food items categorized by macronutrient, to help with meal planning."),
-  notes: z.string().optional().describe("General dietary advice, e.g., hydration, food quality, importance of fiber, meal timing flexibility.")
+  dailyMealPlans: z.array(DailyMealPlanSchema).describe("Array of daily meal plans for typically 5 meals: Café da Manhã, Lanche da Manhã, Almoço, Lanche da Tarde, Jantar. Each meal should have multiple options with specific food items and quantities."),
+  notes: z.string().optional().describe("General dietary advice, e.g., hydration, food quality, importance of fiber, meal timing flexibility. Remind user these are suggestions and they can adapt with equivalent foods.")
 });
 
 const PersonalizedPlanOutputSchema = z.object({
   trainingPlan: TrainingPlanSchema.describe("A detailed, science-based hypertrophy training plan."),
-  dietGuidance: DietGuidanceSchema.describe("Personalized dietary guidance including macro targets and meal/food suggestions."),
+  dietGuidance: DietGuidanceSchema.describe("Personalized dietary guidance including macro targets and detailed meal options with quantities."),
   overallSummary: z.string().describe("A brief summary of the plan and key recommendations.")
 });
 
@@ -92,7 +100,7 @@ const prompt = ai.definePrompt({
   input: {schema: PersonalizedPlanInputSchema},
   output: {schema: PersonalizedPlanOutputSchema},
   prompt: `You are an expert kinesiologist and certified nutrition coach specializing in science-based hypertrophy (muscle growth) for natural lifters.
-Your task is to generate a structured, personalized training and diet plan based on the user's input. The plan should be actionable and easy to follow.
+Your task is to generate a structured, personalized training and diet plan based on the user's input. The plan should be actionable, easy to follow, and provide specific quantities for food items.
 
 User Details:
 - Goal Phase: {{{goalPhase}}} (bulking = calorie surplus for muscle gain; cutting = calorie deficit for fat loss while preserving muscle; maintenance = maintain current physique)
@@ -120,9 +128,8 @@ Instructions for Plan Generation:
     *   **Daily Workouts:** For each workout day:
         *   List exercises with specific sets and rep ranges (e.g., 6-10 for compounds, 10-15 for isolation). Prioritize compound exercises.
         *   Select exercises matching 'Available Equipment' and 'Training Experience'.
-        *   Include recommended rest times in seconds (e.g., 60-90s for isolation, 90-180s for compounds).
-        *   Optionally include tempo (e.g., '2-0-1-0').
-        *   Provide brief notes for exercises if helpful.
+        *   Include recommended rest times in seconds (between 120 to 300 seconds, to ensure 2-5 minutes of rest). This is crucial for recovery between heavy sets aimed at hypertrophy. DO NOT include exercise tempo/cadence.
+        *   Provide brief notes for exercises if helpful (e.g., 'Focus on good form').
     *   **General Notes:** Include advice on progressive overload (e.g., "Aim to increase weight or reps on exercises over time while maintaining good form").
 
 2.  **Diet Guidance:**
@@ -130,15 +137,18 @@ Instructions for Plan Generation:
         *   Bulking: Moderate surplus (e.g., +250-500 kcal).
         *   Cutting: Moderate deficit (e.g., -250-500 kcal).
         *   Maintenance: Calories to maintain current weight.
-    *   Calculate macronutrient targets (protein, carbs, fat) in grams. Protein: 1.6-2.2g/kg. Fat: 20-30% of calories. Carbs: Remainder.
-    *   **Meal Structure Examples:** Provide a few examples of how meals could be structured through the day (e.g., "Breakfast: Protein source + Carbohydrate source", "Lunch: Protein source + Carbohydrate source + Fat source + Vegetables").
-    *   **Brazilian Food Suggestions:** For each macronutrient category (Proteins, Carbohydrates, Fats), list 3-5 common Brazilian food options that are good sources. For example:
-        *   Proteins: Frango (chicken breast), Ovos (eggs), Peixe (fish like tilapia or salmon), Carne vermelha magra (lean red meat like patinho), Iogurte natural/Queijo cottage.
-        *   Carbohydrates: Arroz (rice), Feijão (beans), Batata doce (sweet potato), Mandioca/Aipim (cassava), Aveia (oats), Pão integral (whole wheat bread), Frutas (banana, maçã, mamão).
-        *   Fats: Abacate (avocado), Azeite de oliva extra virgem (olive oil), Castanhas (nuts like Brazil nuts, cashews), Sementes (chia, linhaça), Pasta de amendoim integral (peanut butter).
-        *   Structure this in 'brazilianFoodSuggestions' with categories.
-    *   This is to provide the user with ideas; they will make their own food choices. Do not ask for their food preferences as input for this list.
-    *   **General Notes:** Include advice on hydration, importance of whole foods, fiber. Consider 'Dietary Preferences/Restrictions' for overall advice.
+    *   Calculate macronutrient targets (protein, carbs, fat) in grams. Protein: 1.6-2.2g/kg body weight. Fat: 20-30% of total calories. Carbs: Remainder.
+    *   **Daily Meal Plans:** Structure a typical day with 5 meals: 'Café da Manhã', 'Lanche da Manhã', 'Almoço', 'Lanche da Tarde', 'Jantar'.
+        *   For 'Café da Manhã', 'Almoço', and 'Jantar', provide 3 distinct meal options.
+        *   For 'Lanche da Manhã' and 'Lanche da Tarde', provide 1-2 distinct meal options.
+        *   Each meal option must list specific food items and their **quantities in grams (g) or common household units** (e.g., 1 unidade média, 1 xícara, 2 fatias). For example: "Peito de frango grelhado - 150g", "Arroz integral cozido - 100g", "Banana - 1 unidade média".
+        *   The sum of calories and macros from all meals in a typical day should align closely with the calculated daily targets.
+        *   Prioritize common Brazilian food items. Examples for macronutrient categories:
+            *   Proteins: Frango (chicken breast), Ovos (eggs), Peixe (fish like tilapia or salmon), Carne vermelha magra (lean red meat like patinho), Iogurte natural/Queijo cottage, Whey protein.
+            *   Carbohydrates: Arroz (rice), Feijão (beans), Batata doce (sweet potato), Mandioca/Aipim (cassava), Aveia (oats), Pão integral (whole wheat bread), Frutas (banana, maçã, mamão, laranja).
+            *   Fats: Abacate (avocado), Azeite de oliva extra virgem (olive oil), Castanhas (nuts like Brazil nuts, cashews), Sementes (chia, linhaça), Pasta de amendoim integral (peanut butter).
+        *   Consider 'Dietary Preferences/Restrictions' when suggesting foods (e.g., offer plant-based protein options if vegetarian).
+    *   **General Notes:** Include advice on hydration, importance of whole foods, fiber. Emphasize that the provided meal options are suggestions and can be adapted by swapping for nutritionally similar foods to maintain adherence and variety.
 
 3.  **Overall Summary:**
     *   Write a brief (2-3 sentences) summary of the plan and key recommendations.
@@ -164,4 +174,3 @@ const generatePersonalizedPlanFlow = ai.defineFlow(
     return output;
   }
 );
-

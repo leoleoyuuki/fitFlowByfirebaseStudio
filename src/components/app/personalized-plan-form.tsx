@@ -110,8 +110,8 @@ export function PersonalizedPlanForm() {
       await setDoc(planRef, {
         latestPlan: generatedPlan,
         savedAt: serverTimestamp(),
-        trainingFrequency: form.getValues('trainingFrequency'), // Store for potential future use/display
-        goalPhase: form.getValues('goalPhase'), // Store for potential future use/display
+        trainingFrequency: form.getValues('trainingFrequency'),
+        goalPhase: form.getValues('goalPhase'),
       });
       toast({
         title: "Plano Salvo com Sucesso!",
@@ -122,9 +122,6 @@ export function PersonalizedPlanForm() {
           </Button>
         ),
       });
-      // Optionally redirect or clear the form/plan
-      // setGeneratedPlan(null); 
-      // form.reset();
     } catch (e: any) {
       console.error("Error saving plan:", e);
       toast({
@@ -382,7 +379,6 @@ export function PersonalizedPlanForm() {
                                     <li key={exIndex}>
                                         <strong>{ex.name}:</strong> {ex.sets} séries de {ex.reps} reps.
                                         {ex.restSeconds && ` Descanso: ${ex.restSeconds}s.`}
-                                        {ex.tempo && ` Cadência: ${ex.tempo}.`}
                                         {ex.notes && <span className="block text-xs text-muted-foreground italic pl-4">- {ex.notes}</span>}
                                     </li>
                                 ))}
@@ -394,40 +390,32 @@ export function PersonalizedPlanForm() {
             </Card>
 
             <Card className="shadow-lg">
-                <CardHeader>
-                    <CardTitle className="text-xl text-primary">
-                        <Utensils className="inline-block mr-2 h-5 w-5" /> Suas Diretrizes de Dieta ({form.getValues('goalPhase')})
-                    </CardTitle>
-                     <ShadCnCardDescription>Metas Diárias: ~{generatedPlan.dietGuidance.estimatedDailyCalories} kcal | P: {generatedPlan.dietGuidance.proteinGrams}g | C: {generatedPlan.dietGuidance.carbGrams}g | F: {generatedPlan.dietGuidance.fatGrams}g</ShadCnCardDescription>
-                </CardHeader>
-                <CardContent>
-                    {generatedPlan.dietGuidance.mealStructureExamples && generatedPlan.dietGuidance.mealStructureExamples.length > 0 && (
-                        <>
-                            <h4 className="font-semibold mb-2">Exemplos de Estrutura de Refeições:</h4>
-                            <ul className="list-disc list-inside space-y-1 text-sm">
-                                {generatedPlan.dietGuidance.mealStructureExamples.map((meal, mealIndex) => (
-                                    <li key={mealIndex}>{meal}</li>
-                                ))}
-                            </ul>
-                        </>
-                    )}
-                    {generatedPlan.dietGuidance.brazilianFoodSuggestions && generatedPlan.dietGuidance.brazilianFoodSuggestions.length > 0 && (
-                        <div className="mt-4">
-                            <h4 className="font-semibold mb-2">Sugestões de Alimentos Brasileiros Comuns:</h4>
-                            {generatedPlan.dietGuidance.brazilianFoodSuggestions.map((categoryItem, catIndex) =>(
-                                <div key={catIndex} className="mb-2">
-                                    <p className="text-sm font-medium">{categoryItem.category}:</p>
-                                    <ul className="list-disc list-inside pl-4 text-sm text-muted-foreground">
-                                        {categoryItem.suggestions.map((food, foodIndex) => (
-                                            <li key={foodIndex}>{food}</li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                    {generatedPlan.dietGuidance.notes && <p className="mt-4 text-sm text-muted-foreground italic"><strong>Notas da Dieta:</strong> {generatedPlan.dietGuidance.notes}</p>}
-                </CardContent>
+              <CardHeader>
+                <CardTitle className="text-xl text-primary">
+                  <Utensils className="inline-block mr-2 h-5 w-5" /> Suas Diretrizes de Dieta ({form.getValues('goalPhase')})
+                </CardTitle>
+                <ShadCnCardDescription>Metas Diárias Estimadas: ~{generatedPlan.dietGuidance.estimatedDailyCalories} kcal | Proteínas: {generatedPlan.dietGuidance.proteinGrams}g | Carboidratos: {generatedPlan.dietGuidance.carbGrams}g | Gorduras: {generatedPlan.dietGuidance.fatGrams}g</ShadCnCardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {generatedPlan.dietGuidance.dailyMealPlans.map((mealPlan, mealPlanIndex) => (
+                  <div key={mealPlanIndex} className="border-t pt-4 first:border-t-0 first:pt-0">
+                    <h4 className="text-lg font-semibold mb-3 text-foreground">{mealPlan.mealName}</h4>
+                    {mealPlan.mealOptions.map((option, optionIndex) => (
+                      <div key={optionIndex} className="mb-4 pl-4 border-l-2 border-primary/30">
+                        <p className="text-sm font-medium text-primary mb-1">Opção {optionIndex + 1}{option.optionDescription ? `: ${option.optionDescription}` : ''}</p>
+                        <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                          {option.items.map((foodItem, foodItemIndex) => (
+                            <li key={foodItemIndex}>
+                              {foodItem.foodName}: <span className="font-medium text-foreground/80">{foodItem.quantity}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+                {generatedPlan.dietGuidance.notes && <p className="mt-4 text-sm text-muted-foreground italic border-t pt-4"><strong>Notas Gerais da Dieta:</strong> {generatedPlan.dietGuidance.notes}</p>}
+              </CardContent>
             </Card>
             
             <Card className="shadow-lg">

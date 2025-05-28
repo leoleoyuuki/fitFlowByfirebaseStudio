@@ -22,7 +22,7 @@ export default function MyAiPlanPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (authLoading) return; // Wait for auth state to resolve
+    if (authLoading) return; 
 
     if (!user) {
       setError("Você precisa estar logado para ver seu plano.");
@@ -31,9 +31,8 @@ export default function MyAiPlanPage() {
     }
     
     if (user.subscriptionTier !== 'hypertrophy' || user.subscriptionStatus !== 'active') {
-      // This check is a bit redundant if PersonalizedPlanPage already blocks, but good for direct navigation
       setIsLoading(false);
-      return; // SubscriptionRequiredBlock will be rendered below
+      return; 
     }
 
     if (user?.id) {
@@ -133,7 +132,6 @@ export default function MyAiPlanPage() {
                                 <li key={exIndex} className="mb-1">
                                     <strong className="font-medium">{ex.name}:</strong> {ex.sets} séries de {ex.reps} reps.
                                     {ex.restSeconds && <span className="text-muted-foreground"> Descanso: {ex.restSeconds}s.</span>}
-                                    {ex.tempo && <span className="text-muted-foreground"> Cadência: {ex.tempo}.</span>}
                                     {ex.notes && <p className="block text-xs text-muted-foreground italic pl-5">- {ex.notes}</p>}
                                 </li>
                             ))}
@@ -151,32 +149,24 @@ export default function MyAiPlanPage() {
                 </CardTitle>
                     <CardDescription>Metas Diárias Estimadas: ~{latestPlan.dietGuidance.estimatedDailyCalories} kcal | Proteínas: {latestPlan.dietGuidance.proteinGrams}g | Carboidratos: {latestPlan.dietGuidance.carbGrams}g | Gorduras: {latestPlan.dietGuidance.fatGrams}g</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-                {latestPlan.dietGuidance.mealStructureExamples && latestPlan.dietGuidance.mealStructureExamples.length > 0 && (
-                    <div>
-                        <h4 className="font-semibold mb-2 text-foreground">Exemplos de Estrutura de Refeições:</h4>
+            <CardContent className="space-y-6">
+                {latestPlan.dietGuidance.dailyMealPlans.map((mealPlan, mealPlanIndex) => (
+                  <div key={mealPlanIndex} className="border-t pt-4 first:border-t-0 first:pt-0">
+                    <h4 className="text-lg font-semibold mb-3 text-foreground">{mealPlan.mealName}</h4>
+                    {mealPlan.mealOptions.map((option, optionIndex) => (
+                      <div key={optionIndex} className="mb-4 pl-4 border-l-2 border-primary/30">
+                        <p className="text-sm font-medium text-primary mb-1">Opção {optionIndex + 1}{option.optionDescription ? `: ${option.optionDescription}` : ''}</p>
                         <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                            {latestPlan.dietGuidance.mealStructureExamples.map((meal, mealIndex) => (
-                                <li key={mealIndex}>{meal}</li>
-                            ))}
+                          {option.items.map((foodItem, foodItemIndex) => (
+                            <li key={foodItemIndex}>
+                              {foodItem.foodName}: <span className="font-medium text-foreground/80">{foodItem.quantity}</span>
+                            </li>
+                          ))}
                         </ul>
-                    </div>
-                )}
-                {latestPlan.dietGuidance.brazilianFoodSuggestions && latestPlan.dietGuidance.brazilianFoodSuggestions.length > 0 && (
-                    <div className="mt-4">
-                        <h4 className="font-semibold mb-2 text-foreground">Sugestões de Alimentos Brasileiros Comuns:</h4>
-                        {latestPlan.dietGuidance.brazilianFoodSuggestions.map((categoryItem, catIndex) =>(
-                            <div key={catIndex} className="mb-3">
-                                <p className="text-sm font-medium text-foreground">{categoryItem.category}:</p>
-                                <ul className="list-disc list-inside pl-4 text-sm text-muted-foreground">
-                                    {categoryItem.suggestions.map((food, foodIndex) => (
-                                        <li key={foodIndex}>{food}</li>
-                                    ))}
-                                </ul>
-                            </div>
-                        ))}
-                    </div>
-                )}
+                      </div>
+                    ))}
+                  </div>
+                ))}
                 {latestPlan.dietGuidance.notes && <p className="mt-4 text-sm text-muted-foreground italic border-t pt-4"><strong>Notas Gerais da Dieta:</strong> {latestPlan.dietGuidance.notes}</p>}
             </CardContent>
         </Card>
