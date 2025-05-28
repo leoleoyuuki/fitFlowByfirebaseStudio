@@ -31,8 +31,14 @@ const progressLogFormSchema = z.object({
   exerciseId: z.string().min(1, { message: "Please select an exercise." }),
   sets: z.coerce.number().min(1, { message: "Sets must be at least 1." }),
   reps: z.coerce.number().min(1, { message: "Reps must be at least 1." }),
-  weight: z.coerce.number().nonnegative({message: "Weight cannot be negative."}).optional(),
-  duration: z.coerce.number().nonnegative({message: "Duration cannot be negative."}).optional(),
+  weight: z.preprocess(
+    (val) => (val === "" || val === null ? undefined : val),
+    z.coerce.number().nonnegative({message: "Weight cannot be negative."}).optional()
+  ),
+  duration: z.preprocess(
+    (val) => (val === "" || val === null ? undefined : val),
+    z.coerce.number().nonnegative({message: "Duration cannot be negative."}).optional()
+  ),
   notes: z.string().optional(),
 });
 
@@ -243,4 +249,3 @@ export function ProgressLogForm({ onLogAdded, existingLog }: ProgressLogFormProp
     </Form>
   );
 }
-
