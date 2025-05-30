@@ -37,7 +37,7 @@ export function Header() {
             <Link
               key={item.href}
               href={item.href}
-              className="text-foreground/60 transition-colors hover:text-foreground/80"
+              className="text-foreground/60 transition-colors hover:text-foreground/80 hidden sm:block" // Applied responsive classes
             >
               {item.title}
             </Link>
