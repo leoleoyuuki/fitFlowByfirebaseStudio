@@ -274,9 +274,11 @@ export default function SubscribePage() {
         <p className="text-center mt-12 text-sm text-muted-foreground">
           Certifique-se de que seus IDs de Preço do Stripe estão configurados corretamente no arquivo de constantes para planos pagos.
         </p>
+        {/* 
         <p className="text-center mt-2 text-sm text-muted-foreground">
           Endpoint do Webhook Stripe: `/api/stripe/webhook`
         </p>
+        */}
       </div>
     );
   };
@@ -304,4 +306,3 @@ export default function SubscribePage() {
   );
 }
 
-    
