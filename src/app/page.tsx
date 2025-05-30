@@ -46,7 +46,7 @@ export default function HomePage() {
             </p>
             <div className="mt-10 flex flex-col items-center space-y-4 sm:flex-row sm:justify-center sm:space-y-0 sm:space-x-4">
               <Button asChild size="lg" className="text-lg px-8 py-6 w-full sm:w-auto">
-                <Link href="/signup">Comece a Construir (Grátis)</Link>
+                <Link href="/signup">Inicie Sua Transformação Agora</Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="text-lg px-8 py-6 w-full sm:w-auto">
                 <Link href="/#features">Entenda a Ciência</Link>
