@@ -59,7 +59,7 @@ export default function SignupPage() {
               <FormItem>
                 <FormLabel>Nome Completo</FormLabel>
                 <FormControl>
-                  <Input placeholder="Seu Nome" {...field} />
+                  <Input placeholder="Seu Nome" {...field} disabled={loading}/>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -72,7 +72,7 @@ export default function SignupPage() {
               <FormItem>
                 <FormLabel>E-mail</FormLabel>
                 <FormControl>
-                  <Input placeholder="voce@exemplo.com" {...field} />
+                  <Input placeholder="voce@exemplo.com" {...field} disabled={loading}/>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -85,19 +85,24 @@ export default function SignupPage() {
               <FormItem>
                 <FormLabel>Senha</FormLabel>
                 <FormControl>
-                  <Input type="password" placeholder="•••••••• (mín. 6 caracteres)" {...field} />
+                  <Input type="password" placeholder="•••••••• (mín. 6 caracteres)" {...field} disabled={loading}/>
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Cadastrar & Começar a Construir
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Cadastrando...
+              </>
+            ) : (
+              "Cadastrar & Começar a Construir"
+            )}
           </Button>
         </form>
       </Form>
     </AuthFormWrapper>
   );
 }
-
