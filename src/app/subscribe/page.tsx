@@ -237,7 +237,7 @@ export default function SubscribePage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-8 max-w-md mx-auto"> {/* Changed to md:grid-cols-1 and max-w-md */}
           {MOCK_SUBSCRIPTION_PLANS.map((plan) => (
             <Card key={plan.id} className={`flex flex-col shadow-xl hover:shadow-2xl transition-shadow duration-300 ${plan.id === 'hypertrophy' ? 'border-primary border-2 ring-4 ring-primary/20' : ''}`}>
               <CardHeader className="text-center">
