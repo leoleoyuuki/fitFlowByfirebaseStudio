@@ -83,10 +83,13 @@ export function Header() {
             </DropdownMenu>
           ) : (
             <>
-              <Button variant="ghost" onClick={() => router.push("/login")}>
-                <LogIn className="mr-2 h-4 w-4" /> Entrar
+              <Button variant="ghost" onClick={() => router.push("/login")} className="px-2 py-1 sm:px-3 sm:py-2">
+                <LogIn className="h-4 w-4 sm:mr-2" /> 
+                <span className="hidden sm:inline">Entrar</span>
               </Button>
-              <Button onClick={() => router.push("/signup")}>Cadastrar</Button>
+              <Button onClick={() => router.push("/signup")} size="sm">
+                Cadastrar
+              </Button>
             </>
           )}
         </div>
@@ -94,4 +97,3 @@ export function Header() {
     </header>
   );
 }
-
