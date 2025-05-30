@@ -111,7 +111,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           id: userCredential.user.uid,
           email: userCredential.user.email || "",
           displayName: name,
-          photoURL: userCredential.user.photoURL || undefined,
+          photoURL: userCredential.user.photoURL || null, // Changed undefined to null
           subscriptionTier: 'free',
           stripeCustomerId: null,
           stripeSubscriptionId: null,
