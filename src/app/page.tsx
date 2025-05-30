@@ -44,11 +44,11 @@ export default function HomePage() {
             <p className="mt-6 max-w-2xl mx-auto text-lg text-muted-foreground sm:text-xl">
               Desbloqueie seu potencial com planos de treino e nutrição para hipertrofia direcionados por IA e baseados em ciência. Seja para bulking ou cutting, o FitFlow guia sua transformação.
             </p>
-            <div className="mt-10 flex justify-center space-x-4">
-              <Button asChild size="lg" className="text-lg px-8 py-6">
+            <div className="mt-10 flex flex-col items-center space-y-4 sm:flex-row sm:justify-center sm:space-y-0 sm:space-x-4">
+              <Button asChild size="lg" className="text-lg px-8 py-6 w-full sm:w-auto">
                 <Link href="/signup">Comece a Construir (Grátis)</Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="text-lg px-8 py-6">
+              <Button asChild variant="outline" size="lg" className="text-lg px-8 py-6 w-full sm:w-auto">
                 <Link href="/#features">Entenda a Ciência</Link>
               </Button>
             </div>
@@ -130,4 +130,3 @@ export default function HomePage() {
     </div>
   );
 }
-

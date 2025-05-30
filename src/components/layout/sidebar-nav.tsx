@@ -10,17 +10,25 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  useSidebar, // Import useSidebar
 } from "@/components/ui/sidebar";
 
 
 export function SidebarNav() {
   const pathname = usePathname();
+  const { isMobile, setOpenMobile } = useSidebar(); // Get context for mobile state
+
+  const handleLinkClick = () => {
+    if (isMobile) {
+      setOpenMobile(false); // Close mobile sidebar on link click
+    }
+  };
 
   return (
     <SidebarMenu>
       {dashboardNavItems.map((item) => (
         <SidebarMenuItem key={item.href}>
-          <Link href={item.href} legacyBehavior passHref>
+          <Link href={item.href} legacyBehavior passHref onClick={handleLinkClick}>
             <SidebarMenuButton
               isActive={pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href))}
               tooltip={item.title}
