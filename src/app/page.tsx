@@ -1,7 +1,7 @@
 
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardFooter, CardTitle } from "@/components/ui/card";
 import { Dumbbell, Zap, Target, Brain, CheckCircle, TrendingUp, ShieldCheck, LineChart, Utensils } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -106,6 +106,45 @@ export default function HomePage() {
             </div>
         </section>
 
+        {/* Pricing Section */}
+        <section id="pricing" className="py-16 md:py-24 bg-background">
+          <div className="container mx-auto px-4">
+            <h2 className="text-3xl font-bold text-center mb-4 text-foreground">
+              Transformação Completa por um Preço Justo
+            </h2>
+            <p className="text-lg text-muted-foreground text-center mb-12 max-w-xl mx-auto">
+              Acesso total à plataforma FitFlow e conquiste o físico que você sempre sonhou, de forma acessível.
+            </p>
+            <div className="flex justify-center">
+              <Card className="w-full max-w-md shadow-xl border-2 border-primary ring-4 ring-primary/20">
+                <CardHeader className="text-center items-center">
+                  <Zap className="h-10 w-10 text-primary mb-3" />
+                  <CardTitle className="text-2xl font-semibold text-primary">Plano FitFlow Hipertrofia</CardTitle>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <p className="text-5xl font-extrabold text-foreground mb-2">
+                    R$37,90<span className="text-xl font-normal text-muted-foreground">/mês</span>
+                  </p>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    Cancele quando quiser. Sem compromisso.
+                  </p>
+                  <ul className="space-y-2 text-sm text-muted-foreground mb-6 list-none text-left">
+                    <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Planos de Treino e Dieta com IA</li>
+                    <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Biblioteca Completa de Exercícios</li>
+                    <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Acompanhamento Detalhado de Progresso</li>
+                    <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Suporte e Atualizações Contínuas</li>
+                  </ul>
+                </CardContent>
+                <CardFooter className="flex-col space-y-4 p-6 pt-0">
+                   <Button asChild size="lg" className="w-full text-lg px-8 py-6">
+                    <Link href="/subscribe">Assine Agora e Evolua</Link>
+                  </Button>
+                </CardFooter>
+              </Card>
+            </div>
+          </div>
+        </section>
+
 
         {/* Call to Action Section */}
         <section className="py-16 md:py-24 bg-primary/10">
@@ -130,3 +169,4 @@ export default function HomePage() {
     </div>
   );
 }
+
