@@ -1,6 +1,6 @@
 
 "use client";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,16 +9,22 @@ import { CheckCircle, Loader2, Zap, Settings } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter, useSearchParams } from "next/navigation";
-import { loadStripe } from '@stripe/stripe-js';
+import { type Stripe, loadStripe } from '@stripe/stripe-js';
 
-const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-  ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
-  : null;
-if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
+let stripePromiseInstance: Promise<Stripe | null> | null = null;
+
+const getStripePromise = () => {
+  if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
     console.warn("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY não está definido. A funcionalidade do Stripe será limitada.");
-}
+    return Promise.resolve(null);
+  }
+  if (!stripePromiseInstance) {
+    stripePromiseInstance = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+  }
+  return stripePromiseInstance;
+};
 
-export default function SubscribePage() {
+function SubscribePageContent() {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
@@ -27,17 +33,10 @@ export default function SubscribePage() {
   const [isManagingSubscription, setIsManagingSubscription] = useState(false);
 
   useEffect(() => {
-    if (!stripePromise && process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) { 
-      console.error("Stripe.js falhou ao carregar, mesmo com uma chave presente. Verifique a rede ou o status do Stripe.");
-       toast({
-        title: "Erro no Sistema de Pagamento",
-        description: "Não foi possível inicializar o sistema de pagamento. Por favor, tente novamente mais tarde.",
-        variant: "destructive",
-      });
-    } else if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY && MOCK_SUBSCRIPTION_PLANS.some(p => p.id !== 'free')) {
+    if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY && MOCK_SUBSCRIPTION_PLANS.some(p => p.id !== 'free' && p.stripePriceId)) {
          toast({
-            title: "Erro de Configuração",
-            description: "Os pagamentos Stripe não estão configurados corretamente para planos pagos.",
+            title: "Erro de Configuração do Stripe",
+            description: "A chave publicável do Stripe não está definida. Pagamentos para planos não funcionarão.",
             variant: "destructive",
         });
     }
@@ -52,8 +51,6 @@ export default function SubscribePage() {
         title: "Assinatura Realizada com Sucesso!",
         description: "Seu plano FitFlow Hipertrofia está ativo. Vamos construir músculos!",
       });
-      // A atualização do status do usuário deve vir do webhook.
-      // Apenas redirecionamos ou limpamos a URL.
       if (user) router.push("/dashboard"); 
     }
 
@@ -102,10 +99,10 @@ export default function SubscribePage() {
       return;
     }
 
-    if (!stripePromise || !plan.stripePriceId) {
+    if (!plan.stripePriceId) {
       toast({
-        title: "Erro de Pagamento",
-        description: "Stripe não configurado, o plano não tem ID de preço, ou falhou ao carregar. Contate o suporte.",
+        title: "Erro de Configuração do Plano",
+        description: "Este plano não está configurado corretamente para pagamento. Contate o suporte.",
         variant: "destructive",
       });
       return;
@@ -126,9 +123,15 @@ export default function SubscribePage() {
         throw new Error(data.error || 'Falha ao iniciar a assinatura.');
       }
 
-      const stripe = await stripePromise;
+      const stripe = await getStripePromise();
       if (!stripe) {
-        throw new Error('Stripe.js falhou ao carregar.');
+        toast({
+          title: "Erro de Configuração do Stripe",
+          description: "A chave publicável do Stripe não está configurada ou o Stripe.js falhou ao carregar.",
+          variant: "destructive",
+        });
+        setIsSubscribing(null);
+        return;
       }
       
       console.log("Tentando redirecionar para o Stripe Checkout com o ID da Sessão:", data.sessionId);
@@ -175,7 +178,7 @@ export default function SubscribePage() {
       if (!response.ok || data.error) {
         throw new Error(data.error || "Falha ao criar sessão do portal.");
       }
-      window.location.href = data.url; // Redireciona para o portal do Stripe
+      window.location.href = data.url; 
     } catch (error: any)
      {
       console.error("Erro ao gerenciar assinatura:", error);
@@ -261,7 +264,7 @@ export default function SubscribePage() {
                   className="w-full text-lg py-6" 
                   variant={plan.id === 'hypertrophy' ? 'default' : 'outline'}
                   onClick={() => handleSubscribe(plan.id)}
-                  disabled={authLoading || isSubscribing === plan.id || (user?.subscriptionTier === plan.id && plan.id !== 'free') || (!stripePromise && plan.id !== 'free' && !!plan.stripePriceId) || (!plan.stripePriceId && plan.id !== 'free')}
+                  disabled={authLoading || isSubscribing === plan.id || (user?.subscriptionTier === plan.id && plan.id !== 'free') || (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY && plan.id !== 'free' && !!plan.stripePriceId) || (!plan.stripePriceId && plan.id !== 'free')}
                 >
                   {isSubscribing === plan.id ? (
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -274,11 +277,6 @@ export default function SubscribePage() {
         <p className="text-center mt-12 text-sm text-muted-foreground">
           A assinatura é mensal e recorrente. Você pode gerenciar ou cancelar sua assinatura a qualquer momento através do seu painel.
         </p>
-        {/* 
-        <p className="text-center mt-2 text-sm text-muted-foreground">
-          Endpoint do Webhook Stripe: `/api/stripe/webhook`
-        </p>
-        */}
       </div>
     );
   };
@@ -306,3 +304,17 @@ export default function SubscribePage() {
   );
 }
 
+export default function SubscribePage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="ml-3 text-muted-foreground">Carregando informações da página...</p>
+      </div>
+    }>
+      <SubscribePageContent />
+    </Suspense>
+  );
+}
+
+    
