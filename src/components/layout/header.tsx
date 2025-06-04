@@ -32,18 +32,18 @@ export function Header() {
           <Dumbbell className="h-6 w-6 text-primary" />
           <span className="font-bold sm:inline-block">{APP_NAME}</span>
         </Link>
-        <nav className="flex flex-1 items-center space-x-6 text-sm font-medium">
+        <nav className="flex items-center space-x-6 text-sm font-medium"> {/* Removed flex-1 */}
           {mainNavItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="text-foreground/60 transition-colors hover:text-foreground/80 hidden md:block" // Changed sm:block to md:block
+              className="text-foreground/60 transition-colors hover:text-foreground/80 hidden md:block"
             >
               {item.title}
             </Link>
           ))}
         </nav>
-        <div className="flex items-center space-x-2">
+        <div className="ml-auto flex items-center space-x-2"> {/* Added ml-auto */}
           {loading ? (
             <div className="h-8 w-20 animate-pulse rounded-md bg-muted"></div>
           ) : user ? (
