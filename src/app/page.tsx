@@ -38,13 +38,13 @@ export default function HomePage() {
         <section className="py-20 md:py-32 bg-gradient-to-br from-primary/10 via-background to-background">
           <div className="container mx-auto px-4 text-center">
             <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl text-primary">
-              <span className="block animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">Bem-vindo ao FitFlow</span>
-              <span className="block text-foreground animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">Construa Músculos, de Forma Inteligente.</span>
+              <span className="block animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">Bem-vindo ao FitFlow</span>
+              <span className="block text-foreground animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">Construa Músculos, de Forma Inteligente.</span>
             </h1>
-            <p className="mt-6 max-w-2xl mx-auto text-lg text-muted-foreground sm:text-xl animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
+            <p className="mt-6 max-w-2xl mx-auto text-lg text-muted-foreground sm:text-xl animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300">
               Desbloqueie seu potencial com planos de treino e nutrição para hipertrofia direcionados por IA e baseados em ciência. Seja para bulking ou cutting, o FitFlow guia sua transformação.
             </p>
-            <div className="mt-10 flex flex-col items-center space-y-4 sm:flex-row sm:justify-center sm:space-y-0 sm:space-x-4 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-400">
+            <div className="mt-10 flex flex-col items-center space-y-4 sm:flex-row sm:justify-center sm:space-y-0 sm:space-x-4 animate-in fade-in slide-in-from-bottom-8 duration-500 delay-400">
               <Button asChild size="lg" className="text-lg px-8 py-6 w-full sm:w-auto">
                 <Link href="/signup">Inicie Sua Transformação Agora</Link>
               </Button>
@@ -58,7 +58,7 @@ export default function HomePage() {
         {/* Features Section */}
         <section id="features" className="py-16 md:py-24 bg-background">
           <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold text-center mb-12 text-foreground animate-in fade-in slide-in-from-bottom-5 duration-500">
+            <h2 className="text-3xl font-bold text-center mb-12 text-foreground animate-in fade-in slide-in-from-top-4 duration-500">
               Seu Kit Completo para Hipertrofia
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -84,7 +84,7 @@ export default function HomePage() {
         {/* How It Works / Science Section Teaser */}
         <section className="py-16 md:py-24 bg-primary/5">
             <div className="container mx-auto px-4">
-                <div className="text-center mb-12 animate-in fade-in slide-in-from-bottom-5 duration-500">
+                <div className="text-center mb-12 animate-in fade-in slide-in-from-top-4 duration-500">
                     <h2 className="text-3xl font-bold text-foreground">Resultados Baseados em Ciência</h2>
                     <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
                         O FitFlow integra princípios comprovados de hipertrofia. Nossa IA considera sobrecarga progressiva, volume ótimo, seleção de exercícios e estratégias nutricionais para fases eficazes de bulking ou cutting.
@@ -113,14 +113,14 @@ export default function HomePage() {
         {/* Pricing Section */}
         <section id="pricing" className="py-16 md:py-24 bg-background">
           <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold text-center mb-4 text-foreground animate-in fade-in slide-in-from-bottom-5 duration-500 delay-100">
+            <h2 className="text-3xl font-bold text-center mb-4 text-foreground animate-in fade-in slide-in-from-top-4 duration-500 delay-100">
               Transformação Completa por um Preço Justo
             </h2>
-            <p className="text-lg text-muted-foreground text-center mb-12 max-w-xl mx-auto animate-in fade-in slide-in-from-bottom-5 duration-500 delay-200">
+            <p className="text-lg text-muted-foreground text-center mb-12 max-w-xl mx-auto animate-in fade-in slide-in-from-top-4 duration-500 delay-200">
               Acesso total à plataforma FitFlow e conquiste o físico que você sempre sonhou, de forma acessível.
             </p>
             <div className="flex justify-center">
-              <Card className="w-full max-w-md shadow-xl border-2 border-primary ring-4 ring-primary/20 animate-in fade-in zoom-in-95 duration-700 delay-300">
+              <Card className="w-full max-w-md shadow-xl border-2 border-primary ring-4 ring-primary/20 animate-in fade-in zoom-in-90 duration-700 delay-300">
                 <CardHeader className="text-center items-center">
                   <Zap className="h-10 w-10 text-primary mb-3" />
                   <CardTitle className="text-2xl font-semibold text-primary">Plano FitFlow Hipertrofia</CardTitle>
@@ -153,11 +153,11 @@ export default function HomePage() {
         {/* Call to Action Section */}
         <section className="py-16 md:py-24 bg-primary/10">
           <div className="container mx-auto px-4 text-center">
-            <h2 className="text-3xl font-bold text-foreground mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">Pronto para Esculpir Seu Físico?</h2>
-            <p className="text-lg text-muted-foreground mb-8 max-w-xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+            <h2 className="text-3xl font-bold text-foreground mb-6 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">Pronto para Esculpir Seu Físico?</h2>
+            <p className="text-lg text-muted-foreground mb-8 max-w-xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
               Junte-se ao FitFlow e utilize a IA para construir músculos de forma eficaz e sustentável.
             </p>
-            <Button asChild size="lg" className="text-lg px-8 py-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
+            <Button asChild size="lg" className="text-lg px-8 py-6 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300">
               <Link href="/signup">Comece Sua Transformação</Link>
             </Button>
           </div>
