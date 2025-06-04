@@ -62,7 +62,7 @@ export const MOCK_EXERCISES: Exercise[] = [
 ];
 
 export const MOCK_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
-  { id: "hypertrophy", name: "FitFlow Hipertrofia", price: "R$37,90/mês", features: ["Gerador de Planos de Treino e Dieta para Hipertrofia com IA (Bulking/Cutting)", "Salve e visualize seu plano de IA personalizado", "Acesso completo a todos os planos de treino e exercícios", "Acompanhamento avançado de progresso e análises", "Recursos de hipertrofia baseados em ciência"], stripePriceId: "price_1RTUKXLZkqAmFk4bJsGGtlfW" },
+  { id: "hypertrophy", name: "FitFlow Hipertrofia", price: "R$37,90/mês", features: ["Gerador de Planos de Treino e Dieta para Hipertrofia com IA (Bulking/Cutting)", "Salve e visualize seu plano de IA personalizado", "Acesso completo a todos os planos de treino e exercícios", "Acompanhamento avançado de progresso e análises", "Recursos de hipertrofia baseados em ciência"], stripePriceId: "price_1RWMfnLZkqAmFk4bbx7ai6zz" },
 ];
 
 export const MOCK_PROGRESS_LOGS: ProgressLog[] = [
