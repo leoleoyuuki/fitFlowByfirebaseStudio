@@ -38,13 +38,13 @@ export default function HomePage() {
         <section className="py-20 md:py-32 bg-gradient-to-br from-primary/10 via-background to-background">
           <div className="container mx-auto px-4 text-center">
             <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl text-primary">
-              <span className="block">Bem-vindo ao FitFlow</span>
-              <span className="block text-foreground">Construa Músculos, de Forma Inteligente.</span>
+              <span className="block animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">Bem-vindo ao FitFlow</span>
+              <span className="block text-foreground animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">Construa Músculos, de Forma Inteligente.</span>
             </h1>
-            <p className="mt-6 max-w-2xl mx-auto text-lg text-muted-foreground sm:text-xl">
+            <p className="mt-6 max-w-2xl mx-auto text-lg text-muted-foreground sm:text-xl animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
               Desbloqueie seu potencial com planos de treino e nutrição para hipertrofia direcionados por IA e baseados em ciência. Seja para bulking ou cutting, o FitFlow guia sua transformação.
             </p>
-            <div className="mt-10 flex flex-col items-center space-y-4 sm:flex-row sm:justify-center sm:space-y-0 sm:space-x-4">
+            <div className="mt-10 flex flex-col items-center space-y-4 sm:flex-row sm:justify-center sm:space-y-0 sm:space-x-4 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-400">
               <Button asChild size="lg" className="text-lg px-8 py-6 w-full sm:w-auto">
                 <Link href="/signup">Inicie Sua Transformação Agora</Link>
               </Button>
@@ -58,12 +58,16 @@ export default function HomePage() {
         {/* Features Section */}
         <section id="features" className="py-16 md:py-24 bg-background">
           <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold text-center mb-12 text-foreground">
+            <h2 className="text-3xl font-bold text-center mb-12 text-foreground animate-in fade-in slide-in-from-bottom-5 duration-500">
               Seu Kit Completo para Hipertrofia
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {features.map((feature) => (
-                <Card key={feature.title} className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+              {features.map((feature, index) => (
+                <Card 
+                  key={feature.title} 
+                  className="shadow-lg hover:shadow-2xl transition-all duration-300 ease-in-out hover:scale-105 animate-in fade-in zoom-in-95 duration-500"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
                   <CardHeader className="items-center">
                     {feature.icon}
                     <CardTitle className="mt-4 text-xl">{feature.title}</CardTitle>
@@ -80,28 +84,28 @@ export default function HomePage() {
         {/* How It Works / Science Section Teaser */}
         <section className="py-16 md:py-24 bg-primary/5">
             <div className="container mx-auto px-4">
-                <div className="text-center mb-12">
+                <div className="text-center mb-12 animate-in fade-in slide-in-from-bottom-5 duration-500">
                     <h2 className="text-3xl font-bold text-foreground">Resultados Baseados em Ciência</h2>
                     <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
                         O FitFlow integra princípios comprovados de hipertrofia. Nossa IA considera sobrecarga progressiva, volume ótimo, seleção de exercícios e estratégias nutricionais para fases eficazes de bulking ou cutting.
                     </p>
                 </div>
                 <div className="grid md:grid-cols-3 gap-8 text-center">
-                    <div className="space-y-3">
-                        <TrendingUp className="h-10 w-10 text-primary mx-auto" />
-                        <h3 className="text-xl font-semibold">Sobrecarga Progressiva</h3>
-                        <p className="text-muted-foreground">Desafie continuamente seus músculos para o crescimento. Registre os levantamentos e garanta sua progressão.</p>
-                    </div>
-                    <div className="space-y-3">
-                        <Target className="h-10 w-10 text-primary mx-auto" />
-                        <h3 className="text-xl font-semibold">Nutrição Direcionada</h3>
-                        <p className="text-muted-foreground">Planos de dieta orientados por IA para bulking (superávit calórico) ou cutting (déficit calórico) com macros ideais.</p>
-                    </div>
-                    <div className="space-y-3">
-                        <ShieldCheck className="h-10 w-10 text-primary mx-auto" />
-                        <h3 className="text-xl font-semibold">Recuperação Inteligente</h3>
-                        <p className="text-muted-foreground">Orientações sobre descanso e recuperação para maximizar o reparo e crescimento muscular (em breve).</p>
-                    </div>
+                    {[
+                        { icon: <TrendingUp className="h-10 w-10 text-primary mx-auto" />, title: "Sobrecarga Progressiva", description: "Desafie continuamente seus músculos para o crescimento. Registre os levantamentos e garanta sua progressão." },
+                        { icon: <Target className="h-10 w-10 text-primary mx-auto" />, title: "Nutrição Direcionada", description: "Planos de dieta orientados por IA para bulking (superávit calórico) ou cutting (déficit calórico) com macros ideais." },
+                        { icon: <ShieldCheck className="h-10 w-10 text-primary mx-auto" />, title: "Recuperação Inteligente", description: "Orientações sobre descanso e recuperação para maximizar o reparo e crescimento muscular (em breve)." }
+                    ].map((item, index) => (
+                         <div 
+                            key={item.title} 
+                            className="space-y-3 animate-in fade-in slide-in-from-bottom-5 duration-500"
+                            style={{ animationDelay: `${index * 150}ms` }}
+                        >
+                            {item.icon}
+                            <h3 className="text-xl font-semibold">{item.title}</h3>
+                            <p className="text-muted-foreground">{item.description}</p>
+                        </div>
+                    ))}
                 </div>
             </div>
         </section>
@@ -109,14 +113,14 @@ export default function HomePage() {
         {/* Pricing Section */}
         <section id="pricing" className="py-16 md:py-24 bg-background">
           <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold text-center mb-4 text-foreground">
+            <h2 className="text-3xl font-bold text-center mb-4 text-foreground animate-in fade-in slide-in-from-bottom-5 duration-500 delay-100">
               Transformação Completa por um Preço Justo
             </h2>
-            <p className="text-lg text-muted-foreground text-center mb-12 max-w-xl mx-auto">
+            <p className="text-lg text-muted-foreground text-center mb-12 max-w-xl mx-auto animate-in fade-in slide-in-from-bottom-5 duration-500 delay-200">
               Acesso total à plataforma FitFlow e conquiste o físico que você sempre sonhou, de forma acessível.
             </p>
             <div className="flex justify-center">
-              <Card className="w-full max-w-md shadow-xl border-2 border-primary ring-4 ring-primary/20">
+              <Card className="w-full max-w-md shadow-xl border-2 border-primary ring-4 ring-primary/20 animate-in fade-in zoom-in-95 duration-700 delay-300">
                 <CardHeader className="text-center items-center">
                   <Zap className="h-10 w-10 text-primary mb-3" />
                   <CardTitle className="text-2xl font-semibold text-primary">Plano FitFlow Hipertrofia</CardTitle>
@@ -149,11 +153,11 @@ export default function HomePage() {
         {/* Call to Action Section */}
         <section className="py-16 md:py-24 bg-primary/10">
           <div className="container mx-auto px-4 text-center">
-            <h2 className="text-3xl font-bold text-foreground mb-6">Pronto para Esculpir Seu Físico?</h2>
-            <p className="text-lg text-muted-foreground mb-8 max-w-xl mx-auto">
+            <h2 className="text-3xl font-bold text-foreground mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">Pronto para Esculpir Seu Físico?</h2>
+            <p className="text-lg text-muted-foreground mb-8 max-w-xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
               Junte-se ao FitFlow e utilize a IA para construir músculos de forma eficaz e sustentável.
             </p>
-            <Button asChild size="lg" className="text-lg px-8 py-6">
+            <Button asChild size="lg" className="text-lg px-8 py-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
               <Link href="/signup">Comece Sua Transformação</Link>
             </Button>
           </div>
