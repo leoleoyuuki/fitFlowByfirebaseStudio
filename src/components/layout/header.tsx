@@ -27,12 +27,12 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 max-w-screen-2xl items-center px-4 sm:px-6 lg:px-8">
+      <div className="container mx-auto flex h-16 max-w-screen-2xl items-center px-4 sm:px-6 lg:px-8">
         <Link href="/" className="mr-6 flex items-center space-x-2">
           <Dumbbell className="h-6 w-6 text-primary" />
           <span className="font-bold sm:inline-block">{APP_NAME}</span>
         </Link>
-        <nav className="flex items-center space-x-6 text-sm font-medium"> {/* Removed flex-1 */}
+        <nav className="flex items-center space-x-6 text-sm font-medium">
           {mainNavItems.map((item) => (
             <Link
               key={item.href}
@@ -43,7 +43,7 @@ export function Header() {
             </Link>
           ))}
         </nav>
-        <div className="ml-auto flex items-center space-x-2"> {/* Added ml-auto */}
+        <div className="ml-auto flex items-center space-x-2">
           {loading ? (
             <div className="h-8 w-20 animate-pulse rounded-md bg-muted"></div>
           ) : user ? (
