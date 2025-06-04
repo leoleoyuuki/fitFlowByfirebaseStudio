@@ -9,17 +9,18 @@ import { CheckCircle, Loader2, Zap, Settings } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter, useSearchParams } from "next/navigation";
-import { type Stripe, loadStripe } from '@stripe/stripe-js';
+import { type Stripe as StripeType, loadStripe } from '@stripe/stripe-js'; // Renomeado para StripeType para evitar conflito
 
-let stripePromiseInstance: Promise<Stripe | null> | null = null;
+let stripePromiseInstance: Promise<StripeType | null> | null = null;
 
 const getStripePromise = () => {
-  if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
+  const publicKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+  if (!publicKey) {
     console.warn("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY não está definido. A funcionalidade do Stripe será limitada.");
     return Promise.resolve(null);
   }
   if (!stripePromiseInstance) {
-    stripePromiseInstance = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+    stripePromiseInstance = loadStripe(publicKey);
   }
   return stripePromiseInstance;
 };
@@ -51,8 +52,20 @@ function SubscribePageContent() {
         title: "Assinatura Realizada com Sucesso!",
         description: "Seu plano FitFlow Hipertrofia está ativo. Vamos construir músculos!",
       });
-      if (user) router.push("/dashboard"); 
+      // Aguardar um pouco para garantir que o estado do usuário seja atualizado pelo webhook e onAuthStateChanged
+      setTimeout(() => {
+          if (user && user.subscriptionTier === 'hypertrophy' && user.subscriptionStatus === 'active') {
+            router.push("/dashboard");
+          } else {
+            // Se o estado não atualizou, podemos forçar um refresh ou apenas limpar os params
+            router.replace('/subscribe?subscription_updated=true', undefined);
+          }
+      }, 2000); 
+    } else if (searchParams.get("subscription_updated")) {
+        // Se voltamos com subscription_updated, apenas limpamos os params.
+        // A lógica de exibição da página já deve refletir o estado atual da assinatura.
     }
+
 
     if (canceled) {
       toast({
@@ -62,16 +75,19 @@ function SubscribePageContent() {
       });
     }
     
-    if (success || canceled) {
+    // Limpar parâmetros da URL
+    if (success || canceled || searchParams.get("subscription_updated") || searchParams.get("session_id")) {
         const current = new URLSearchParams(Array.from(searchParams.entries()));
         current.delete('success');
         current.delete('canceled');
-        current.delete('session_id'); 
+        current.delete('session_id');
+        current.delete('subscription_updated');
         const newPathQuery = current.toString();
         const newPath = newPathQuery ? `/subscribe?${newPathQuery}` : '/subscribe';
 
-        if (window.location.pathname + window.location.search !== newPath) {
-            router.replace(newPath, undefined);
+        // Somente substitui se a URL realmente mudar para evitar loop de renderização
+        if (window.location.pathname + (window.location.search || '') !== newPath) {
+             router.replace(newPath, undefined);
         }
     }
   }, [searchParams, toast, router, user]);
@@ -162,7 +178,7 @@ function SubscribePageContent() {
     if (!user || !user.stripeCustomerId) {
       toast({
         title: "Erro",
-        description: "ID do cliente Stripe não encontrado. Faça login novamente ou contate o suporte.",
+        description: "Seu ID de cliente Stripe não foi encontrado. Isso pode acontecer se você assinou no modo de teste e agora está tentando gerenciar no modo de produção. Tente assinar novamente ou contate o suporte.",
         variant: "destructive",
       });
       return;
@@ -175,25 +191,25 @@ function SubscribePageContent() {
         body: JSON.stringify({ customerId: user.stripeCustomerId }),
       });
       const data = await response.json();
+
       if (!response.ok || data.error) {
-        throw new Error(data.error || "Falha ao criar sessão do portal.");
+        let errorMessage = data.error || "Falha ao criar sessão do portal.";
+         // Mensagens mais específicas baseadas no erro da API
+        if (typeof data.error === 'string') {
+            if (data.error.includes("Cliente Stripe não encontrado") || data.error.includes("No such customer")) {
+                errorMessage = "Seu ID de cliente Stripe não foi encontrado no ambiente atual. Se você assinou no modo de Teste, esse ID não é válido no modo de Produção. Para gerenciar sua assinatura, você pode precisar assinar novamente no ambiente de Produção ou contatar o suporte.";
+            } else if (data.error.includes("Conflito de ambiente de chaves Stripe")) {
+                 errorMessage = "Detectamos um conflito entre o ambiente do seu ID de cliente (Teste/Produção) e as chaves de API atuais. Por favor, verifique suas configurações ou contate o suporte.";
+            }
+        }
+        throw new Error(errorMessage);
       }
       window.location.href = data.url; 
-    } catch (error: any)
-     {
+    } catch (error: any) {
       console.error("Erro ao gerenciar assinatura:", error);
-      let errorMessage = error.message || "Não foi possível abrir o portal de gerenciamento. Tente novamente.";
-      if (typeof error.message === 'string') {
-        if (error.message.includes("a similar object exists in test mode, but a live mode key was used") ||
-            error.message.includes("a similar object exists in live mode, but a test mode key was used")) {
-          errorMessage = "Erro de configuração do Stripe: Há uma incompatibilidade entre as chaves de API (Live/Test) e o cliente. Verifique suas chaves no .env e os dados do cliente no Stripe.";
-        } else if (error.message.startsWith("No such customer")) {
-            errorMessage = "Cliente Stripe não encontrado. Verifique se o ID do cliente está correto e se corresponde ao ambiente (Live/Test) das suas chaves de API.";
-        }
-      }
       toast({
         title: "Erro ao Gerenciar Assinatura",
-        description: errorMessage,
+        description: error.message,
         variant: "destructive",
       });
     } finally {
@@ -316,5 +332,3 @@ export default function SubscribePage() {
     </Suspense>
   );
 }
-
-    
