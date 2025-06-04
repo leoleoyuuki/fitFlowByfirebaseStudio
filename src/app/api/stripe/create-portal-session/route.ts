@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { auth as adminAuth } from 'firebase-admin'; // Assuming you might need admin for user lookup later if not passing ID
-import { 앱이름 } from '@/lib/constants'; // Assuming APP_NAME might be used or you have a similar constant for return_url base
+import { APP_NAME } from '@/lib/constants'; // Corrigido de 앱이름 para APP_NAME
 
 // Initialize Firebase Admin if not already initialized (important for server-side operations)
 // This part would typically be in a separate firebase-admin-init.js file and imported
@@ -33,3 +33,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message || 'Falha ao criar sessão do portal.' }, { status: 500 });
   }
 }
+
