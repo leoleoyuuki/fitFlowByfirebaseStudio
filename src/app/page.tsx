@@ -1,4 +1,10 @@
 
+"use client";
+
+import { useEffect } from 'react';
+import AOS from 'aos';
+import 'aos/dist/aos.css';
+
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardFooter, CardTitle } from "@/components/ui/card";
@@ -7,6 +13,15 @@ import Image from "next/image";
 import Link from "next/link";
 
 export default function HomePage() {
+  useEffect(() => {
+    AOS.init({
+      duration: 800, // Duração padrão um pouco maior
+      once: false,    // Animações ocorrem toda vez que o elemento entra na tela
+      offset: 80,    // Offset um pouco menor para disparar animações mais cedo
+      easing: 'ease-out-cubic', // Suavização para um efeito mais fluído
+    });
+  }, []);
+
   const features = [
     {
       icon: <Brain className="h-8 w-8 text-primary" />,
@@ -38,13 +53,13 @@ export default function HomePage() {
         <section className="py-20 md:py-32 bg-gradient-to-br from-primary/10 via-background to-background">
           <div className="container mx-auto px-4 text-center">
             <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl text-primary">
-              <span className="block animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">Bem-vindo ao FitFlow</span>
-              <span className="block text-foreground animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">Construa Músculos, de Forma Inteligente.</span>
+              <span className="block" data-aos="fade-up" data-aos-delay="100">Bem-vindo ao FitFlow</span>
+              <span className="block text-foreground" data-aos="fade-up" data-aos-delay="200">Construa Músculos, de Forma Inteligente.</span>
             </h1>
-            <p className="mt-6 max-w-2xl mx-auto text-lg text-muted-foreground sm:text-xl animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
+            <p className="mt-6 max-w-2xl mx-auto text-lg text-muted-foreground sm:text-xl" data-aos="fade-up" data-aos-delay="300">
               Desbloqueie seu potencial com planos de treino e nutrição para hipertrofia direcionados por IA e baseados em ciência. Seja para bulking ou cutting, o FitFlow guia sua transformação.
             </p>
-            <div className="mt-10 flex flex-col items-center space-y-4 sm:flex-row sm:justify-center sm:space-y-0 sm:space-x-4 animate-in fade-in slide-in-from-bottom-12 duration-700 delay-400">
+            <div className="mt-10 flex flex-col items-center space-y-4 sm:flex-row sm:justify-center sm:space-y-0 sm:space-x-4" data-aos="fade-up" data-aos-delay="400" data-aos-anchor-placement="top-bottom">
               <Button asChild size="lg" className="text-lg px-8 py-6 w-full sm:w-auto">
                 <Link href="/signup">Inicie Sua Transformação Agora</Link>
               </Button>
@@ -58,15 +73,16 @@ export default function HomePage() {
         {/* Features Section */}
         <section id="features" className="py-16 md:py-24 bg-background">
           <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold text-center mb-12 text-foreground animate-in fade-in slide-in-from-top-8 duration-700">
+            <h2 className="text-3xl font-bold text-center mb-12 text-foreground" data-aos="fade-down">
               Seu Kit Completo para Hipertrofia
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {features.map((feature, index) => (
                 <Card 
                   key={feature.title} 
-                  className="shadow-lg hover:shadow-2xl transition-all duration-300 ease-in-out hover:scale-105 animate-in fade-in zoom-in-90 duration-700"
-                  style={{ animationDelay: `${index * 150}ms` }}
+                  className="shadow-lg hover:shadow-2xl transition-all duration-300 ease-in-out hover:scale-105"
+                  data-aos="zoom-in-up"
+                  data-aos-delay={index * 100}
                 >
                   <CardHeader className="items-center">
                     {feature.icon}
@@ -84,9 +100,9 @@ export default function HomePage() {
         {/* How It Works / Science Section Teaser */}
         <section className="py-16 md:py-24 bg-primary/5">
             <div className="container mx-auto px-4">
-                <div className="text-center mb-12 animate-in fade-in slide-in-from-top-8 duration-700">
+                <div className="text-center mb-12" data-aos="fade-down">
                     <h2 className="text-3xl font-bold text-foreground">Resultados Baseados em Ciência</h2>
-                    <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
+                    <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto" data-aos-delay="100">
                         O FitFlow integra princípios comprovados de hipertrofia. Nossa IA considera sobrecarga progressiva, volume ótimo, seleção de exercícios e estratégias nutricionais para fases eficazes de bulking ou cutting.
                     </p>
                 </div>
@@ -98,8 +114,9 @@ export default function HomePage() {
                     ].map((item, index) => (
                          <div 
                             key={item.title} 
-                            className="space-y-3 animate-in fade-in slide-in-from-bottom-8 duration-700"
-                            style={{ animationDelay: `${index * 200}ms` }}
+                            className="space-y-3"
+                            data-aos="fade-up"
+                            data-aos-delay={index * 150}
                         >
                             {item.icon}
                             <h3 className="text-xl font-semibold">{item.title}</h3>
@@ -113,14 +130,14 @@ export default function HomePage() {
         {/* Pricing Section */}
         <section id="pricing" className="py-16 md:py-24 bg-background">
           <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold text-center mb-4 text-foreground animate-in fade-in slide-in-from-top-8 duration-700 delay-100">
+            <h2 className="text-3xl font-bold text-center mb-4 text-foreground" data-aos="fade-down" data-aos-delay="100">
               Transformação Completa por um Preço Justo
             </h2>
-            <p className="text-lg text-muted-foreground text-center mb-12 max-w-xl mx-auto animate-in fade-in slide-in-from-top-8 duration-700 delay-200">
+            <p className="text-lg text-muted-foreground text-center mb-12 max-w-xl mx-auto" data-aos="fade-down" data-aos-delay="200">
               Acesso total à plataforma FitFlow e conquiste o físico que você sempre sonhou, de forma acessível.
             </p>
             <div className="flex justify-center">
-              <Card className="w-full max-w-md shadow-xl border-2 border-primary ring-4 ring-primary/20 animate-in fade-in zoom-in-85 duration-1000 delay-300">
+              <Card className="w-full max-w-md shadow-xl border-2 border-primary ring-4 ring-primary/20" data-aos="zoom-in" data-aos-duration="1000" data-aos-delay="300">
                 <CardHeader className="text-center items-center">
                   <Zap className="h-10 w-10 text-primary mb-3" />
                   <CardTitle className="text-2xl font-semibold text-primary">Plano FitFlow Hipertrofia</CardTitle>
@@ -153,11 +170,11 @@ export default function HomePage() {
         {/* Call to Action Section */}
         <section className="py-16 md:py-24 bg-primary/10">
           <div className="container mx-auto px-4 text-center">
-            <h2 className="text-3xl font-bold text-foreground mb-6 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">Pronto para Esculpir Seu Físico?</h2>
-            <p className="text-lg text-muted-foreground mb-8 max-w-xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
+            <h2 className="text-3xl font-bold text-foreground mb-6" data-aos="fade-up" data-aos-delay="100">Pronto para Esculpir Seu Físico?</h2>
+            <p className="text-lg text-muted-foreground mb-8 max-w-xl mx-auto" data-aos="fade-up" data-aos-delay="200">
               Junte-se ao FitFlow e utilize a IA para construir músculos de forma eficaz e sustentável.
             </p>
-            <Button asChild size="lg" className="text-lg px-8 py-6 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
+            <Button asChild size="lg" className="text-lg px-8 py-6" data-aos="zoom-in" data-aos-delay="300">
               <Link href="/signup">Comece Sua Transformação</Link>
             </Button>
           </div>
@@ -173,4 +190,3 @@ export default function HomePage() {
     </div>
   );
 }
-
