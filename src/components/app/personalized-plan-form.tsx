@@ -89,7 +89,15 @@ export function PersonalizedPlanForm() {
       setGeneratedPlan(result);
     } catch (e: any) {
       console.error(e);
-      setError(e.message || "Falha ao gerar o plano. O modelo de IA pode estar ocupado ou a solicitação muito complexa. Por favor, tente novamente com entradas mais simples ou verifique mais tarde.");
+      let errorMessage = "Falha ao gerar o plano. O modelo de IA pode estar ocupado ou a solicitação muito complexa. Por favor, tente novamente com entradas mais simples ou verifique mais tarde.";
+      if (typeof e.message === 'string') {
+        if (e.message.includes("503") || e.message.toLowerCase().includes("service unavailable") || e.message.toLowerCase().includes("overloaded")) {
+          errorMessage = "O modelo de IA está temporariamente sobrecarregado. Por favor, tente novamente em alguns minutos.";
+        } else if (e.message.includes("API key not valid")) {
+          errorMessage = "Houve um problema com a configuração da IA. Por favor, contate o suporte.";
+        }
+      }
+      setError(errorMessage);
     }
     setIsLoading(false);
   }
@@ -243,7 +251,6 @@ export function PersonalizedPlanForm() {
                 )}
               />
               
-              <p className="text-sm font-medium text-muted-foreground pt-2">Opcional: Para plano de dieta mais preciso</p>
               <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <FormField
                   control={form.control}
