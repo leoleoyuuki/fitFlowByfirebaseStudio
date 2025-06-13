@@ -1,6 +1,6 @@
 
 import type { LucideIcon } from 'lucide-react';
-import type { PersonalizedPlanOutput } from '@/ai/flows/generate-personalized-plan'; // Importando o tipo
+import type { PersonalizedPlanOutput, PersonalizedPlanInput } from '@/ai/flows/generate-personalized-plan';
 
 export interface NavItem {
   title: string;
@@ -15,15 +15,15 @@ export interface UserProfile {
   id: string;
   email: string;
   displayName?: string;
-  photoURL?: string | null; // Consistente com Firebase
-  professionalType?: 'physical_educator' | 'nutritionist' | 'both' | null; // Para profissionais
-  professionalRegistration?: string | null; // CREF/CFN
-  subscriptionTier?: 'free' | 'hypertrophy'; // 'hypertrophy' pode ser renomeado para 'pro' internamente se desejado
+  photoURL?: string | null; 
+  professionalType?: 'physical_educator' | 'nutritionist' | 'both' | null; 
+  professionalRegistration?: string | null; 
+  subscriptionTier?: 'free' | 'hypertrophy'; 
   stripeCustomerId?: string | null;
   stripeSubscriptionId?: string | null;
   subscriptionStatus?: 'active' | 'canceled' | 'past_due' | 'incomplete' | null;
-  createdAt?: any; // Firestore Timestamp
-  updatedAt?: any; // Firestore Timestamp
+  createdAt?: any; 
+  updatedAt?: any; 
 }
 
 export interface Workout {
@@ -69,18 +69,33 @@ export interface ProgressLog {
   notes?: string;
 }
 
-// Novo tipo para os dados de plano salvos por profissionais
+// Input type for the client form, slightly different from PersonalizedPlanInput for AI
+export type ClientPersonalizedPlanInputValues = {
+  professionalRole: "physical_educator" | "nutritionist" | "both";
+  professionalRegistration: string;
+  clientName: string;
+  goalPhase: "bulking" | "cutting" | "maintenance";
+  trainingExperience: "beginner" | "intermediate" | "advanced";
+  trainingFrequency: number;
+  trainingVolumePreference: "low" | "medium" | "high";
+  availableEquipment: string;
+  heightCm?: number | string; // string to allow empty input, coerced to number
+  weightKg?: number | string;
+  age?: number | string;
+  sex?: "male" | "female" | "prefer_not_to_say" | "";
+  dietaryPreferences?: string;
+};
+
+
 export interface ClientPlan {
-  id: string; // Firestore document ID do plano
-  professionalId: string; // ID do profissional que criou
+  id: string; 
+  professionalId: string; 
   clientName: string;
   professionalRegistration?: string | null;
   goalPhase: string;
   trainingFrequency: number;
-  planData: PersonalizedPlanOutput; // O plano gerado pela IA
-  createdAt: any; // Firestore Timestamp
-  updatedAt: any; // Firestore Timestamp
-  // Outros metadados que o profissional queira adicionar ao plano
+  planData: PersonalizedPlanOutput; 
+  originalInputs: ClientPersonalizedPlanInputValues; // Inputs used to generate this plan
+  createdAt: any; 
+  updatedAt: any; 
 }
-
-    

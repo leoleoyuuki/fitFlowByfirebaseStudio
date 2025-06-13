@@ -26,19 +26,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import type { ClientPlan } from "@/types";
 
 
 // Interface para os dados do plano como armazenados no Firestore
-interface StoredPlanData {
-  id: string;
-  planData: PersonalizedPlanOutput;
-  clientName: string;
-  professionalRegistration?: string;
-  goalPhase: string;
-  trainingFrequency: number;
-  createdAt: any; // Firestore Timestamp
-  updatedAt: any;
-}
+// Removida, usando ClientPlan de @/types
 
 function MyAiPlanPageContent() {
   const { user, loading: authLoading } = useAuth();
@@ -47,8 +39,8 @@ function MyAiPlanPageContent() {
   const planIdFromQuery = searchParams.get("planId");
   const { toast } = useToast();
 
-  const [selectedPlan, setSelectedPlan] = useState<StoredPlanData | null>(null);
-  const [userPlans, setUserPlans] = useState<StoredPlanData[]>([]);
+  const [selectedPlan, setSelectedPlan] = useState<ClientPlan | null>(null);
+  const [userPlans, setUserPlans] = useState<ClientPlan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null);
@@ -76,9 +68,9 @@ function MyAiPlanPageContent() {
         const q = query(plansCollectionRef, orderBy("createdAt", "desc"));
         const plansSnapshot = await getDocs(q);
         
-        const fetchedPlans: StoredPlanData[] = plansSnapshot.docs.map(docSnap => ({
+        const fetchedPlans: ClientPlan[] = plansSnapshot.docs.map(docSnap => ({
           id: docSnap.id,
-          ...(docSnap.data() as Omit<StoredPlanData, 'id'>)
+          ...(docSnap.data() as Omit<ClientPlan, 'id'>)
         }));
         setUserPlans(fetchedPlans);
 
@@ -86,18 +78,16 @@ function MyAiPlanPageContent() {
           const planDocRef = doc(db, "userGeneratedPlans", user.id, "plans", planIdFromQuery);
           const planSnap = await getDoc(planDocRef);
           if (planSnap.exists()) {
-            setSelectedPlan({ id: planSnap.id, ...(planSnap.data() as Omit<StoredPlanData, 'id'>) });
+            setSelectedPlan({ id: planSnap.id, ...(planSnap.data() as Omit<ClientPlan, 'id'>) });
           } else {
             setError(`Plano com ID ${planIdFromQuery} não encontrado.`);
             setSelectedPlan(null);
           }
         } else if (fetchedPlans.length > 0) {
-          // Se não houver planId na query, seleciona o mais recente (primeiro da lista ordenada)
           setSelectedPlan(fetchedPlans[0]);
-           // Atualiza a URL para refletir o plano selecionado
           router.replace(`/dashboard/my-ai-plan?planId=${fetchedPlans[0].id}`, { scroll: false });
         } else {
-          setSelectedPlan(null); // Nenhum plano encontrado
+          setSelectedPlan(null); 
         }
 
       } catch (err: any) {
@@ -109,7 +99,7 @@ function MyAiPlanPageContent() {
     };
 
     fetchPlansAndSelected();
-  }, [user, authLoading, planIdFromQuery, router]); // Adicionado router às dependências
+  }, [user, authLoading, planIdFromQuery, router]);
 
   const handleDeletePlan = async (planIdToDelete: string) => {
     if (!user?.id || !planIdToDelete) return;
@@ -118,17 +108,16 @@ function MyAiPlanPageContent() {
       await deleteDoc(doc(db, "userGeneratedPlans", user.id, "plans", planIdToDelete));
       toast({ title: "Plano Deletado", description: "O plano do cliente foi removido com sucesso." });
       
-      // Atualiza a lista de planos e o plano selecionado
       const updatedPlans = userPlans.filter(p => p.id !== planIdToDelete);
       setUserPlans(updatedPlans);
       
-      if (selectedPlan?.id === planIdToDelete) { // Se o plano deletado era o selecionado
+      if (selectedPlan?.id === planIdToDelete) { 
         if (updatedPlans.length > 0) {
           setSelectedPlan(updatedPlans[0]);
           router.replace(`/dashboard/my-ai-plan?planId=${updatedPlans[0].id}`, { scroll: false });
         } else {
           setSelectedPlan(null);
-          router.replace('/dashboard/my-ai-plan', { scroll: false }); // Limpa planId da URL
+          router.replace('/dashboard/my-ai-plan', { scroll: false }); 
         }
       }
     } catch (err: any) {
@@ -139,7 +128,7 @@ function MyAiPlanPageContent() {
     }
   };
 
-  if (authLoading || (isLoading && userPlans.length === 0 && !planIdFromQuery)) { // Ajuste na condição de loading
+  if (authLoading || (isLoading && userPlans.length === 0 && !planIdFromQuery)) { 
     return (
       <div className="flex flex-col items-center justify-center space-y-4 py-12 min-h-[calc(100vh-200px)]">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -159,7 +148,7 @@ function MyAiPlanPageContent() {
     : "Data indisponível";
 
   const PlanContent = () => {
-    if (isLoading && planIdFromQuery && !selectedPlan) { // Loading específico para quando um planId está na query
+    if (isLoading && planIdFromQuery && !selectedPlan) { 
          return (
             <div className="flex flex-col items-center justify-center space-y-4 py-12 min-h-[calc(100vh-200px)]">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -187,10 +176,9 @@ function MyAiPlanPageContent() {
         </div>
       );
     }
-    if (!selectedPlan) return null; // Deveria ser coberto pelos casos acima
+    if (!selectedPlan) return null; 
 
     const { planData, clientName, professionalRegistration, goalPhase, trainingFrequency, createdAt } = selectedPlan;
-    const displayDate = createdAt?.toDate ? new Date(createdAt.toDate()).toLocaleString('pt-BR') : 'N/A';
 
     return (
       <div className="space-y-8">
@@ -203,7 +191,7 @@ function MyAiPlanPageContent() {
                 </p>
             </div>
             <div className="flex gap-2">
-                <Button variant="outline" onClick={() => alert("Funcionalidade de edição estará disponível em breve.")} disabled>
+                <Button variant="outline" onClick={() => router.push(`/dashboard/personalized-plan?planIdToEdit=${selectedPlan.id}`)}>
                     <Edit className="mr-2 h-4 w-4" /> Editar Plano
                 </Button>
                  <Button variant="outline" onClick={() => alert("Funcionalidade de exportar para PDF estará disponível em breve.")} disabled>
@@ -290,8 +278,8 @@ function MyAiPlanPageContent() {
               <CardTitle className="text-lg flex items-center"><Info className="mr-2 h-5 w-5 text-primary" /> Lembrete Profissional</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
-              <p>Este é o plano base gerado pela IA para o cliente {clientName}. Use os botões "Editar Plano" (em breve) para ajustá-lo às necessidades específicas do cliente e adicionar suas considerações profissionais.</p>
-              <p className="mt-2">Para criar um novo plano base para outro cliente, vá para "Gerar Plano Cliente".</p>
+              <p>Este é o plano base gerado pela IA para o cliente {clientName}. Use o botão "Editar Plano" para ajustá-lo e adicionar suas considerações profissionais antes de exportar ou compartilhar.</p>
+              <p className="mt-2">Para criar um novo plano base para outro cliente, vá para "Gerar Novo Plano Cliente".</p>
             </CardContent>
             <CardFooter>
               <Button asChild variant="default">
@@ -386,7 +374,6 @@ function MyAiPlanPageContent() {
 
 export default function MyAiPlanPage() {
   return (
-    // Suspense é importante aqui por causa do useSearchParams
     <Suspense fallback={
       <div className="flex flex-col items-center justify-center space-y-4 py-12 min-h-[calc(100vh-200px)]">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
