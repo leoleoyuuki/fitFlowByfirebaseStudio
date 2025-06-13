@@ -22,7 +22,7 @@ import { generatePersonalizedPlan } from "@/ai/flows/generate-personalized-plan"
 import { useState, useEffect, ChangeEvent } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription as ShadCnCardDescription, CardFooter } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Loader2, Wand2, Dumbbell, Utensils, Save } from "lucide-react";
+import { Loader2, Wand2, Dumbbell, Utensils, Save, Download, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
 import { db } from "@/lib/firebase";
@@ -30,7 +30,6 @@ import { collection, addDoc, serverTimestamp, doc, updateDoc } from "firebase/fi
 import { useRouter } from "next/navigation";
 import type { ClientPersonalizedPlanInputValues, ClientPlan } from "@/types";
 
-// Schema para o formulário de geração de inputs para a IA
 const ClientPersonalizedPlanInputSchema = z.object({
   professionalRole: z.enum(["physical_educator", "nutritionist", "both"], { required_error: "Selecione sua principal área de atuação." }),
   professionalRegistration: z.string().min(3, {message: "Insira um registro profissional válido (mín. 3 caracteres)."}),
@@ -41,15 +40,15 @@ const ClientPersonalizedPlanInputSchema = z.object({
   trainingVolumePreference: z.enum(["low", "medium", "high"], { required_error: "Selecione a preferência de volume de treino do cliente."}),
   availableEquipment: z.string().min(5, { message: "Liste os equipamentos do cliente (mín. 5 caracteres)." }),
   heightCm: z.preprocess(
-    (val) => (val === "" || val === null ? undefined : String(val).trim() === "" ? undefined : val),
+    (val) => (String(val).trim() === "" ? undefined : val),
     z.coerce.number({invalid_type_error: "Altura deve ser um número."}).positive({message: "Altura deve ser positiva."}).optional()
   ),
   weightKg: z.preprocess(
-    (val) => (val === "" || val === null ? undefined : String(val).trim() === "" ? undefined : val),
+    (val) => (String(val).trim() === "" ? undefined : val),
     z.coerce.number({invalid_type_error: "Peso deve ser um número."}).positive({message: "Peso deve ser positivo."}).optional()
   ),
   age: z.preprocess(
-    (val) => (val === "" || val === null ? undefined : String(val).trim() === "" ? undefined : val),
+    (val) => (String(val).trim() === "" ? undefined : val),
     z.coerce.number({invalid_type_error: "Idade deve ser um número."}).positive({message: "Idade deve ser positiva."}).optional()
   ),
   sex: z.enum(["male", "female", "prefer_not_to_say", ""], { errorMap: () => ({message: "Selecione o sexo biológico ou 'Prefiro não dizer'."}) }).optional(),
@@ -70,10 +69,9 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
   const [editablePlanDetails, setEditablePlanDetails] = useState<PersonalizedPlanOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
   
-  // Campos para edição direta no modo de edição (não parte do form principal)
-  const [editableClientName, setEditableClientName] = useState("");
-  const [editableProfessionalRegistration, setEditableProfessionalRegistration] = useState("");
-   const [editableProfessionalRole, setEditableProfessionalRole] = useState<"physical_educator" | "nutritionist" | "both" | undefined>(undefined);
+  const [editableClientName, setEditableClientName] = useState(initialClientInputs?.clientName || "");
+  const [editableProfessionalRegistration, setEditableProfessionalRegistration] = useState(initialClientInputs?.professionalRegistration || "");
+  const [editableProfessionalRole, setEditableProfessionalRole] = useState<ClientPersonalizedPlanInputValues['professionalRole'] | undefined>(initialClientInputs?.professionalRole || undefined);
 
 
   const { toast } = useToast();
@@ -84,6 +82,8 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
 
   const form = useForm<ClientPersonalizedPlanInputValues>({
     resolver: zodResolver(ClientPersonalizedPlanInputSchema),
+    // Default values são mais relevantes para o modo de criação.
+    // No modo de edição, os estados locais acima e `initialClientInputs` controlam os valores.
     defaultValues: {
       professionalRole: user?.professionalType || undefined,
       professionalRegistration: user?.professionalRegistration || "",
@@ -103,22 +103,21 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
   
    useEffect(() => {
     if (isEditingExistingPlan && initialClientInputs) {
-        // Para o modo de edição, não resetamos o form principal da RHF.
-        // Populamos os estados locais para os campos editáveis e os dados do plano.
         setEditableClientName(initialClientInputs.clientName || "");
         setEditableProfessionalRegistration(initialClientInputs.professionalRegistration || user?.professionalRegistration || "");
         setEditableProfessionalRole(initialClientInputs.professionalRole || user?.professionalType || undefined);
 
         if (initialPlanDataToEdit) {
-            setGeneratedPlanOutput(initialPlanDataToEdit); // Manter uma cópia do original gerado se necessário
+            setGeneratedPlanOutput(initialPlanDataToEdit); 
             setEditablePlanDetails(JSON.parse(JSON.stringify(initialPlanDataToEdit)));
         } else {
             setGeneratedPlanOutput(null);
             setEditablePlanDetails(null);
         }
+        // Não resetar o form da RHF no modo de edição, pois ele não está controlando os inputs do cliente diretamente.
     } else if (!isEditingExistingPlan) {
         // Modo de criação: resetar o formulário da RHF com defaults ou dados do usuário
-        form.reset({
+        const preparedDefaults: Partial<ClientPersonalizedPlanInputValues> = {
             professionalRole: user?.professionalType || undefined,
             professionalRegistration: user?.professionalRegistration || "",
             clientName: "", 
@@ -132,9 +131,10 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
             age: '',
             sex: "prefer_not_to_say",
             dietaryPreferences: "",
-        });
-        setEditablePlanDetails(null); // Limpar detalhes editáveis
-        setGeneratedPlanOutput(null); // Limpar plano gerado
+        };
+        form.reset(preparedDefaults);
+        setEditablePlanDetails(null); 
+        setGeneratedPlanOutput(null);
         setEditableClientName("");
         setEditableProfessionalRegistration(user?.professionalRegistration || "");
         setEditableProfessionalRole(user?.professionalType || undefined);
@@ -211,20 +211,14 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
         toast({ title: "Usuário não autenticado", description: "Faça login para salvar o plano do cliente.", variant: "destructive" });
         return;
     }
-    if (!editablePlanDetails && !initialPlanDataToEdit && !generatedPlanOutput) {
+    const planDataContent = editablePlanDetails || initialPlanDataToEdit || generatedPlanOutput;
+    if (!planDataContent) {
         toast({ title: "Nenhum plano para salvar", description: "Gere um plano base primeiro ou carregue um para edição.", variant: "destructive" });
         return;
     }
 
     setIsSaving(true);
     let finalOriginalInputs: ClientPersonalizedPlanInputValues;
-    const planDataContent = editablePlanDetails || initialPlanDataToEdit || generatedPlanOutput;
-
-    if (!planDataContent) {
-         toast({ title: "Dados do Plano Ausentes", description: "Não foi possível encontrar os detalhes do plano para salvar.", variant: "destructive" });
-         setIsSaving(false);
-         return;
-    }
 
     if (isEditingExistingPlan) {
         if (!initialClientInputs) {
@@ -247,16 +241,17 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
             setIsSaving(false);
             return;
         }
-
+        // No modo de edição, construímos 'finalOriginalInputs' com os valores dos inputs originais
+        // e atualizamos apenas os campos que foram editados (clientName, professionalRegistration, professionalRole).
         finalOriginalInputs = {
-            ...initialClientInputs, // Preserva todos os dados originais
+            ...initialClientInputs, // Preserva todos os dados originais que não foram editados
             clientName: editableClientName.trim(),
             professionalRegistration: editableProfessionalRegistration.trim(),
             professionalRole: editableProfessionalRole,
         };
     } else {
-        // Modo de criação: usa o react-hook-form
-        const isValid = await form.trigger(Object.keys(ClientPersonalizedPlanInputSchema.shape) as Array<keyof ClientPersonalizedPlanInputValues>);
+        // Modo de criação: usa o react-hook-form e valida todo o schema
+        const isValid = await form.trigger();
         if (!isValid) {
             toast({ title: "Erro de Validação", description: "Por favor, corrija os erros no formulário de dados do cliente antes de salvar.", variant: "destructive" });
             setIsSaving(false);
@@ -266,42 +261,50 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
         finalOriginalInputs = { ...rawClientInputsFromForm };
     }
 
-    // Sanitização final para Firestore (null em vez de undefined)
-    (Object.keys(finalOriginalInputs) as Array<keyof ClientPersonalizedPlanInputValues>).forEach(key => {
-        const k = key as keyof ClientPersonalizedPlanInputValues;
-        if (finalOriginalInputs[k] === undefined) {
-            (finalOriginalInputs as any)[k] = null;
-        } else if (typeof finalOriginalInputs[k] === 'string' && (finalOriginalInputs[k] as string).trim() === "" && 
-                   (k === 'heightCm' || k === 'weightKg' || k === 'age' || k === 'dietaryPreferences' || k === 'sex' )) {
-            (finalOriginalInputs as any)[k] = null;
-        } else if (k === 'sex' && finalOriginalInputs[k] === "prefer_not_to_say") {
-             (finalOriginalInputs as any)[k] = null;
+    // Sanitização final para Firestore (null em vez de undefined, e strings vazias para null onde apropriado)
+    const sanitizedInputs: Partial<ClientPersonalizedPlanInputValues> = {};
+    (Object.keys(ClientPersonalizedPlanInputSchema.shape) as Array<keyof ClientPersonalizedPlanInputValues>).forEach(key => {
+        let value = finalOriginalInputs[key];
+        if (value === undefined) {
+            sanitizedInputs[key] = null;
+        } else if (typeof value === 'string') {
+            if ((key === 'professionalRegistration' || key === 'dietaryPreferences') && value.trim() === "") {
+                sanitizedInputs[key] = null;
+            } else if ((key === 'heightCm' || key === 'weightKg' || key === 'age') && value.trim() === "") {
+                sanitizedInputs[key] = null;
+            } else if (key === 'sex' && (value.trim() === "" || value.trim() === "prefer_not_to_say")) {
+                sanitizedInputs[key] = null;
+            } else {
+                sanitizedInputs[key] = value;
+            }
+        } else {
+            sanitizedInputs[key] = value;
         }
     });
     
-    // Convert specific numeric fields to numbers or null
-    const numericFields = ['heightCm', 'weightKg', 'age'] as const;
+    // Converte campos numéricos específicos para números ou null
+    const numericFields: Array<keyof Pick<ClientPersonalizedPlanInputValues, 'heightCm' | 'weightKg' | 'age'>> = ['heightCm', 'weightKg', 'age'];
     numericFields.forEach(field => {
-        const val = finalOriginalInputs[field];
+        const val = sanitizedInputs[field];
         if (val !== null && val !== undefined && String(val).trim() !== "") {
             const numVal = Number(val);
-            (finalOriginalInputs as any)[field] = isNaN(numVal) ? null : numVal;
+            (sanitizedInputs as any)[field] = isNaN(numVal) ? null : numVal;
         } else {
-            (finalOriginalInputs as any)[field] = null;
+            (sanitizedInputs as any)[field] = null;
         }
     });
 
-
-    // Verificações críticas finais
-    const requiredFields: Array<keyof ClientPersonalizedPlanInputValues> = ['professionalRole', 'professionalRegistration', 'clientName'];
-    if (!isEditingExistingPlan) {
-        requiredFields.push('goalPhase', 'trainingExperience', 'availableEquipment');
-    }
-    for (const field of requiredFields) {
+    finalOriginalInputs = sanitizedInputs as ClientPersonalizedPlanInputValues;
+    
+    // Verificações críticas finais para campos que devem sempre ter valor
+    const requiredFieldsForSave: Array<keyof ClientPersonalizedPlanInputValues> = ['professionalRole', 'professionalRegistration', 'clientName', 'goalPhase', 'trainingExperience', 'trainingFrequency', 'trainingVolumePreference', 'availableEquipment'];
+    for (const field of requiredFieldsForSave) {
         if (finalOriginalInputs[field] === null || finalOriginalInputs[field] === undefined || String(finalOriginalInputs[field]).trim() === "") {
-            toast({ title: "Erro Crítico de Dados", description: `O campo '${field}' é obrigatório e não foi preenchido corretamente.`, variant: "destructive" });
-            setIsSaving(false);
-            return;
+             if (!isEditingExistingPlan || ['professionalRole', 'professionalRegistration', 'clientName'].includes(field)) { // No modo edição, só validamos os 3
+                toast({ title: "Erro Crítico de Dados", description: `O campo '${field}' é obrigatório e não foi preenchido corretamente.`, variant: "destructive" });
+                setIsSaving(false);
+                return;
+             }
         }
     }
 
@@ -312,8 +315,8 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
       professionalId: user.id,
       professionalRegistration: finalOriginalInputs.professionalRegistration,
       clientName: finalOriginalInputs.clientName,
-      goalPhase: finalOriginalInputs.goalPhase!, // Já validado como não nulo
-      trainingFrequency: finalOriginalInputs.trainingFrequency!, // Já validado
+      goalPhase: finalOriginalInputs.goalPhase!, 
+      trainingFrequency: finalOriginalInputs.trainingFrequency!, 
       updatedAt: serverTimestamp(),
     };
     
@@ -345,7 +348,6 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
             </Button>
           ),
         });
-        // Limpa o estado após salvar um novo plano
         setGeneratedPlanOutput(null);
         setEditablePlanDetails(null);
         form.reset({ 
@@ -414,13 +416,13 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
 
   return (
     <div className="space-y-8">
-      <Card className="shadow-lg">
-        <CardHeader>
+      <Card className="shadow-lg print:shadow-none print:border-none">
+        <CardHeader className="print:pb-2">
           <CardTitle className="flex items-center text-2xl">
-            <Wand2 className="mr-2 h-6 w-6 text-primary" />
+            <Wand2 className="mr-2 h-6 w-6 text-primary print:hidden" />
             {clientInfoSectionTitle}
           </CardTitle>
-          <ShadCnCardDescription>
+           <ShadCnCardDescription className="print:hidden">
              {isEditingExistingPlan 
               ? `Ajuste os detalhes do plano abaixo. Seu registro profissional (${editableProfessionalRegistration || initialClientInputs?.professionalRegistration || 'N/A'}) será associado a este plano.`
               : `Profissional, preencha os dados do seu cliente abaixo. A IA criará um rascunho inicial que você poderá editar antes de salvar.`
@@ -428,13 +430,10 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
           </ShadCnCardDescription>
         </CardHeader>
         <CardContent>
-          {/* Formulário de Dados do Cliente (para criação ou edição limitada) */}
           {!isEditingExistingPlan ? (
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onGenerateSubmit)} className="space-y-6">
                 <h3 className="text-lg font-semibold border-b pb-2">Dados do Profissional e Cliente</h3>
-                <ShadCnCardDescription>Profissional, preencha os dados do seu cliente abaixo. A IA criará um rascunho inicial. Você poderá editá-lo antes de salvar.</ShadCnCardDescription>
-                
                 <div className="grid md:grid-cols-2 gap-6">
                   <FormField
                     control={form.control}
@@ -645,7 +644,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full md:w-auto" disabled={isLoadingAi || isSaving}>
+                <Button type="submit" className="w-full md:w-auto print:hidden" disabled={isLoadingAi || isSaving}>
                   {isLoadingAi ? (
                     <> <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando Rascunho com IA... </>
                   ) : (
@@ -655,14 +654,17 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
               </form>
             </Form>
           ) : (
-            // Modo de Edição: Exibe alguns dados do cliente e campos para profissional
             <div className="space-y-6">
                 <div>
-                    <h3 className="text-lg font-semibold border-b pb-2 mb-4">Dados do Profissional e Cliente</h3>
-                    <div className="grid md:grid-cols-2 gap-6 mb-4">
-                        <FormItem>
-                            <FormLabel>Sua Principal Área de Atuação</FormLabel>
-                             <Select onValueChange={(value) => setEditableProfessionalRole(value as any)} value={editableProfessionalRole || undefined}>
+                    <h3 className="text-lg font-semibold border-b pb-2 mb-4 print:hidden">Dados Principais do Cliente</h3>
+                     <div className="grid md:grid-cols-2 gap-6 mb-4 print:hidden">
+                        <div className="space-y-2">
+                            <Label htmlFor="editProfessionalRole">Sua Principal Área de Atuação</Label>
+                             <Select 
+                                onValueChange={(value) => setEditableProfessionalRole(value as any)} 
+                                value={editableProfessionalRole || undefined}
+                                name="editProfessionalRole"
+                            >
                                 <SelectTrigger><SelectValue placeholder="Selecione sua área" /></SelectTrigger>
                                 <SelectContent>
                                 <SelectItem value="physical_educator">Educador Físico (Foco em Treino)</SelectItem>
@@ -671,38 +673,42 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
                                 </SelectContent>
                             </Select>
                             {!editableProfessionalRole && <p className="text-sm text-destructive mt-1">Campo obrigatório.</p>}
-                        </FormItem>
-                        <FormItem>
-                            <FormLabel>Seu Registro Profissional (CREF/CFN)</FormLabel>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="editProfessionalRegistration">Seu Registro Profissional (CREF/CFN)</Label>
                             <Input 
+                                id="editProfessionalRegistration"
                                 placeholder="Ex: 012345-G/SP ou CRN-3 12345" 
-                                value={editableProfessionalRegistration} 
+                                value={editableProfessionalRegistration || ""} 
                                 onChange={(e) => setEditableProfessionalRegistration(e.target.value)} 
                             />
-                            <FormDescription>Obrigatório. Será exibido no plano final.</FormDescription>
                              {(!editableProfessionalRegistration || editableProfessionalRegistration.trim().length < 3) && <p className="text-sm text-destructive mt-1">Mínimo 3 caracteres.</p>}
-                        </FormItem>
+                        </div>
                     </div>
-                     <FormItem>
-                        <FormLabel>Nome do Cliente</FormLabel>
+                     <div className="space-y-2 print:hidden">
+                        <Label htmlFor="editClientName">Nome do Cliente</Label>
                         <Input 
+                            id="editClientName"
                             placeholder="Nome completo do cliente" 
-                            value={editableClientName} 
+                            value={editableClientName || ""} 
                             onChange={(e) => setEditableClientName(e.target.value)} 
                         />
-                        <FormDescription>Obrigatório. Para identificar o plano.</FormDescription>
                         {(!editableClientName || editableClientName.trim().length < 2) && <p className="text-sm text-destructive mt-1">Mínimo 2 caracteres.</p>}
-                    </FormItem>
+                    </div>
                 </div>
                 {initialClientInputs && (
-                    <Card className="bg-muted/30 p-4">
-                        <CardHeader className="p-2 pt-0"><CardTitle className="text-base">Resumo dos Inputs Originais (Não Editável Aqui)</CardTitle></CardHeader>
-                        <CardContent className="p-2 text-sm space-y-1">
+                    <Card className="bg-muted/30 p-4 print:border-none print:shadow-none print:p-0">
+                        <CardHeader className="p-2 pt-0 print:hidden"><CardTitle className="text-base">Resumo dos Inputs Originais (Não Editável Aqui)</CardTitle></CardHeader>
+                        <CardContent className="p-2 text-sm space-y-1 print:p-0">
                             <p><strong>Objetivo:</strong> {initialClientInputs.goalPhase}</p>
                             <p><strong>Experiência:</strong> {initialClientInputs.trainingExperience}</p>
                             <p><strong>Frequência Treino:</strong> {initialClientInputs.trainingFrequency} dias/semana</p>
                             <p><strong>Equipamento:</strong> {initialClientInputs.availableEquipment}</p>
-                            {/* Adicionar mais campos se relevante para visualização */}
+                             {initialClientInputs.heightCm && <p><strong>Altura:</strong> {initialClientInputs.heightCm} cm</p>}
+                             {initialClientInputs.weightKg && <p><strong>Peso:</strong> {initialClientInputs.weightKg} kg</p>}
+                             {initialClientInputs.age && <p><strong>Idade:</strong> {initialClientInputs.age} anos</p>}
+                             {initialClientInputs.sex && <p><strong>Sexo:</strong> {initialClientInputs.sex}</p>}
+                             {initialClientInputs.dietaryPreferences && <p><strong>Preferências Alimentares:</strong> {initialClientInputs.dietaryPreferences}</p>}
                         </CardContent>
                     </Card>
                 )}
@@ -712,7 +718,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
       </Card>
 
       {error && !isEditingExistingPlan && !editablePlanDetails && !generatedPlanOutput && ( 
-        <Card className="border-destructive bg-destructive/10 shadow-lg">
+        <Card className="border-destructive bg-destructive/10 shadow-lg print:hidden">
           <CardHeader>
             <CardTitle className="text-destructive">Erro ao Gerar Rascunho</CardTitle>
           </CardHeader>
@@ -725,25 +731,28 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
       
       {(editablePlanDetails || (isEditingExistingPlan && initialPlanDataToEdit)) && ( 
         <div className="space-y-6 mt-8">
-            <Card className="shadow-lg sticky top-20 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                <CardHeader>
+            <Card className="shadow-lg sticky top-20 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 print:shadow-none print:border-none print:sticky-auto print:top-auto print:z-auto">
+                <CardHeader className="print:border-b print:pb-2">
                     <CardTitle className="text-xl text-primary">
-                    Detalhes Editáveis do Plano para: <span className="font-semibold">{isEditingExistingPlan ? editableClientName : form.getValues('clientName') || 'Cliente'}</span>
+                    Detalhes {isEditingExistingPlan ? 'Editáveis do Plano' : 'do Rascunho'} para: <span className="font-semibold">{isEditingExistingPlan ? editableClientName : form.getValues('clientName') || 'Cliente'}</span>
                     </CardTitle>
-                    <ShadCnCardDescription>
-                    Abaixo estão os detalhes {isEditingExistingPlan ? 'atuais' : 'do rascunho'} para o cliente. Revise e edite conforme necessário.
+                    <ShadCnCardDescription className="print:hidden">
+                    Abaixo estão os detalhes. Revise e edite conforme necessário.
                     Seu registro profissional ({isEditingExistingPlan ? editableProfessionalRegistration : form.getValues('professionalRegistration') || 'N/A'}) será associado a este plano.
                     </ShadCnCardDescription>
                 </CardHeader>
-                <CardFooter className="flex flex-col sm:flex-row gap-4">
+                <CardFooter className="flex flex-col sm:flex-row gap-4 print:hidden">
                     <Button onClick={handleSavePlan} disabled={isSaving || !user || isLoadingAi} className="w-full sm:w-auto">
                         {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                         {user ? (isEditingExistingPlan ? "Salvar Alterações no Plano" : "Salvar Plano para Cliente") : "Faça login para Salvar"}
                     </Button>
+                     <Button variant="outline" onClick={() => window.print()} className="w-full sm:w-auto">
+                        <Download className="mr-2 h-4 w-4" /> Exportar para PDF
+                    </Button>
                 </CardFooter>
             </Card>
             
-            <Card className="shadow-lg">
+            <Card className="shadow-lg print:shadow-none print:border-none">
                 <CardHeader><CardTitle className="text-lg">Resumo Geral (Editável)</CardTitle></CardHeader>
                 <CardContent>
                 {renderTextInput(editablePlanDetails?.overallSummary ?? initialPlanDataToEdit?.overallSummary, 'overallSummary', 'Resumo geral do plano...', true, 4)}
@@ -751,7 +760,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
             </Card>
 
             { (editablePlanDetails?.trainingPlan || initialPlanDataToEdit?.trainingPlan) && (
-                <Card className="shadow-lg">
+                <Card className="shadow-lg print:shadow-none print:border-none">
                 <CardHeader>
                     <CardTitle className="flex items-center"><Dumbbell className="mr-2 h-5 w-5 text-primary" /> Plano de Treino (Editável)</CardTitle>
                 </CardHeader>
@@ -766,7 +775,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
                     </div>
 
                     {(editablePlanDetails?.trainingPlan?.workouts ?? initialPlanDataToEdit?.trainingPlan?.workouts)?.map((workoutDay, dayIndex) => (
-                    <Card key={dayIndex} className="p-4 border bg-muted/30">
+                    <Card key={dayIndex} className="p-4 border bg-muted/30 print:bg-transparent print:border-muted">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
                         <div>
                             <Label className="text-xs font-medium">Dia de Treino {dayIndex + 1}</Label>
@@ -779,7 +788,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
                         </div>
                         <Label className="text-sm font-semibold mb-2 block">Exercícios:</Label>
                         {workoutDay.exercises.map((ex, exIndex) => (
-                        <Card key={exIndex} className="p-3 mb-3 bg-background">
+                        <Card key={exIndex} className="p-3 mb-3 bg-background print:bg-transparent">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2">
                             <div>
                                 <Label className="text-xs">Nome</Label>
@@ -815,7 +824,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
             )}
 
             {(editablePlanDetails?.dietGuidance || initialPlanDataToEdit?.dietGuidance) && (
-                <Card className="shadow-lg">
+                <Card className="shadow-lg print:shadow-none print:border-none">
                 <CardHeader>
                     <CardTitle className="flex items-center">
                         <Utensils className="mr-2 h-5 w-5 text-primary" /> 
@@ -843,21 +852,21 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
                     </div>
 
                     {(editablePlanDetails?.dietGuidance?.dailyMealPlans ?? initialPlanDataToEdit?.dietGuidance?.dailyMealPlans)?.map((mealPlan, mealPlanIndex) => (
-                    <Card key={mealPlanIndex} className="p-4 border bg-muted/30">
+                    <Card key={mealPlanIndex} className="p-4 border bg-muted/30 print:bg-transparent print:border-muted">
                         <div>
                         <Label className="text-sm font-semibold">Nome da Refeição</Label>
                         {renderTextInput(mealPlan.mealName, `dietGuidance.dailyMealPlans.${mealPlanIndex}.mealName`, 'Ex: Café da Manhã')}
                         </div>
                         <Label className="text-sm font-semibold mt-3 mb-2 block">Opções de Refeição:</Label>
                         {mealPlan.mealOptions.map((option, optionIndex) => (
-                        <Card key={optionIndex} className="p-3 mb-3 bg-background">
+                        <Card key={optionIndex} className="p-3 mb-3 bg-background print:bg-transparent">
                             <div>
                             <Label className="text-xs">Descrição da Opção (Opcional)</Label>
                             {renderTextInput(option.optionDescription, `dietGuidance.dailyMealPlans.${mealPlanIndex}.mealOptions.${optionIndex}.optionDescription`, 'Ex: Alto em proteína', true, 1)}
                             </div>
                             <Label className="text-sm font-medium mt-2 mb-1 block">Itens:</Label>
                             {option.items.map((foodItem, itemIndex) => (
-                            <div key={itemIndex} className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 mb-2 border-b border-dashed pb-1 last:border-b-0 last:pb-0">
+                            <div key={itemIndex} className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 mb-2 border-b border-dashed pb-1 last:border-b-0 last:pb-0 print:border-muted">
                                 <div>
                                 <Label className="text-xs">Nome do Alimento</Label>
                                 {renderTextInput(foodItem.foodName, `dietGuidance.dailyMealPlans.${mealPlanIndex}.mealOptions.${optionIndex}.items.${itemIndex}.foodName`, 'Ex: Peito de Frango')}
@@ -879,6 +888,18 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
                 </CardContent>
                 </Card>
             )}
+            <Card className="bg-secondary/50 border-dashed print:hidden">
+                <CardHeader>
+                <CardTitle className="text-lg flex items-center"><Info className="mr-2 h-5 w-5 text-primary" /> Lembrete Profissional</CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground">
+                    {isEditingExistingPlan ? (
+                        <p>Este é o plano carregado para {editableClientName}. Ajuste-o e adicione suas considerações profissionais. Para criar um novo plano base para outro cliente, vá para "Gerar Novo Plano Cliente" no menu lateral.</p>
+                    ) : (
+                        <p>Este é o rascunho gerado pela IA. Revise e edite os detalhes. Após salvar, você poderá encontrá-lo em "Planos Salvos".</p>
+                    )}
+                </CardContent>
+            </Card>
         </div>
       )}
     </div>

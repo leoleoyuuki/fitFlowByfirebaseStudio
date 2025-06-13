@@ -2,6 +2,7 @@
 import type {Metadata} from 'next';
 import {Geist, Geist_Mono} from 'next/font/google';
 import './globals.css';
+import './print-styles.css'; // Adicionado para estilos de impressão
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/contexts/auth-context';
 
@@ -16,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'FitFlow - Treino e Nutrição para Hipertrofia com IA',
-  description: 'Alcance seus objetivos de ganho muscular com planos de hipertrofia baseados em ciência, orientação dietética para bulking/cutting e acompanhamento de progresso, tudo com IA.',
+  title: 'FitFlow Pro - Treino e Nutrição para Hipertrofia com IA', // Atualizado para Pro
+  description: 'Otimize a criação de planos de treino e nutrição para hipertrofia com IA. Ferramenta para personal trainers e nutricionistas.', // Atualizado para Pro
 };
 
 export default function RootLayout({

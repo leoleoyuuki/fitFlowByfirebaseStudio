@@ -29,9 +29,6 @@ import { useToast } from "@/hooks/use-toast";
 import type { ClientPlan } from "@/types";
 
 
-// Interface para os dados do plano como armazenados no Firestore
-// Removida, usando ClientPlan de @/types
-
 function MyAiPlanPageContent() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -130,7 +127,7 @@ function MyAiPlanPageContent() {
 
   if (authLoading || (isLoading && userPlans.length === 0 && !planIdFromQuery)) { 
     return (
-      <div className="flex flex-col items-center justify-center space-y-4 py-12 min-h-[calc(100vh-200px)]">
+      <div className="flex flex-col items-center justify-center space-y-4 py-12 min-h-[calc(100vh-200px)] print:hidden">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
         <p className="text-muted-foreground">Carregando seus planos...</p>
       </div>
@@ -150,7 +147,7 @@ function MyAiPlanPageContent() {
   const PlanContent = () => {
     if (isLoading && planIdFromQuery && !selectedPlan) { 
          return (
-            <div className="flex flex-col items-center justify-center space-y-4 py-12 min-h-[calc(100vh-200px)]">
+            <div className="flex flex-col items-center justify-center space-y-4 py-12 min-h-[calc(100vh-200px)] print:hidden">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
                 <p className="text-muted-foreground">Carregando plano detalhado...</p>
             </div>
@@ -159,7 +156,7 @@ function MyAiPlanPageContent() {
 
     if (!selectedPlan && !isLoading) {
       return (
-         <div className="space-y-8">
+         <div className="space-y-8 print:hidden">
             <Card className="text-center py-12 shadow-lg border-muted">
               <CardHeader>
                 <CardTitle className="mt-6 text-2xl font-semibold">Nenhum Plano de Cliente Encontrado</CardTitle>
@@ -181,8 +178,8 @@ function MyAiPlanPageContent() {
     const { planData, clientName, professionalRegistration, goalPhase, trainingFrequency, createdAt } = selectedPlan;
 
     return (
-      <div className="space-y-8">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="space-y-8 printable-plan-area">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:border-b print:pb-4">
             <div>
                 <h1 className="text-3xl font-bold tracking-tight">Plano Detalhado: {clientName}</h1>
                 <p className="text-muted-foreground">
@@ -190,11 +187,11 @@ function MyAiPlanPageContent() {
                 {professionalRegistration && ` | Resp. Técnico: ${professionalRegistration}`}
                 </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 print:hidden">
                 <Button variant="outline" onClick={() => router.push(`/dashboard/personalized-plan?planIdToEdit=${selectedPlan.id}`)}>
                     <Edit className="mr-2 h-4 w-4" /> Editar Plano
                 </Button>
-                 <Button variant="outline" onClick={() => alert("Funcionalidade de exportar para PDF estará disponível em breve.")} disabled>
+                 <Button variant="outline" onClick={() => window.print()}>
                     <Download className="mr-2 h-4 w-4" /> Exportar PDF
                 </Button>
             </div>
@@ -214,7 +211,7 @@ function MyAiPlanPageContent() {
                   </CardHeader>
                   <CardContent className="space-y-6">
                       {planData.trainingPlan.workouts?.map((workoutDay, dayIndex) => (
-                          <div key={dayIndex} className="border-t pt-4 first:border-t-0 first:pt-0">
+                          <div key={dayIndex} className="border-t pt-4 first:border-t-0 first:pt-0 print:border-muted">
                               <h3 className="text-lg font-semibold mb-2 text-foreground">{workoutDay.day} {workoutDay.focus ? `(${workoutDay.focus})` : ''}</h3>
                               <ul className="space-y-2 list-disc list-inside pl-2 text-sm">
                                   {workoutDay.exercises?.map((ex, exIndex) => (
@@ -227,7 +224,7 @@ function MyAiPlanPageContent() {
                               </ul>
                           </div>
                       ))}
-                      {planData.trainingPlan.notes && <p className="mt-6 text-sm text-muted-foreground italic border-t pt-4"><strong>Notas Gerais do Treino (Base IA):</strong> {planData.trainingPlan.notes}</p>}
+                      {planData.trainingPlan.notes && <p className="mt-6 text-sm text-muted-foreground italic border-t pt-4 print:border-muted"><strong>Notas Gerais do Treino (Base IA):</strong> {planData.trainingPlan.notes}</p>}
                   </CardContent>
               </Card>
           )}
@@ -242,10 +239,10 @@ function MyAiPlanPageContent() {
                   </CardHeader>
                   <CardContent className="space-y-6">
                       {planData.dietGuidance.dailyMealPlans?.map((mealPlan, mealPlanIndex) => (
-                      <div key={mealPlanIndex} className="border-t pt-4 first:border-t-0 first:pt-0">
+                      <div key={mealPlanIndex} className="border-t pt-4 first:border-t-0 first:pt-0 print:border-muted">
                           <h4 className="text-lg font-semibold mb-3 text-foreground">{mealPlan.mealName}</h4>
                           {mealPlan.mealOptions?.map((option, optionIndex) => (
-                          <div key={optionIndex} className="mb-4 pl-4 border-l-2 border-primary/30">
+                          <div key={optionIndex} className="mb-4 pl-4 border-l-2 border-primary/30 print:border-muted">
                               <p className="text-sm font-medium text-primary mb-1">Opção {optionIndex + 1}{option.optionDescription ? `: ${option.optionDescription}` : ''}</p>
                               <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
                               {option.items?.map((foodItem, foodItemIndex) => (
@@ -258,7 +255,7 @@ function MyAiPlanPageContent() {
                           ))}
                       </div>
                       ))}
-                      {planData.dietGuidance.notes && <p className="mt-4 text-sm text-muted-foreground italic border-t pt-4"><strong>Notas Gerais da Dieta (Base IA):</strong> {planData.dietGuidance.notes}</p>}
+                      {planData.dietGuidance.notes && <p className="mt-4 text-sm text-muted-foreground italic border-t pt-4 print:border-muted"><strong>Notas Gerais da Dieta (Base IA):</strong> {planData.dietGuidance.notes}</p>}
                   </CardContent>
               </Card>
           )}
@@ -273,7 +270,7 @@ function MyAiPlanPageContent() {
                   </CardContent>
               </Card>
           )}
-          <Card className="bg-secondary/50 border-dashed">
+          <Card className="bg-secondary/50 border-dashed print:hidden">
             <CardHeader>
               <CardTitle className="text-lg flex items-center"><Info className="mr-2 h-5 w-5 text-primary" /> Lembrete Profissional</CardTitle>
             </CardHeader>
@@ -295,7 +292,7 @@ function MyAiPlanPageContent() {
 
   return (
     <div className="flex flex-col lg:flex-row gap-8">
-      <aside className="w-full lg:w-1/4 xl:w-1/5">
+      <aside className="w-full lg:w-1/4 xl:w-1/5 print:hidden">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center"><FileText className="mr-2 h-5 w-5" /> Planos de Clientes Salvos</CardTitle>
@@ -324,7 +321,7 @@ function MyAiPlanPageContent() {
                   </div>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" disabled={deletingPlanId === plan.id}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 print:hidden" disabled={deletingPlanId === plan.id}>
                         {deletingPlanId === plan.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 text-destructive/70 hover:text-destructive" />}
                       </Button>
                     </AlertDialogTrigger>
@@ -347,7 +344,7 @@ function MyAiPlanPageContent() {
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="mt-2 w-full text-xs" 
+                  className="mt-2 w-full text-xs print:hidden" 
                   onClick={() => router.push(`/dashboard/my-ai-plan?planId=${plan.id}`)}
                 >
                   <Eye className="mr-1.5 h-3 w-3"/> Ver Detalhes
@@ -355,7 +352,7 @@ function MyAiPlanPageContent() {
               </div>
             ))}
           </CardContent>
-          <CardFooter>
+          <CardFooter className="print:hidden">
              <Button asChild variant="default" className="w-full mt-2">
                 <Link href="/dashboard/personalized-plan">
                     <Wand2 className="mr-2 h-4 w-4" /> Gerar Novo Plano
@@ -375,7 +372,7 @@ function MyAiPlanPageContent() {
 export default function MyAiPlanPage() {
   return (
     <Suspense fallback={
-      <div className="flex flex-col items-center justify-center space-y-4 py-12 min-h-[calc(100vh-200px)]">
+      <div className="flex flex-col items-center justify-center space-y-4 py-12 min-h-[calc(100vh-200px)] print:hidden">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
         <p className="text-muted-foreground">Carregando página de planos...</p>
       </div>

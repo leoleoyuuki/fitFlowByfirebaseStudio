@@ -26,7 +26,7 @@ export default function AuthenticatedLayout({
   return (
     <ProtectedRoute>
       <SidebarProvider defaultOpen>
-        <Sidebar side="left" variant="sidebar" collapsible="icon">
+        <Sidebar side="left" variant="sidebar" collapsible="icon" className="print:hidden">
           <SidebarHeader>
             <Link href="/dashboard" className="flex items-center gap-2 px-2 py-1 hover:bg-sidebar-accent rounded-md">
               <Dumbbell className="h-7 w-7 text-sidebar-primary" />
@@ -41,14 +41,14 @@ export default function AuthenticatedLayout({
           </SidebarFooter>
         </Sidebar>
         <SidebarInset>
-          <header className="sticky top-0 z-40 flex h-16 items-center justify-between gap-4 border-b bg-background px-4 sm:px-6">
+          <header className="sticky top-0 z-40 flex h-16 items-center justify-between gap-4 border-b bg-background px-4 sm:px-6 print:hidden">
              <SidebarTrigger className="md:hidden" /> {/* Hidden on md+, shown on mobile to toggle sheet */}
              <div className="flex-1">
                 {/* Breadcrumbs or page title can go here */}
              </div>
             <UserNav />
           </header>
-          <main className="flex-1 p-4 sm:p-6 md:p-8">
+          <main className="flex-1 p-4 sm:p-6 md:p-8 print:p-0">
             {children}
           </main>
         </SidebarInset>
@@ -56,3 +56,4 @@ export default function AuthenticatedLayout({
     </ProtectedRoute>
   );
 }
+

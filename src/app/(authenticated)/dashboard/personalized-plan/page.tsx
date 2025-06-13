@@ -10,10 +10,9 @@ import { useSearchParams } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { PersonalizedPlanOutput } from "@/ai/flows/generate-personalized-plan";
-import type { ClientPlan } from "@/types"; // Supondo que ClientPlan tem originalInputs e planData
+import type { ClientPlan } from "@/types"; 
 
-// Definindo o tipo para os inputs do cliente que podem ser parte do ClientPlan
-type ClientPersonalizedPlanInputValues = Parameters<typeof PersonalizedPlanForm>[0]['initialClientInputs'];
+type ClientPersonalizedPlanInputValues = ClientPlan['originalInputs'];
 
 
 function PersonalizedPlanPageContent() {
@@ -35,11 +34,10 @@ function PersonalizedPlanPageContent() {
           const planRef = doc(db, "userGeneratedPlans", user.id, "plans", planIdToEdit);
           const planSnap = await getDoc(planRef);
           if (planSnap.exists()) {
-            const planDataFromDb = planSnap.data() as ClientPlan; // Use o tipo ClientPlan
+            const planDataFromDb = planSnap.data() as ClientPlan; 
             
-            // Assegura que originalInputs seja do tipo esperado ou null/undefined
             const clientInputs = planDataFromDb.originalInputs as ClientPersonalizedPlanInputValues | undefined;
-            setInitialClientInputs(clientInputs || null); // Se for undefined, passa null
+            setInitialClientInputs(clientInputs || null); 
             setInitialPlanData(planDataFromDb.planData);
           } else {
             setErrorLoadingPlan("Plano para edição não encontrado.");
@@ -53,20 +51,19 @@ function PersonalizedPlanPageContent() {
           setIsLoadingPlan(false);
         }
       } else {
-        // Se não há planIdToEdit, reseta os estados para garantir que não haja dados antigos
         setInitialClientInputs(null);
         setInitialPlanData(null);
       }
     };
 
-    if (!authLoading) { // Só busca se a autenticação não estiver carregando
+    if (!authLoading) { 
         fetchPlanToEdit();
     }
   }, [planIdToEdit, user, authLoading]);
 
   if (authLoading || (isLoadingPlan && planIdToEdit)) {
     return (
-      <div className="flex flex-col items-center justify-center space-y-4 py-12 min-h-[calc(100vh-200px)]">
+      <div className="flex flex-col items-center justify-center space-y-4 py-12 min-h-[calc(100vh-200px)] print:hidden">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
         <p className="text-muted-foreground">{isLoadingPlan ? "Carregando plano para edição..." : "Carregando..."}</p>
       </div>
@@ -79,16 +76,14 @@ function PersonalizedPlanPageContent() {
   
   if (errorLoadingPlan) {
     return (
-        <div className="text-center py-10 text-destructive">
+        <div className="text-center py-10 text-destructive print:hidden">
             <p>{errorLoadingPlan}</p>
         </div>
     );
   }
 
-  // Passa planIdToEdit, initialClientInputs e initialPlanData para PersonalizedPlanForm
-  // Se planIdToEdit não existir, initialClientInputs e initialPlanData serão null, e o form se comportará como novo.
   return (
-    <div>
+    <div className="printable-plan-area">
       <PersonalizedPlanForm 
         planIdToEdit={planIdToEdit || undefined} 
         initialClientInputs={initialClientInputs} 
@@ -100,9 +95,8 @@ function PersonalizedPlanPageContent() {
 
 export default function PersonalizedPlanPage() {
   return (
-    // Suspense é crucial por causa do useSearchParams
     <Suspense fallback={
-      <div className="flex flex-col items-center justify-center space-y-4 py-12 min-h-[calc(100vh-200px)]">
+      <div className="flex flex-col items-center justify-center space-y-4 py-12 min-h-[calc(100vh-200px)] print:hidden">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
         <p className="text-muted-foreground">Carregando página de geração de plano...</p>
       </div>
