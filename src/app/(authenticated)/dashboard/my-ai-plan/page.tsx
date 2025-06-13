@@ -261,7 +261,7 @@ function MyAiPlanPageContent() {
           )}
           
           {planData.overallSummary && (
-              <Card className="shadow-lg">
+              <Card className="shadow-lg js-omit-from-print">
                   <CardHeader>
                       <CardTitle className="text-xl text-primary">Resumo Geral do Plano (Base IA)</CardTitle>
                   </CardHeader>

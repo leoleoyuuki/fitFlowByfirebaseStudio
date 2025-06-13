@@ -8,18 +8,27 @@
     print-color-adjust: exact !important; /* Standard */
   }
 
-  /* Ocultar elementos não imprimíveis com print:hidden do Tailwind já deve funcionar, mas podemos adicionar seletores mais específicos se necessário */
-  /* .print-hidden { display: none !important; } */
+  @page {
+    margin: 15mm; /* Margens da página A4 */
+
+    /* Remove cabeçalhos e rodapés padrão do navegador */
+    @top-left { content: none; }
+    @top-center { content: none; }
+    @top-right { content: none; }
+    @bottom-left { content: none; }
+    @bottom-center { content: none; }
+    @bottom-right { content: none; }
+  }
   
   main.print\:p-0 {
     padding: 0 !important;
   }
 
   .printable-plan-area {
-    padding: 15mm; /* Margens para impressão A4 (20mm é comum) */
+    /* padding: 15mm; Não precisa mais aqui se definido no @page */
     font-size: 10pt;
-    color: #000 !important; /* Força texto preto */
-    background-color: #fff !important; /* Força fundo branco */
+    color: #000 !important; 
+    background-color: #fff !important; 
     width: 100% !important;
     box-sizing: border-box;
   }
@@ -27,7 +36,7 @@
   .printable-plan-area .card {
     border: 1px solid #ccc !important;
     box-shadow: none !important;
-    margin-bottom: 10px !important; /* Reduzido para mais densidade */
+    margin-bottom: 10px !important; 
     page-break-inside: avoid !important;
     background-color: #fff !important;
   }
@@ -35,29 +44,29 @@
   .printable-plan-area .card-header,
   .printable-plan-area .card-content,
   .printable-plan-area .card-footer {
-    padding: 8px !important; /* Reduzido para mais densidade */
+    padding: 8px !important; 
   }
 
   .printable-plan-area h1, .printable-plan-area h2, .printable-plan-area h3, .printable-plan-area h4, .printable-plan-area .card-title {
     color: #000 !important;
     page-break-after: avoid !important;
     margin-top: 0 !important;
-    font-weight: bold; /* Garante negrito para títulos */
+    font-weight: bold; 
   }
   .printable-plan-area h1 { font-size: 16pt; margin-bottom: 10px; }
   .printable-plan-area h2 { font-size: 14pt; margin-bottom: 8px; }
   .printable-plan-area .card-title { font-size: 12pt; margin-bottom: 6px; }
   
   .printable-plan-area .text-primary { 
-    color: #3F51B5 !important; /* Cor primária específica da sua paleta */
+    color: #3F51B5 !important; 
   }
   .printable-plan-area .text-muted-foreground,
   .printable-plan-area .card-description {
-    color: #444 !important; /* Cor um pouco mais escura para melhor contraste */
+    color: #444 !important; 
   }
 
   .printable-plan-area ul, .printable-plan-area ol {
-    margin-left: 15px; /* Reduzido */
+    margin-left: 15px; 
     padding-left: 5px;
   }
   .printable-plan-area li {
@@ -69,7 +78,7 @@
     color: inherit !important;
   }
   .printable-plan-area a[href]:after {
-    content: none !important; /* Remove URLs de links */
+    content: none !important; 
   }
 
   .printable-plan-area .prose {
@@ -83,31 +92,26 @@
     font-weight: bold !important;
   }
 
-
-  /* Tentar garantir que cores de texto e fundo sejam resetadas para impressão */
   .printable-plan-area *, .printable-plan-area *:before, .printable-plan-area *:after {
-    color: inherit !important; /* Herda do .printable-plan-area ou de seletores mais específicos */
+    color: inherit !important; 
     background: transparent !important;
     box-shadow: none !important;
     text-shadow: none !important;
-    border-color: #ccc !important; /* Cor padrão para bordas, se visíveis */
+    border-color: #ccc !important; 
   }
 
-  /* Reaplicar cor de texto para elementos que devem ser pretos se o inherit não for suficiente */
    .printable-plan-area p, .printable-plan-area span, .printable-plan-area div, .printable-plan-area li {
     color: #000 !important;
   }
 
-  /* Reaplicar fundo branco para elementos que precisam (como cards) */
   .printable-plan-area .card, 
   .printable-plan-area .card-header, 
   .printable-plan-area .card-content,
-  .printable-plan-area .bg-background, /* Reset para classes de fundo comuns */
-  .printable-plan-area .bg-muted\/30 { /* Exemplo de classe de fundo específica */
+  .printable-plan-area .bg-background, 
+  .printable-plan-area .bg-muted\/30 { 
      background-color: #fff !important;
   }
   
-  /* Reaplicar cores específicas se necessário */
   .printable-plan-area .text-primary {
       color: #3F51B5 !important;
   }
@@ -115,24 +119,27 @@
       color: #444 !important;
   }
   .printable-plan-area .text-destructive {
-      color: #dc2626 !important; /* Exemplo de cor destrutiva */
+      color: #dc2626 !important; 
   }
 
-  /* Ocultar ícones por padrão, a menos que sejam SVG inline com fill/stroke */
-  .printable-plan-area svg:not([fill="currentColor"]):not([stroke="currentColor"]) { /* Tentar preservar SVGs com cores próprias */
-    /* display: none !important;  Pode ser muito agressivo, verificar */
+  .printable-plan-area .lucide { 
+    /* Tentar manter ícones com fill/stroke currentColor */
+    fill: currentColor !important;
+    stroke: currentColor !important;
+    color: #3F51B5 !important; /* Cor primária para ícones no PDF */
   }
-  .printable-plan-area .lucide { /* Ícones Lucide */
-     /* Se os ícones Lucide forem importantes, precisaremos garantir que sua cor seja visível.
-        Muitas vezes eles herdam 'currentColor', então o reset de color acima pode afetá-los.
-        Pode ser necessário um estilo específico aqui se eles sumirem. */
+  .printable-plan-area .lucide.text-primary {
+    color: #3F51B5 !important;
   }
 
-  /* Remove bordas desnecessárias, exceto as dos cards */
-  .printable-plan-area *:not(.card):not(table):not(th):not(td) {
-    /* border: none !important; Isso pode ser muito agressivo. A abordagem de border-color: #ccc !important acima é mais suave */
-  }
+
    .printable-plan-area .border-l-2, .printable-plan-area .border-b, .printable-plan-area .border-t, .printable-plan-area .border-dashed {
-      border-color: #ccc !important; /* Ou transparent se não quiser a borda */
+      border-color: #ccc !important; 
    }
+
+  /* Classe específica para ocultar elementos da impressão */
+  .js-omit-from-print {
+    display: none !important;
+  }
 }
+
