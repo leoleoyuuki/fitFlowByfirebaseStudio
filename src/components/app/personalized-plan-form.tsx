@@ -21,7 +21,7 @@ import type { PersonalizedPlanInput, PersonalizedPlanOutput } from "@/ai/flows/g
 import { generatePersonalizedPlan } from "@/ai/flows/generate-personalized-plan";
 import { useState, useEffect, ChangeEvent } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription as ShadCnCardDescription, CardFooter } from "@/components/ui/card";
-import { Label } from "@/components/ui/label"; // Ensure Label is imported
+import { Label } from "@/components/ui/label";
 import { Loader2, Wand2, Dumbbell, Utensils, Save, Download, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
@@ -89,47 +89,58 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
   });
 
   useEffect(() => {
+    let preparedInitialInputs: Partial<ClientPersonalizedPlanInputValues> = {};
+
     if (isEditingExistingPlan && initialClientInputs) {
-      // For editing, set local state for the three editable fields
-      setEditableProfessionalRole(initialClientInputs.professionalRole || user?.professionalType || undefined);
-      setEditableProfessionalRegistration(initialClientInputs.professionalRegistration || user?.professionalRegistration || "");
-      setEditableClientName(initialClientInputs.clientName || "");
-      
-      // Reset errors for these fields
-      setProfRoleError(null);
-      setProfRegError(null);
-      setClientNameError(null);
+        // Set local state for the three editable fields in edit mode
+        setEditableProfessionalRole(initialClientInputs.professionalRole || user?.professionalType || undefined);
+        setEditableProfessionalRegistration(initialClientInputs.professionalRegistration || user?.professionalRegistration || "");
+        setEditableClientName(initialClientInputs.clientName || "");
+        setProfRoleError(null); setProfRegError(null); setClientNameError(null);
 
-      // Set the plan details for editing
-      if (initialPlanDataToEdit) {
-        setGeneratedPlanOutput(initialPlanDataToEdit); // Keep a copy of original generated if needed
-        setEditablePlanDetails(JSON.parse(JSON.stringify(initialPlanDataToEdit)));
-      } else {
-        setGeneratedPlanOutput(null);
-        setEditablePlanDetails(null);
-      }
-      // No form.reset() here as RHF isn't primary for these fields in edit mode of this section
+        // Populate preparedInitialInputs with all values from initialClientInputs for form.reset
+        // This ensures react-hook-form has values for hidden fields too.
+        preparedInitialInputs = {
+            ...initialClientInputs,
+            professionalRole: initialClientInputs.professionalRole || user?.professionalType || undefined,
+            professionalRegistration: initialClientInputs.professionalRegistration || user?.professionalRegistration || "",
+            clientName: initialClientInputs.clientName || "",
+            // Ensure string representation for optional number inputs if they are null/undefined initially
+            heightCm: initialClientInputs.heightCm ?? '',
+            weightKg: initialClientInputs.weightKg ?? '',
+            age: initialClientInputs.age ?? '',
+            sex: initialClientInputs.sex ?? "prefer_not_to_say",
+            dietaryPreferences: initialClientInputs.dietaryPreferences ?? "",
+        };
+        form.reset(preparedInitialInputs);
 
+
+        if (initialPlanDataToEdit) {
+            setGeneratedPlanOutput(initialPlanDataToEdit);
+            setEditablePlanDetails(JSON.parse(JSON.stringify(initialPlanDataToEdit)));
+        } else {
+            setGeneratedPlanOutput(null);
+            setEditablePlanDetails(null);
+        }
     } else if (!isEditingExistingPlan) { // Creating a new plan
         const defaultNewPlanInputs: ClientPersonalizedPlanInputValues = {
             professionalRole: user?.professionalType || undefined,
             professionalRegistration: user?.professionalRegistration || "",
             clientName: "",
-            goalPhase: undefined,
+            goalPhase: undefined, // Explicitly undefined for required fields
             trainingExperience: undefined,
             trainingFrequency: 3,
             trainingVolumePreference: "medium",
             availableEquipment: "",
-            heightCm: '', // Represent as empty string for input
+            heightCm: '', 
             weightKg: '',
             age: '',
             sex: "prefer_not_to_say",
             dietaryPreferences: "",
         };
-        form.reset(defaultNewPlanInputs);
+        form.reset(defaultNewPlanInputs); // Reset RHF with defaults for new plan
         setEditablePlanDetails(null);
         setGeneratedPlanOutput(null);
-        // Also reset local state versions for consistency if user switches modes (though not typical)
         setEditableProfessionalRole(user?.professionalType || undefined);
         setEditableProfessionalRegistration(user?.professionalRegistration || "");
         setEditableClientName("");
@@ -146,13 +157,14 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
 
     const apiValues: PersonalizedPlanInput = {
         ...values,
-        professionalRegistration: values.professionalRegistration || undefined,
+        professionalRegistration: values.professionalRegistration || undefined, // Ensure Zod optional string is not empty
         heightCm: values.heightCm ? Number(values.heightCm) : undefined,
         weightKg: values.weightKg ? Number(values.weightKg) : undefined,
         age: values.age ? Number(values.age) : undefined,
         sex: (values.sex === "" || values.sex === "prefer_not_to_say")
              ? undefined
              : values.sex as "male" | "female" | undefined,
+        dietaryPreferences: values.dietaryPreferences || undefined, // Ensure Zod optional string
     };
 
     try {
@@ -182,19 +194,17 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
   const handlePlanDetailChange = (path: string, value: any) => {
     setEditablePlanDetails(prev => {
       if (!prev) return null;
-      const newDetails = JSON.parse(JSON.stringify(prev)); // Deep copy
+      const newDetails = JSON.parse(JSON.stringify(prev)); 
       let current = newDetails;
       const keys = path.split('.');
       keys.forEach((key, index) => {
         const isLastKey = index === keys.length - 1;
-        // Check if the next key is a number (array index)
         const nextKeyIsNumber = !isLastKey && !isNaN(Number(keys[index+1]));
 
         if (isLastKey) {
           current[key] = value;
         } else {
           if (current[key] === undefined || typeof current[key] !== 'object' || current[key] === null) {
-            // Initialize as array if next key is numeric, else as object
             current[key] = nextKeyIsNumber ? [] : {};
           }
           current = current[key];
@@ -211,7 +221,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
         return;
     }
     
-    const planDataContent = editablePlanDetails; // Edits are always in editablePlanDetails
+    const planDataContent = editablePlanDetails || initialPlanDataToEdit; // Use edits, or original if no edits but plan was loaded
     if (!planDataContent) {
         toast({ title: "Nenhum plano para salvar", description: "Gere um plano base primeiro ou carregue um para edição. O conteúdo do plano está vazio.", variant: "destructive" });
         return;
@@ -240,7 +250,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
             setIsSaving(false);
             return;
         }
-        // Construct finalOriginalInputs using initialClientInputs as base, then override with local editable state
+        // Construct finalOriginalInputs using initialClientInputs as base, then override with local editable state for the 3 fields
         finalOriginalInputs = {
             ...(initialClientInputs as ClientPersonalizedPlanInputValues), // Base
             professionalRole: editableProfessionalRole!,
@@ -248,8 +258,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
             clientName: editableClientName.trim(),
         };
     } else { // Creating a new plan, validate the full RHF form
-        const fieldsToValidate: Array<keyof ClientPersonalizedPlanInputValues> = Object.keys(ClientPersonalizedPlanInputSchema.shape) as Array<keyof ClientPersonalizedPlanInputValues>;
-        const isValid = await form.trigger(fieldsToValidate);
+        const isValid = await form.trigger(); // Validate all RHF fields
 
         if (!isValid) {
             toast({ title: "Erro de Validação", description: "Por favor, corrija os erros no formulário de dados do cliente antes de salvar.", variant: "destructive" });
@@ -258,57 +267,57 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
         }
         finalOriginalInputs = form.getValues(); // All values from RHF
     }
-
-    // Sanitize all inputs that will be saved to originalInputs to convert undefined to null or handle empty strings
-    // This helps ensure Firestore compatibility and consistency
+    
+    // Sanitize all inputs that will be saved to originalInputs
     const sanitizedInputs: Partial<ClientPersonalizedPlanInputValues> = {};
     (Object.keys(ClientPersonalizedPlanInputSchema.shape) as Array<keyof ClientPersonalizedPlanInputValues>).forEach(key => {
         let value = finalOriginalInputs[key];
-        let valueToSave: any = null; // Default to null if processing leads to it
+        let valueToSave: any;
 
-        if (value !== undefined && value !== null) {
-            if (typeof value === 'string') {
-                 if ((key === 'professionalRegistration' || key === 'dietaryPreferences') && value.trim() === "") {
-                     valueToSave = null;
-                } else if (key === 'sex' && (value.trim() === "" || value.trim() === "prefer_not_to_say")) {
-                     valueToSave = null;
-                } else if ((key === 'heightCm' || key === 'weightKg' || key === 'age') && value.trim() === "") {
-                    // This will be handled by number conversion below to become null if empty string
-                    valueToSave = value; // Keep as string for now
-                } else {
-                     valueToSave = value;
-                }
+        if (value === undefined) {
+            valueToSave = null;
+        } else if (typeof value === 'string') {
+            if ((key === 'professionalRegistration' || key === 'dietaryPreferences') && value.trim() === "") {
+                 valueToSave = null;
+            } else if (key === 'sex' && (value.trim() === "" || value.trim() === "prefer_not_to_say")) {
+                 valueToSave = null;
+            } else if ((key === 'heightCm' || key === 'weightKg' || key === 'age') && value.trim() === "") {
+                 valueToSave = null; 
             } else {
-                valueToSave = value;
+                 valueToSave = value;
             }
+        } else { // Numbers, enums (already validated by Zod or manual check)
+            valueToSave = value;
         }
         
-        // Specific handling for numeric fields that might come as empty strings from form
         if (key === 'heightCm' || key === 'weightKg' || key === 'age') {
-            if (valueToSave === '' || valueToSave === null || valueToSave === undefined) {
+            if (valueToSave === null || valueToSave === undefined || String(valueToSave).trim() === '') { // Check for empty string too
                 valueToSave = null;
             } else {
                 const numVal = Number(valueToSave);
                 valueToSave = isNaN(numVal) ? null : numVal;
             }
         }
-        (sanitizedInputs as any)[key] = (valueToSave === undefined) ? null : valueToSave;
+        (sanitizedInputs as any)[key] = valueToSave;
     });
     
     const finalOriginalInputsToSave = sanitizedInputs as ClientPersonalizedPlanInputValues;
 
     // Critical checks AFTER sanitization for required fields
     const requiredFieldsForSave: Array<keyof ClientPersonalizedPlanInputValues> = ['professionalRole', 'professionalRegistration', 'clientName'];
-    if (!isEditingExistingPlan) {
+    if (!isEditingExistingPlan) { // For new plans, these are also required as per Zod schema
         requiredFieldsForSave.push('goalPhase', 'trainingExperience', 'availableEquipment', 'trainingFrequency', 'trainingVolumePreference');
     }
 
     for (const field of requiredFieldsForSave) {
-        if (finalOriginalInputsToSave[field] === null || finalOriginalInputsToSave[field] === undefined || String(finalOriginalInputsToSave[field]).trim() === "") {
-            toast({ title: "Dados Faltando", description: `O campo '${ClientPersonalizedPlanInputSchema.shape[field]?.description || field}' é obrigatório e não foi preenchido corretamente.`, variant: "destructive" });
-            setIsSaving(false);
-            return;
-        }
+      const fieldValue = finalOriginalInputsToSave[field];
+      // Check for null, undefined, or empty string for string fields after sanitization
+      const isMissing = fieldValue === null || fieldValue === undefined || (typeof fieldValue === 'string' && fieldValue.trim() === "");
+      if (isMissing) {
+          toast({ title: "Dados Faltando", description: `O campo '${ClientPersonalizedPlanInputSchema.shape[field]?.description || field}' é obrigatório e não foi preenchido corretamente.`, variant: "destructive" });
+          setIsSaving(false);
+          return;
+      }
     }
     
     const dataToSave: Omit<ClientPlan, 'id' | 'createdAt' | 'updatedAt'> & { updatedAt: any, createdAt?: any } = {
@@ -420,13 +429,12 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
           </CardTitle>
            <ShadCnCardDescription className="print:hidden">
              {isEditingExistingPlan
-              ? `Ajuste os detalhes do plano abaixo. As informações originais do cliente usadas para gerar este plano estão resumidas.`
+              ? `Ajuste os detalhes do plano abaixo. Os dados originais do cliente e profissional são mantidos, apenas o nome do cliente e seu registro podem ser atualizados aqui.`
               : `Profissional, preencha os dados do seu cliente abaixo. A IA criará um rascunho inicial que você poderá editar antes de salvar.`
             }
           </ShadCnCardDescription>
         </CardHeader>
         <CardContent>
-          {/* Logic for displaying client/professional info form or static data */}
           {!isEditingExistingPlan ? (
             // FULL FORM FOR CREATING NEW PLAN (Uses react-hook-form)
             <Form {...form}>
@@ -479,7 +487,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
                   )}
                 />
                 <h3 className="text-lg font-semibold border-t pt-4 mt-6">Informações do Cliente para Geração IA</h3>
-                <div className="grid md:grid-cols-2 gap-6">
+                 <div className="grid md:grid-cols-2 gap-6">
                   <FormField
                     control={form.control}
                     name="goalPhase"
@@ -642,7 +650,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full md:w-auto print:hidden" disabled={isLoadingAi || isSaving}>
+                <Button type="button" onClick={form.handleSubmit(onGenerateSubmit)} className="w-full md:w-auto print:hidden" disabled={isLoadingAi || isSaving}>
                   {isLoadingAi ? (
                     <> <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando Rascunho com IA... </>
                   ) : (
@@ -652,10 +660,10 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
               </form>
             </Form>
           ) : ( 
-            // SIMPLIFIED DISPLAY FOR EDITING EXISTING PLAN (Uses local state for 3 fields)
+            // SIMPLIFIED DISPLAY FOR EDITING EXISTING PLAN
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold border-b pb-2 mb-4">Dados Principais do Cliente e Profissional</h3>
+                <h3 className="text-lg font-semibold border-b pb-2 mb-4">Dados Principais (Editáveis)</h3>
                  <div className="grid md:grid-cols-2 gap-6 mb-4">
                     <div className="space-y-2">
                         <Label htmlFor="editProfessionalRole">Sua Principal Área de Atuação</Label>
@@ -721,7 +729,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
                          {initialClientInputs.heightCm && <p><strong>Altura:</strong> {initialClientInputs.heightCm} cm</p>}
                          {initialClientInputs.weightKg && <p><strong>Peso:</strong> {initialClientInputs.weightKg} kg</p>}
                          {initialClientInputs.age && <p><strong>Idade:</strong> {initialClientInputs.age} anos</p>}
-                         {initialClientInputs.sex && initialClientInputs.sex !== "prefer_not_to_say" && <p><strong>Sexo:</strong> {initialClientInputs.sex}</p>}
+                         {initialClientInputs.sex && initialClientInputs.sex !== "prefer_not_to_say" && initialClientInputs.sex !== "" && <p><strong>Sexo:</strong> {initialClientInputs.sex}</p>}
                          {initialClientInputs.dietaryPreferences && <p><strong>Preferências Alimentares:</strong> {initialClientInputs.dietaryPreferences}</p>}
                     </CardContent>
                 </Card>
@@ -744,7 +752,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
       )}
 
       {/* Plan Details Editing Section - Common for both modes after generation/loading */}
-      {(editablePlanDetails)} && (
+      {editablePlanDetails ? (
         <div className="space-y-6 mt-8">
             <Card className="shadow-lg sticky top-20 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 print:shadow-none print:border-none print:sticky-auto print:top-auto print:z-auto">
                 <CardHeader className="print:border-b print:pb-2">
@@ -916,9 +924,8 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
                 </CardContent>
             </Card>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
 
-    
