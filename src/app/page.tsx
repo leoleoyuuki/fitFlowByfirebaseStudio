@@ -53,15 +53,20 @@ export default function HomePage() {
         {/* Hero Section */}
         <section className="py-20 md:py-32 bg-gradient-to-br from-primary/10 via-background to-background">
           <div className="container mx-auto px-4 text-center">
-            <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl text-primary">
-              <span className="block" data-aos="fade-up" data-aos-delay="100">{APP_NAME}: Otimize Seu Tempo, Maximize Seus Resultados.</span>
+            <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl">
+              <span className="block text-primary" data-aos="fade-up" data-aos-delay="100">
+                Bem-vindo ao {APP_NAME}:
+              </span>
+              <span className="mt-2 block text-foreground sm:mt-3" data-aos="fade-up" data-aos-delay="200">
+                Sua Rotina Otimizada, Seus Clientes Satisfeitos.
+              </span>
             </h1>
-            <p className="mt-6 max-w-3xl mx-auto text-lg text-muted-foreground sm:text-xl" data-aos="fade-up" data-aos-delay="200">
+            <p className="mt-6 max-w-3xl mx-auto text-lg text-muted-foreground sm:text-xl" data-aos="fade-up" data-aos-delay="300">
               Profissional de Educação Física ou Nutrição? Reduza drasticamente o tempo gasto na criação de planos de treino e dieta. Com {APP_NAME}, você usa a inteligência artificial como seu assistente para elaborar bases científicas rapidamente, liberando mais tempo para o que realmente importa: seus clientes.
             </p>
-            <div className="mt-10 flex flex-col items-center space-y-4 sm:flex-row sm:justify-center sm:space-y-0 sm:space-x-4" data-aos="fade-up" data-aos-delay="300" data-aos-anchor-placement="top-bottom">
+            <div className="mt-10 flex flex-col items-center space-y-4 sm:flex-row sm:justify-center sm:space-y-0 sm:space-x-4" data-aos="fade-up" data-aos-delay="400" data-aos-anchor-placement="top-bottom">
               <Button asChild size="lg" className="text-lg px-8 py-6 w-full sm:w-auto">
-                <Link href="/signup">Cadastre-se e Comece a Otimizar</Link>
+                <Link href="/signup">Cadastre-se e Otimize Já</Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="text-lg px-8 py-6 w-full sm:w-auto">
                 <Link href="/#features">Descubra Como</Link>
