@@ -5,6 +5,7 @@ import './globals.css';
 import './print-styles.css'; // Adicionado para estilos de impressão
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/contexts/auth-context';
+import { APP_NAME } from '@/lib/constants';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -17,8 +18,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'FitFlow Pro - Treino e Nutrição para Hipertrofia com IA', // Atualizado para Pro
-  description: 'Otimize a criação de planos de treino e nutrição para hipertrofia com IA. Ferramenta para personal trainers e nutricionistas.', // Atualizado para Pro
+  title: `${APP_NAME}: Otimize Tempo na Criação de Planos Fitness e Nutricionais`,
+  description: `${APP_NAME} é a ferramenta IA para personal trainers e nutricionistas economizarem tempo na criação de planos de treino e dieta, focando mais nos clientes.`,
 };
 
 export default function RootLayout({
@@ -37,4 +38,3 @@ export default function RootLayout({
     </html>
   );
 }
-
