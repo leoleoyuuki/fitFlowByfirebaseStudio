@@ -2,10 +2,11 @@
 "use client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Brain, Dumbbell, Activity, LineChart, Utensils, Gift } from "lucide-react"; 
+import { Brain, Dumbbell, Activity, LineChart, Utensils, Gift, Users, FileText } from "lucide-react"; 
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import Image from "next/image";
+import { APP_NAME } from "@/lib/constants";
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -15,23 +16,23 @@ export default function DashboardPage() {
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Bem-vindo de volta, {user?.displayName || "Maromba"}!</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Bem-vindo(a) ao {APP_NAME}, {user?.displayName || "Profissional"}!</h1>
           <p className="text-muted-foreground">
             {isSubscribed 
-              ? "Pronto para otimizar sua jornada de hipertrofia?" 
-              : "Desbloqueie seu potencial máximo com nosso plano Hipertrofia."}
+              ? "Pronto para otimizar a criação de planos para seus clientes?" 
+              : `Desbloqueie todo o potencial do ${APP_NAME} com nossa assinatura Pro.`}
           </p>
         </div>
         {isSubscribed ? (
           <Button asChild>
             <Link href="/dashboard/personalized-plan">
-              <Brain className="mr-2 h-4 w-4" /> Obtenha Seu Plano de Hipertrofia com IA
+              <Brain className="mr-2 h-4 w-4" /> Gerar Plano Base para Cliente
             </Link>
           </Button>
         ) : (
           <Button asChild>
             <Link href="/subscribe">
-              <Gift className="mr-2 h-4 w-4" /> Assine o FitFlow Hipertrofia
+              <Gift className="mr-2 h-4 w-4" /> Assine o {APP_NAME} Pro
             </Link>
           </Button>
         )}
@@ -40,19 +41,39 @@ export default function DashboardPage() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card className="shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Plano de Treino Atual</CardTitle>
+            <CardTitle className="text-sm font-medium">Planos de Clientes Salvos</CardTitle>
+            <FileText className="h-5 w-5 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {isSubscribed ? "Gerencie Aqui" : "Funcionalidade Pro"}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {isSubscribed ? "Acesse e edite os planos dos seus clientes" : "Assine para salvar e gerenciar planos"}
+            </p>
+            <Button variant="outline" size="sm" className="mt-4" asChild disabled={!isSubscribed}>
+              <Link href={isSubscribed ? "/dashboard/my-ai-plan" : "/subscribe"}>
+                {isSubscribed ? "Ver Planos Salvos" : "Ver Planos (Bloqueado)"}
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-lg">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Biblioteca de Exercícios</CardTitle>
             <Dumbbell className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {isSubscribed ? "Foco em Hipertrofia" : "Plano Bloqueado"}
+                {isSubscribed ? "Acesso Completo" : "Conteúdo Pro"}
             </div>
             <p className="text-xs text-muted-foreground">
-              {isSubscribed ? "Baseado no seu plano gerado por IA" : "Assine para desbloquear seu plano IA"}
+                {isSubscribed ? "Detalhes e vídeos para seus clientes" : "Assine para acesso total à biblioteca"}
             </p>
-            <Button variant="outline" size="sm" className="mt-4" asChild disabled={!isSubscribed}>
-              <Link href={isSubscribed ? "/dashboard/workouts" : "/subscribe"}>
-                {isSubscribed ? "Ver Meu Plano" : "Ver Plano (Bloqueado)"}
+             <Button variant="outline" size="sm" className="mt-4" asChild disabled={!isSubscribed}>
+              <Link href={isSubscribed ? "/dashboard/exercises" : "/subscribe"}>
+                {isSubscribed ? "Explorar Exercícios" : "Explorar (Bloqueado)"}
               </Link>
             </Button>
           </CardContent>
@@ -60,39 +81,19 @@ export default function DashboardPage() {
 
         <Card className="shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Levantamentos Registrados</CardTitle>
-            <Activity className="h-5 w-5 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Ferramenta de Geração IA</CardTitle>
+            <Brain className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-                {isSubscribed ? "12 Registrados" : "Progresso Bloqueado"}
+                {isSubscribed ? "Disponível" : "Funcionalidade Pro"}
             </div>
             <p className="text-xs text-muted-foreground">
-                {isSubscribed ? "Exercícios acompanhados esta semana" : "Assine para registrar o progresso"}
+                {isSubscribed ? "Crie planos base em segundos" : "Assine para usar a IA"}
             </p>
              <Button variant="outline" size="sm" className="mt-4" asChild disabled={!isSubscribed}>
-              <Link href={isSubscribed ? "/dashboard/progress" : "/subscribe"}>
-                {isSubscribed ? "Registrar Progresso" : "Registrar Progresso (Bloqueado)"}
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-lg">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Próxima Meta de Força</CardTitle>
-            <LineChart className="h-5 w-5 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-                {isSubscribed ? "Supino 85kg x 5" : "Metas Bloqueadas"}
-            </div>
-            <p className="text-xs text-muted-foreground">
-                {isSubscribed ? "Alvo para sobrecarga progressiva" : "Assine para definir e acompanhar metas"}
-            </p>
-             <Button variant="outline" size="sm" className="mt-4" asChild disabled={!isSubscribed}>
-              <Link href={isSubscribed ? "/dashboard/progress" : "/subscribe"}>
-                {isSubscribed ? "Definir & Acompanhar Metas" : "Metas (Bloqueado)"}
+              <Link href={isSubscribed ? "/dashboard/personalized-plan" : "/subscribe"}>
+                {isSubscribed ? "Gerar Plano Cliente" : "Gerar Plano (Bloqueado)"}
               </Link>
             </Button>
           </CardContent>
@@ -102,26 +103,26 @@ export default function DashboardPage() {
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center">
-            <Utensils className="mr-2 h-5 w-5 text-primary" /> Sua Dica de Hipertrofia do Dia
+            <Utensils className="mr-2 h-5 w-5 text-primary" /> Dica {APP_NAME} para Profissionais
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col md:flex-row items-center gap-6">
           <Image 
             src="https://placehold.co/300x200.png" 
-            alt="Dica de Hipertrofia" 
+            alt="Dica para Profissionais" 
             width={300} 
             height={200} 
             className="rounded-lg object-cover"
-            data-ai-hint="muscle growth nutrition" 
+            data-ai-hint="professional fitness nutrition tip" 
           />
           <div>
-            <p className="text-lg font-semibold mb-2">Distribuição de Proteína para Ganho Muscular!</p>
+            <p className="text-lg font-semibold mb-2">Maximize a Adesão do Cliente com Planos Editáveis!</p>
             <p className="text-muted-foreground">
-              Para otimizar a síntese de proteína muscular (MPS), distribua sua ingestão diária de proteína uniformemente em 4-5 refeições/lanches. Consumir 20-40g de proteína de alta qualidade por refeição pode melhorar significativamente a recuperação e a hipertrofia.
+              Use os planos gerados pela IA como um ponto de partida robusto. Em seguida, personalize cada detalhe – desde a seleção de exercícios até as opções de refeições – para alinhar perfeitamente com as preferências, restrições e o dia a dia do seu cliente. Um plano verdadeiramente individualizado aumenta drasticamente a adesão e os resultados.
             </p>
             {!isSubscribed && (
                 <p className="text-sm text-primary mt-3">
-                    <Link href="/subscribe" className="underline hover:text-primary/80">Assine o FitFlow Hipertrofia</Link> para planos de dieta orientados por IA e adaptados às suas necessidades de proteína!
+                    <Link href="/subscribe" className="underline hover:text-primary/80">Assine o {APP_NAME} Pro</Link> para ter acesso completo às ferramentas de personalização e IA.
                 </p>
             )}
           </div>
@@ -131,3 +132,4 @@ export default function DashboardPage() {
   );
 }
 
+    

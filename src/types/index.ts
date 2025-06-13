@@ -1,5 +1,6 @@
 
 import type { LucideIcon } from 'lucide-react';
+import type { PersonalizedPlanOutput } from '@/ai/flows/generate-personalized-plan'; // Importando o tipo
 
 export interface NavItem {
   title: string;
@@ -14,22 +15,26 @@ export interface UserProfile {
   id: string;
   email: string;
   displayName?: string;
-  photoURL?: string;
-  subscriptionTier?: 'free' | 'hypertrophy';
+  photoURL?: string | null; // Consistente com Firebase
+  professionalType?: 'physical_educator' | 'nutritionist' | 'both' | null; // Para profissionais
+  professionalRegistration?: string | null; // CREF/CFN
+  subscriptionTier?: 'free' | 'hypertrophy'; // 'hypertrophy' pode ser renomeado para 'pro' internamente se desejado
   stripeCustomerId?: string | null;
   stripeSubscriptionId?: string | null;
   subscriptionStatus?: 'active' | 'canceled' | 'past_due' | 'incomplete' | null;
+  createdAt?: any; // Firestore Timestamp
+  updatedAt?: any; // Firestore Timestamp
 }
 
 export interface Workout {
   id: string;
   name: string;
-  goal: 'Hypertrophy' | 'Strength'; // Focused goals
+  goal: 'Hypertrophy' | 'Strength'; 
   difficulty: 'Beginner' | 'Intermediate' | 'Advanced' | 'All Levels';
   duration: string;
   description: string;
   icon: LucideIcon;
-  exercises: string[]; // Array of exercise IDs
+  exercises: string[]; 
 }
 
 export interface Exercise {
@@ -40,11 +45,11 @@ export interface Exercise {
   videoUrl?: string; 
   imageUrl?: string; 
   dataAiHint?: string;
-  muscleGroups?: string[]; // Key muscle groups targeted
+  muscleGroups?: string[]; 
 }
 
 export interface SubscriptionPlan {
-  id: 'free' | 'hypertrophy'; // Updated plan IDs
+  id: 'free' | 'hypertrophy'; 
   name: string;
   price: string;
   features: string[];
@@ -52,9 +57,9 @@ export interface SubscriptionPlan {
 }
 
 export interface ProgressLog {
-  id: string; // Firestore document ID
-  userId: string; // ID of the user who created the log
-  date: string; // ISO string for consistency, can be Timestamp in Firestore
+  id: string; 
+  userId: string; 
+  date: string; 
   exerciseId: string;
   exerciseName: string;
   sets: number;
@@ -64,3 +69,18 @@ export interface ProgressLog {
   notes?: string;
 }
 
+// Novo tipo para os dados de plano salvos por profissionais
+export interface ClientPlan {
+  id: string; // Firestore document ID do plano
+  professionalId: string; // ID do profissional que criou
+  clientName: string;
+  professionalRegistration?: string | null;
+  goalPhase: string;
+  trainingFrequency: number;
+  planData: PersonalizedPlanOutput; // O plano gerado pela IA
+  createdAt: any; // Firestore Timestamp
+  updatedAt: any; // Firestore Timestamp
+  // Outros metadados que o profissional queira adicionar ao plano
+}
+
+    

@@ -16,6 +16,7 @@ import {
 } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { APP_NAME } from '@/lib/constants';
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -23,6 +24,7 @@ interface AuthContextType {
   login: (email: string, pass: string) => Promise<void>;
   signup: (email: string, pass: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
+  updateUserProfileField: (userId: string, field: keyof UserProfile, value: any) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -48,12 +50,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const userProfile: UserProfile = {
             id: firebaseUser.uid,
             email: firebaseUser.email || "",
-            displayName: firebaseUser.displayName || userProfileData.displayName || undefined,
-            photoURL: firebaseUser.photoURL || userProfileData.photoURL || undefined,
+            displayName: firebaseUser.displayName || userProfileData.displayName || "Profissional",
+            photoURL: firebaseUser.photoURL || userProfileData.photoURL || null,
+            professionalType: userProfileData.professionalType || null,
+            professionalRegistration: userProfileData.professionalRegistration || null,
             subscriptionTier: userProfileData.subscriptionTier || 'free',
             stripeCustomerId: userProfileData.stripeCustomerId || null,
             stripeSubscriptionId: userProfileData.stripeSubscriptionId || null,
             subscriptionStatus: userProfileData.subscriptionStatus || null,
+            createdAt: userProfileData.createdAt || null,
+            updatedAt: userProfileData.updatedAt || null,
           };
           setUser(userProfile);
 
@@ -62,8 +68,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const userProfile: UserProfile = {
                 id: firebaseUser.uid,
                 email: firebaseUser.email || "",
-                displayName: firebaseUser.displayName || undefined,
-                photoURL: firebaseUser.photoURL || undefined,
+                displayName: firebaseUser.displayName || "Profissional",
+                photoURL: firebaseUser.photoURL || null,
+                professionalType: null,
+                professionalRegistration: null,
                 subscriptionTier: 'free',
                 stripeCustomerId: null,
                 stripeSubscriptionId: null,
@@ -84,7 +92,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, pass);
-      toast({ title: "Login Efetuado", description: "Bem-vindo de volta!" });
+      toast({ title: "Login Efetuado", description: `Bem-vindo(a) de volta ao ${APP_NAME}!` });
       router.push('/dashboard');
     } catch (error: any) {
       console.error("Erro no login:", error);
@@ -111,21 +119,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           id: userCredential.user.uid,
           email: userCredential.user.email || "",
           displayName: name,
-          photoURL: userCredential.user.photoURL || null, // Changed undefined to null
+          photoURL: userCredential.user.photoURL || null,
+          professionalType: null, // Novo campo
+          professionalRegistration: null, // Novo campo
           subscriptionTier: 'free',
           stripeCustomerId: null,
           stripeSubscriptionId: null,
           subscriptionStatus: null,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
         };
-        await setDoc(userDocRef, {
-            ...initialUserProfile,
-            createdAt: serverTimestamp()
-        });
+        await setDoc(userDocRef, initialUserProfile);
 
         setUser(initialUserProfile);
       }
-      toast({ title: "Cadastro Realizado", description: "Bem-vindo ao FitFlow!" });
-      router.push('/dashboard');
+      toast({ title: "Cadastro Realizado", description: `Bem-vindo(a) ao ${APP_NAME}! Sua conta profissional foi criada.` });
+      router.push('/dashboard'); // Pode ser /subscribe ou uma página de onboarding para profissionais
     } catch (error: any) {
       console.error("Erro no cadastro:", error);
       let description = "Não foi possível criar a conta. Tente novamente.";
@@ -152,8 +161,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const updateUserProfileField = async (userId: string, field: keyof UserProfile, value: any) => {
+    if (!userId) return;
+    try {
+      const userDocRef = doc(db, "users", userId);
+      await updateDoc(userDocRef, {
+        [field]: value,
+        updatedAt: serverTimestamp()
+      });
+      // Atualiza o estado local do usuário também
+      setUser(prevUser => prevUser ? ({ ...prevUser, [field]: value, updatedAt: new Date() }) : null);
+      toast({ title: "Perfil Atualizado", description: "Suas informações foram atualizadas." });
+    } catch (error: any) {
+      console.error(`Erro ao atualizar campo ${field} do perfil:`, error);
+      toast({ title: "Erro ao Atualizar", description: `Não foi possível atualizar suas informações. Tente novamente.`, variant: "destructive" });
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, updateUserProfileField }}>
       {children}
     </AuthContext.Provider>
   );
@@ -167,3 +193,4 @@ export const useAuth = (): AuthContextType => {
   return context;
 };
 
+    

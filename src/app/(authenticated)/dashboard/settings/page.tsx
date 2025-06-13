@@ -6,20 +6,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { User as UserIcon, Mail, ShieldCheck, CreditCard, Bell, Loader2, KeyRound } from "lucide-react";
+import { User as UserIcon, Mail, ShieldCheck, CreditCard, Bell, Loader2, KeyRound, Briefcase, Award } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { auth, db } from "@/lib/firebase";
 import { updateProfile, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth";
 import { doc, updateDoc } from "firebase/firestore";
 import { useState, useEffect } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const profileFormSchema = z.object({
   displayName: z.string().min(2, { message: "O nome deve ter pelo menos 2 caracteres." }),
+  professionalType: z.enum(["physical_educator", "nutritionist", "both", ""], {errorMap: () => ({message: "Selecione sua área de atuação."})}).optional(),
+  professionalRegistration: z.string().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
@@ -30,13 +33,13 @@ const passwordFormSchema = z.object({
   confirmPassword: z.string().min(6, { message: "A confirmação da senha deve ter pelo menos 6 caracteres." }),
 }).refine(data => data.newPassword === data.confirmPassword, {
   message: "A nova senha e a confirmação não correspondem.",
-  path: ["confirmPassword"], // Atribui o erro ao campo confirmPassword
+  path: ["confirmPassword"],
 });
 
 type PasswordFormValues = z.infer<typeof passwordFormSchema>;
 
 export default function SettingsPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, updateUserProfileField } = useAuth();
   const { toast } = useToast();
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
@@ -45,6 +48,8 @@ export default function SettingsPage() {
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
       displayName: user?.displayName || "",
+      professionalType: user?.professionalType || "",
+      professionalRegistration: user?.professionalRegistration || "",
     },
   });
 
@@ -59,7 +64,11 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (user) {
-      profileForm.reset({ displayName: user.displayName || "" });
+      profileForm.reset({ 
+        displayName: user.displayName || "",
+        professionalType: user.professionalType || "",
+        professionalRegistration: user.professionalRegistration || "",
+      });
     }
   }, [user, profileForm]);
 
@@ -75,19 +84,40 @@ export default function SettingsPage() {
 
     setIsUpdatingProfile(true);
     try {
-      await updateProfile(auth.currentUser, { displayName: values.displayName });
+      // Atualizar displayName no Firebase Auth (se mudou)
+      if (auth.currentUser.displayName !== values.displayName) {
+        await updateProfile(auth.currentUser, { displayName: values.displayName });
+      }
+
+      // Atualizar dados no Firestore
       const userDocRef = doc(db, "users", user.id);
-      await updateDoc(userDocRef, { displayName: values.displayName });
+      const firestoreUpdates: Partial<ProfileFormValues> = {
+        displayName: values.displayName,
+        professionalType: values.professionalType || null, // Salva null se vazio
+        professionalRegistration: values.professionalRegistration || null, // Salva null se vazio
+      };
+      await updateDoc(userDocRef, {
+        ...firestoreUpdates,
+        updatedAt: new Date(), // Use client-side date or serverTimestamp
+      });
+      
+      // Atualiza o contexto local
+      if (user) {
+        await updateUserProfileField(user.id, 'displayName', values.displayName);
+        await updateUserProfileField(user.id, 'professionalType', values.professionalType || null);
+        await updateUserProfileField(user.id, 'professionalRegistration', values.professionalRegistration || null);
+      }
+
 
       toast({
         title: "Perfil Atualizado!",
-        description: "Seu nome foi atualizado com sucesso.",
+        description: "Suas informações profissionais foram atualizadas com sucesso.",
       });
     } catch (error: any) {
       console.error("Erro ao atualizar perfil:", error);
       toast({
         title: "Erro ao Atualizar Perfil",
-        description: error.message || "Não foi possível atualizar seu nome. Tente novamente.",
+        description: error.message || "Não foi possível atualizar suas informações. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -106,7 +136,7 @@ export default function SettingsPage() {
       await reauthenticateWithCredential(auth.currentUser, credential);
       await updatePassword(auth.currentUser, values.newPassword);
       toast({ title: "Senha Alterada!", description: "Sua senha foi alterada com sucesso." });
-      passwordForm.reset(); // Limpa o formulário após o sucesso
+      passwordForm.reset(); 
     } catch (error: any) {
       console.error("Erro ao alterar senha:", error);
       let description = "Não foi possível alterar sua senha. Tente novamente.";
@@ -140,8 +170,8 @@ export default function SettingsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Configurações</h1>
-        <p className="text-muted-foreground">Gerencie sua conta e preferências.</p>
+        <h1 className="text-3xl font-bold tracking-tight">Configurações da Conta Profissional</h1>
+        <p className="text-muted-foreground">Gerencie seus dados, assinatura e preferências.</p>
       </div>
 
       <div className="grid gap-8 md:grid-cols-3">
@@ -151,19 +181,19 @@ export default function SettingsPage() {
                     <CardTitle>Navegação</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                    <Button variant="ghost" className="w-full justify-start"><UserIcon className="mr-2 h-4 w-4"/> Perfil</Button>
+                    <Button variant="ghost" className="w-full justify-start"><UserIcon className="mr-2 h-4 w-4"/> Perfil Profissional</Button>
                     <Button variant="ghost" className="w-full justify-start"><ShieldCheck className="mr-2 h-4 w-4"/> Segurança da Conta</Button>
-                    <Button variant="ghost" className="w-full justify-start" asChild><Link href="/subscribe"><CreditCard className="mr-2 h-4 w-4"/> Assinatura</Link></Button>
-                    <Button variant="ghost" className="w-full justify-start"><Bell className="mr-2 h-4 w-4"/> Notificações</Button>
+                    <Button variant="ghost" className="w-full justify-start" asChild><Link href="/subscribe"><CreditCard className="mr-2 h-4 w-4"/> Assinatura Pro</Link></Button>
+                    <Button variant="ghost" className="w-full justify-start"><Bell className="mr-2 h-4 w-4"/> Notificações (Em Breve)</Button>
                 </CardContent>
             </Card>
         </div>
 
-        <div className="md:col-span-2">
+        <div className="md:col-span-2 space-y-8">
           <Card>
             <CardHeader>
-              <CardTitle>Informações do Perfil</CardTitle>
-              <CardDescription>Atualize seus dados pessoais.</CardDescription>
+              <CardTitle>Informações do Perfil Profissional</CardTitle>
+              <CardDescription>Atualize seus dados e registro profissional.</CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...profileForm}>
@@ -173,11 +203,11 @@ export default function SettingsPage() {
                     name="displayName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Nome Completo</FormLabel>
+                        <FormLabel>Nome Completo (Profissional)</FormLabel>
                         <FormControl>
                           <div className="relative">
                             <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input {...field} className="pl-10" placeholder="Seu nome completo"/>
+                            <Input {...field} className="pl-10" placeholder="Seu nome profissional"/>
                           </div>
                         </FormControl>
                         <FormMessage />
@@ -190,9 +220,50 @@ export default function SettingsPage() {
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input id="email" type="email" defaultValue={user?.email || ""} disabled className="pl-10" />
                     </div>
+                    <FormDescription>Para alterar o e-mail, entre em contato com o suporte.</FormDescription>
                   </div>
+                  <FormField
+                    control={profileForm.control}
+                    name="professionalType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Principal Área de Atuação</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || ""}>
+                          <FormControl>
+                            <SelectTrigger className="pl-10">
+                              <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                              <SelectValue placeholder="Selecione sua área..." />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="physical_educator">Educador Físico</SelectItem>
+                            <SelectItem value="nutritionist">Nutricionista</SelectItem>
+                            <SelectItem value="both">Ambos (Educador Físico e Nutricionista)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={profileForm.control}
+                    name="professionalRegistration"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Registro Profissional (CREF/CFN)</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Award className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input {...field} value={field.value || ""} className="pl-10" placeholder="Ex: 012345-G/SP ou CRN-3 12345"/>
+                          </div>
+                        </FormControl>
+                        <FormDescription>Seu registro será exibido nos planos gerados para seus clientes.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <Button type="submit" disabled={isUpdatingProfile || authLoading}>
-                    {isUpdatingProfile && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {isUpdatingProfile ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                     Salvar Alterações no Perfil
                   </Button>
                 </form>
@@ -200,12 +271,10 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
-          <Separator className="my-8" />
-
           <Card>
             <CardHeader>
               <CardTitle>Segurança da Conta</CardTitle>
-              <CardDescription>Gerencie sua senha e configurações de segurança.</CardDescription>
+              <CardDescription>Gerencie sua senha.</CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...passwordForm}>
@@ -259,7 +328,7 @@ export default function SettingsPage() {
                     )}
                   />
                   <Button type="submit" variant="outline" disabled={isUpdatingPassword || authLoading}>
-                     {isUpdatingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                     {isUpdatingPassword ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                     Alterar Senha
                   </Button>
               </form>

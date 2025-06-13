@@ -1,30 +1,29 @@
 
 import type { NavItem, Workout, Exercise, SubscriptionPlan, ProgressLog } from '@/types';
-import { Dumbbell, Zap, Heart, Target, Brain, User, Settings, LayoutDashboard, BookOpen, Activity, Gift, Flame, Pizza, Utensils } from 'lucide-react';
+import { Dumbbell, Zap, Heart, Target, Brain, User, Settings, LayoutDashboard, BookOpen, Activity, Gift, Flame, Pizza, Utensils, FileText, Users } from 'lucide-react';
 
-export const APP_NAME = "FitFlow";
+export const APP_NAME = "FitFlow Pro"; // Nome alterado para B2B
 
 export const mainNavItems: NavItem[] = [
-  { title: "Ciência da Hipertrofia", href: "/#features" },
-  { title: "Planos", href: "/subscribe" },
+  { title: "Para Profissionais", href: "/#features" },
+  { title: "Assinatura Pro", href: "/subscribe" },
 ];
 
 export const dashboardNavItems: NavItem[] = [
   { title: "Painel Principal", href: "/dashboard", icon: LayoutDashboard },
-  { title: "Meu Plano (IA)", href: "/dashboard/workouts", icon: Dumbbell }, 
+  { title: "Gerar Plano Cliente", href: "/dashboard/personalized-plan", icon: Brain },
+  { title: "Planos Salvos", href: "/dashboard/my-ai-plan", icon: FileText }, // Renomeado e aponta para a lista
   { title: "Biblioteca de Exercícios", href: "/dashboard/exercises", icon: BookOpen },
-  { title: "Registrar Progresso", href: "/dashboard/progress", icon: Activity },
-  { title: "Gerador de Planos IA", href: "/dashboard/personalized-plan", icon: Brain },
-  { title: "Assinatura", href: "/subscribe", icon: Gift },
-  { title: "Configurações", href: "/dashboard/settings", icon: Settings },
+  // { title: "Registrar Progresso Cliente", href: "/dashboard/progress", icon: Activity }, // Talvez reavaliar para B2B
+  { title: "Assinatura Pro", href: "/subscribe", icon: Gift },
+  { title: "Configurações da Conta", href: "/dashboard/settings", icon: Settings },
 ];
 
-// MOCK_WORKOUTS e MOCK_EXERCISES já foram traduzidos na etapa anterior.
-// Vou garantir que os nomes e descrições estejam consistentes.
+// MOCK_WORKOUTS e MOCK_EXERCISES permanecem, pois são a base que a IA usa e que o profissional pode editar.
 
 export const MOCK_WORKOUTS: Workout[] = [
-  { id: "1", name: "Hipertrofia Corpo Inteiro", goal: "Hypertrophy", difficulty: "Intermediário", duration: "75 min", description: "Um treino de corpo inteiro baseado em ciência, otimizado para o crescimento muscular, atingindo todos os principais grupos musculares.", icon: Dumbbell, exercises: ["1", "5", "2", "10", "11", "8"] },
-  { id: "2", name: "Força e Pump Superior", goal: "Hypertrophy", difficulty: "Intermediário", duration: "60 min", description: "Foco na construção de força e tamanho no peito, costas, ombros e braços.", icon: Dumbbell, exercises: ["2", "10", "12", "13", "14"] },
+  { id: "1", name: "Base Hipertrofia Corpo Inteiro (Editável)", goal: "Hypertrophy", difficulty: "Intermediário", duration: "75 min", description: "Um treino de corpo inteiro baseado em ciência, otimizado para o crescimento muscular, servindo como base para personalização profissional.", icon: Dumbbell, exercises: ["1", "5", "2", "10", "11", "8"] },
+  { id: "2", name: "Base Força e Pump Superior (Editável)", goal: "Hypertrophy", difficulty: "Intermediário", duration: "60 min", description: "Foco na construção de força e tamanho no peito, costas, ombros e braços, como ponto de partida para o profissional.", icon: Dumbbell, exercises: ["2", "10", "12", "13", "14"] },
 ];
 
 export const MOCK_EXERCISES: Exercise[] = [
@@ -44,7 +43,6 @@ export const MOCK_EXERCISES: Exercise[] = [
   { id: "14", name: "Tríceps na Polia Alta", description: "Exercício na polia para isolar e construir massa no tríceps. Pode ser feito com corda ou barra.", instructions: "1. Prenda uma corda ou barra na polia alta. Segure o acessório, cotovelos próximos ao corpo. 2. Estenda os braços para baixo até o bloqueio completo, contraindo o tríceps. 3. Permita que os braços retornem lentamente.", videoUrl: "https://placehold.co/600x400.png", dataAiHint: "triceps pushdown fitness", muscleGroups: ["Tríceps"] },
   { id: "15", name: "Mergulho nas Paralelas", description: "Exercício composto para peito, ombros e tríceps. Pode ser com peso corporal ou adicionado.", instructions: "1. Segure as barras paralelas, sustente o corpo com os braços estendidos. 2. Abaixe o corpo flexionando os cotovelos até os ombros ficarem abaixo dos cotovelos ou até um ponto confortável. 3. Empurre de volta para o início.", videoUrl: "https://placehold.co/600x400.png", dataAiHint: "dips fitness", muscleGroups: ["Peitorais (Inferior)", "Tríceps", "Deltoides (Anterior)"] },
   { id: "16", name: "Supino Fechado com Barra", description: "Variação do supino reto que enfatiza o desenvolvimento do tríceps.", instructions: "1. Deite-se no banco, segure a barra com pegada na largura dos ombros ou um pouco mais estreita. 2. Abaixe a barra até a parte inferior do peito, mantendo os cotovelos próximos ao corpo. 3. Empurre a barra para cima até os braços estarem totalmente estendidos.", videoUrl: "https://placehold.co/600x400.png", dataAiHint: "closegrip bench fitness", muscleGroups: ["Tríceps", "Peitorais", "Deltoides (Anterior)"] },
-  
   { id: "17", name: "Leg Press 45º", description: "Máquina popular para desenvolver força e massa nas pernas, especialmente quadríceps e glúteos, com menos estresse na lombar em comparação com o agachamento.", instructions: "1. Sente-se na máquina com as costas e cabeça apoiadas. Coloque os pés na plataforma na largura dos ombros. 2. Destrave a segurança e abaixe o peso dobrando os joelhos até formarem um ângulo de 90 graus ou menos, se a mobilidade permitir. 3. Empurre a plataforma de volta à posição inicial, estendendo os joelhos, mas sem travá-los completamente.", videoUrl: "https://placehold.co/600x400.png", dataAiHint: "leg press machine", muscleGroups: ["Quadríceps", "Glúteos", "Isquiotibiais", "Adutores"] },
   { id: "18", name: "Cadeira Extensora", description: "Exercício de isolamento para o quadríceps, focado na parte frontal da coxa.", instructions: "1. Sente-se na máquina com as costas apoiadas e os joelhos alinhados com o eixo da máquina. Coloque os tornozelos sob o rolo almofadado. 2. Estenda as pernas para cima até ficarem retas, contraindo o quadríceps. 3. Abaixe o peso lentamente de volta à posição inicial.", videoUrl: "https://placehold.co/600x400.png", dataAiHint: "leg extension machine", muscleGroups: ["Quadríceps"] },
   { id: "19", name: "Mesa Flexora (Isquiotibiais Deitado)", description: "Exercício de isolamento para os isquiotibiais, focado na parte posterior da coxa.", instructions: "1. Deite-se de bruços na máquina, com os joelhos logo abaixo da borda do banco e os tornozelos sob o rolo almofadado. 2. Flexione os joelhos, puxando o rolo em direção aos glúteos, contraindo os isquiotibiais. 3. Abaixe o peso lentamente de volta à posição inicial.", videoUrl: "https://placehold.co/600x400.png", dataAiHint: "leg curl machine", muscleGroups: ["Isquiotibiais", "Panturrilhas (auxiliar)"] },
@@ -62,7 +60,21 @@ export const MOCK_EXERCISES: Exercise[] = [
 ];
 
 export const MOCK_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
-  { id: "hypertrophy", name: "FitFlow Hipertrofia", price: "R$37,90/mês", features: ["Gerador de Planos de Treino e Dieta para Hipertrofia com IA (Bulking/Cutting)", "Salve e visualize seu plano de IA personalizado", "Acesso completo a todos os planos de treino e exercícios", "Acompanhamento avançado de progresso e análises", "Recursos de hipertrofia baseados em ciência"], stripePriceId: "price_1RWMfnLZkqAmFk4bbx7ai6zz" },
+  { 
+    id: "hypertrophy", // Manter 'hypertrophy' como ID interno, mas o nome e descrição mudam
+    name: "FitFlow Pro para Profissionais", 
+    price: "R$297,90/mês", // Novo preço B2B
+    features: [
+      "Geração de Planos Base (Treino e Dieta) com IA para seus clientes",
+      "Ferramentas para Editar e Personalizar planos gerados pela IA",
+      "Campo para adicionar seu CREF/CFN aos planos",
+      "Salve e gerencie múltiplos planos de clientes",
+      "Biblioteca completa de exercícios com detalhes",
+      "Futuramente: Exportação de planos para PDF e gestão de clientes",
+      "Suporte prioritário e atualizações contínuas"
+    ], 
+    stripePriceId: "price_B2B_PLAN_ID_REPLACE_ME" // **NECESSÁRIO CRIAR ESTE NOVO PREÇO NO STRIPE**
+  },
 ];
 
 export const MOCK_PROGRESS_LOGS: ProgressLog[] = [
@@ -72,4 +84,4 @@ export const MOCK_PROGRESS_LOGS: ProgressLog[] = [
   { id: "log5", date: new Date(2024, 6, 24).toISOString(), exerciseId: "10", exerciseName: "Remada Curvada", sets: 3, reps: 12, weight: 60, userId: "mockUser" },
 ];
 
-
+    

@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/auth-context";
 import { AuthFormWrapper } from "@/components/auth/auth-form-wrapper";
 import { Loader2 } from "lucide-react";
+import { APP_NAME } from "@/lib/constants";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Endereço de e-mail inválido." }),
@@ -42,9 +43,9 @@ export default function LoginPage() {
 
   return (
     <AuthFormWrapper
-      title="Bem-vindo de volta, Maromba!"
-      description="Faça login no FitFlow para acessar seus planos de hipertrofia e acompanhar seus ganhos."
-      footerText="Não tem uma conta?"
+      title={`Acesse sua conta ${APP_NAME}`}
+      description={`Faça login para gerenciar planos de clientes e otimizar seu trabalho com ${APP_NAME}.`}
+      footerText="Não tem uma conta profissional?"
       footerLinkText="Cadastre-se"
       footerLinkHref="/signup"
     >
@@ -55,9 +56,9 @@ export default function LoginPage() {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>E-mail</FormLabel>
+                <FormLabel>E-mail Profissional</FormLabel>
                 <FormControl>
-                  <Input placeholder="voce@exemplo.com" {...field} disabled={loading} />
+                  <Input placeholder="seuemail@profissional.com" {...field} disabled={loading} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -83,7 +84,7 @@ export default function LoginPage() {
                 Entrando...
               </>
             ) : (
-              "Entrar & Treinar"
+              "Entrar e Gerenciar"
             )}
           </Button>
         </form>
@@ -91,3 +92,5 @@ export default function LoginPage() {
     </AuthFormWrapper>
   );
 }
+
+    

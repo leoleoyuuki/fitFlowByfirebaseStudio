@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/auth-context";
 import { AuthFormWrapper } from "@/components/auth/auth-form-wrapper";
 import { Loader2 } from "lucide-react";
+import { APP_NAME } from "@/lib/constants";
 
 const signupSchema = z.object({
   displayName: z.string().min(2, { message: "O nome deve ter pelo menos 2 caracteres." }),
@@ -44,9 +45,9 @@ export default function SignupPage() {
 
   return (
     <AuthFormWrapper
-      title="Junte-se ao FitFlow & Construa Músculos"
-      description="Cadastre-se para obter seu plano de treino e nutrição para hipertrofia com IA."
-      footerText="Já tem uma conta?"
+      title={`Crie sua Conta Profissional no ${APP_NAME}`}
+      description={`Cadastre-se para usar IA na criação de planos de treino e nutrição para seus clientes.`}
+      footerText="Já possui uma conta?"
       footerLinkText="Faça login"
       footerLinkHref="/login"
     >
@@ -57,9 +58,9 @@ export default function SignupPage() {
             name="displayName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Nome Completo</FormLabel>
+                <FormLabel>Seu Nome (Profissional)</FormLabel>
                 <FormControl>
-                  <Input placeholder="Seu Nome" {...field} disabled={loading}/>
+                  <Input placeholder="Ex: Dr. Nome Sobrenome" {...field} disabled={loading}/>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -70,9 +71,9 @@ export default function SignupPage() {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>E-mail</FormLabel>
+                <FormLabel>E-mail Profissional</FormLabel>
                 <FormControl>
-                  <Input placeholder="voce@exemplo.com" {...field} disabled={loading}/>
+                  <Input placeholder="seuemail@profissional.com" {...field} disabled={loading}/>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -98,7 +99,7 @@ export default function SignupPage() {
                 Cadastrando...
               </>
             ) : (
-              "Cadastrar & Começar a Construir"
+              "Cadastrar e Otimizar Atendimentos"
             )}
           </Button>
         </form>
@@ -106,3 +107,5 @@ export default function SignupPage() {
     </AuthFormWrapper>
   );
 }
+
+    
