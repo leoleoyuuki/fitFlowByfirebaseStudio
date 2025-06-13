@@ -21,6 +21,7 @@ import type { PersonalizedPlanInput, PersonalizedPlanOutput, ExerciseDetail, Dai
 import { generatePersonalizedPlan } from "@/ai/flows/generate-personalized-plan";
 import { useState, useEffect, ChangeEvent } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription as ShadCnCardDescription, CardFooter } from "@/components/ui/card";
+import { Label } from "@/components/ui/label"; // Added Label import
 import { Loader2, Wand2, Dumbbell, Utensils, Save, Edit } from "lucide-react"; 
 import ReactMarkdown from 'react-markdown';
 import { useToast } from "@/hooks/use-toast";
@@ -29,6 +30,7 @@ import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp, doc, updateDoc } from "firebase/firestore";
 import { useRouter, useSearchParams } from "next/navigation";
 import { APP_NAME } from "@/lib/constants";
+import type { ClientPersonalizedPlanInputValues } from "@/types"; // Corrected import path if needed
 
 // Schema para o formulário de geração de inputs para a IA
 const ClientPersonalizedPlanInputSchema = z.object({
@@ -47,7 +49,6 @@ const ClientPersonalizedPlanInputSchema = z.object({
   clientName: z.string().min(2, {message: "Nome do cliente é obrigatório (mín. 2 caracteres)"}),
 });
 
-type ClientPersonalizedPlanInputValues = z.infer<typeof ClientPersonalizedPlanInputSchema>;
 
 interface PersonalizedPlanFormProps {
   planIdToEdit?: string;
@@ -90,8 +91,8 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
       form.reset(initialClientInputs);
     }
     if (initialPlanDataToEdit) {
-      setGeneratedPlanOutput(initialPlanDataToEdit); // Mantém a saída original da IA (ou do plano salvo)
-      setEditablePlanDetails(JSON.parse(JSON.stringify(initialPlanDataToEdit))); // Cria cópia profunda para edição
+      setGeneratedPlanOutput(initialPlanDataToEdit); 
+      setEditablePlanDetails(JSON.parse(JSON.stringify(initialPlanDataToEdit))); 
     }
   }, [initialClientInputs, initialPlanDataToEdit, form]);
 
@@ -104,7 +105,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
 
     const apiValues: PersonalizedPlanInput = {
         ...values,
-        professionalRegistration: values.professionalRegistration || undefined, // Já é string, se vazio usa undefined
+        professionalRegistration: values.professionalRegistration || undefined, 
         heightCm: values.heightCm ? Number(values.heightCm) : undefined,
         weightKg: values.weightKg ? Number(values.weightKg) : undefined,
         age: values.age ? Number(values.age) : undefined,
@@ -116,7 +117,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
     try {
       const result = await generatePersonalizedPlan(apiValues);
       setGeneratedPlanOutput(result);
-      setEditablePlanDetails(JSON.parse(JSON.stringify(result))); // Cópia profunda para edição
+      setEditablePlanDetails(JSON.parse(JSON.stringify(result))); 
     } catch (e: any) {
       console.error("Erro ao gerar plano pela IA:", e);
       let errorMessage = "Falha ao gerar o plano base. O modelo de IA pode estar ocupado ou a solicitação muito complexa.";
@@ -139,20 +140,26 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
   const handlePlanDetailChange = (path: string, value: any) => {
     setEditablePlanDetails(prev => {
       if (!prev) return null;
-      const newDetails = JSON.parse(JSON.stringify(prev)); // Deep copy
+      const newDetails = JSON.parse(JSON.stringify(prev)); 
       let current = newDetails;
       const keys = path.split('.');
       keys.forEach((key, index) => {
-        if (index === keys.length - 1) {
+        const isLastKey = index === keys.length - 1;
+        const nextKeyIsNumber = !isLastKey && !isNaN(Number(keys[index+1]));
+        
+        if (isLastKey) {
           current[key] = value;
         } else {
-          if (!current[key]) current[key] = isNaN(Number(keys[index+1])) ? {} : [];
+          if (current[key] === undefined || typeof current[key] !== 'object' || current[key] === null) {
+            current[key] = nextKeyIsNumber ? [] : {};
+          }
           current = current[key];
         }
       });
       return newDetails;
     });
   };
+  
 
   const handleSavePlan = async () => {
     if (!editablePlanDetails) {
@@ -163,13 +170,13 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
       toast({ title: "Usuário não autenticado", description: "Faça login para salvar o plano do cliente.", variant: "destructive" });
       return;
     }
-    const clientInputs = form.getValues(); // Inputs que geraram (ou carregaram) o plano
+    const clientInputs = form.getValues(); 
 
     setIsSaving(true);
     try {
       const dataToSave = {
-        planData: editablePlanDetails, // O plano com as edições feitas pelo profissional
-        originalInputs: clientInputs, // Inputs que originaram este plano
+        planData: editablePlanDetails, 
+        originalInputs: clientInputs, 
         professionalId: user.id,
         professionalRegistration: clientInputs.professionalRegistration || null,
         clientName: clientInputs.clientName,
@@ -178,7 +185,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
         updatedAt: serverTimestamp(),
       };
 
-      if (planIdToEdit) { // Se estamos editando um plano existente
+      if (planIdToEdit) { 
         const planRef = doc(db, "userGeneratedPlans", user.id, "plans", planIdToEdit);
         await updateDoc(planRef, dataToSave);
         toast({
@@ -190,8 +197,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
             </Button>
           ),
         });
-         // Não limpar o formulário aqui, pois o usuário pode querer continuar editando
-      } else { // Criando um novo plano
+      } else { 
         const plansCollectionRef = collection(db, "userGeneratedPlans", user.id, "plans");
         const newPlanRef = await addDoc(plansCollectionRef, {
           ...dataToSave,
@@ -206,11 +212,10 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
             </Button>
           ),
         });
-        // Limpar tudo para um novo cliente, exceto dados do profissional
         setGeneratedPlanOutput(null);
         setEditablePlanDetails(null);
         form.reset({
-          ...form.getValues(), // Mantém dados do profissional
+          ...form.getValues(), 
           clientName: "",
           goalPhase: undefined,
           trainingExperience: undefined,
@@ -236,7 +241,6 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
     }
   };
   
-  // Helper para renderizar inputs para campos de texto
   const renderTextInput = (value: string | undefined | null, path: string, placeholder = "", isTextarea = false, rows = 2) => (
     isTextarea ? (
       <Textarea
@@ -491,7 +495,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
                 name="dietaryPreferences"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Preferências/Restrições Alimentares do Cliente (Opcional)</FormLabel>
+                    <FormLabel>Preferências/Restrições Alimentares do Cliente</FormLabel>
                     <FormControl>
                       <Textarea placeholder="Ex: Vegetariano, sem lactose, alergias, alimentos que não gosta..." {...field} rows={3} />
                     </FormControl>
