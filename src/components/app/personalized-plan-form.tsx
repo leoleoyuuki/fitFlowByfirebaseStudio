@@ -43,7 +43,7 @@ const ClientPersonalizedPlanInputSchema = z.object({
   trainingVolumePreference: z.enum(["low", "medium", "high"], { required_error: "Selecione a preferência de volume de treino do cliente."}),
   availableEquipment: z.string().min(5, { message: "Liste os equipamentos do cliente (mín. 5 caracteres)." }),
   heightCm: z.preprocess(
-    (val) => (val === "" ? undefined : val), // Converte string vazia para undefined para validação opcional
+    (val) => (val === "" ? undefined : val), 
     z.coerce.number({invalid_type_error: "Altura deve ser um número."}).positive({message: "Altura deve ser positiva."}).optional()
   ),
   weightKg: z.preprocess(
@@ -76,6 +76,8 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
   const { user } = useAuth();
   const router = useRouter();
 
+  const isEditingExistingPlan = !!planIdToEdit;
+
   const form = useForm<ClientPersonalizedPlanInputValues>({
     resolver: zodResolver(ClientPersonalizedPlanInputSchema),
     defaultValues: {
@@ -87,29 +89,34 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
       trainingFrequency: 3,
       trainingVolumePreference: "medium",
       availableEquipment: "",
-      heightCm: undefined, // Zod vai lidar com a coerção de string vazia para undefined
-      weightKg: undefined,
-      age: undefined,
+      heightCm: '', 
+      weightKg: '',
+      age: '',
       sex: "prefer_not_to_say", 
       dietaryPreferences: "",
     },
   });
   
   useEffect(() => {
-    if (planIdToEdit && initialClientInputs) {
-        // Ao editar, garantir que os valores numéricos opcionais sejam strings vazias se forem null/undefined
-        // para que o react-hook-form e os inputs controlados funcionem corretamente.
-        // Zod lidará com a conversão para número ou undefined na validação.
-        const preparedInitialInputs = {
+    if (isEditingExistingPlan && initialClientInputs) {
+        const preparedInitialInputs: ClientPersonalizedPlanInputValues = {
             ...initialClientInputs,
+            professionalRole: initialClientInputs.professionalRole || undefined,
+            professionalRegistration: initialClientInputs.professionalRegistration || user?.professionalRegistration || "",
+            clientName: initialClientInputs.clientName || "",
+            goalPhase: initialClientInputs.goalPhase || undefined,
+            trainingExperience: initialClientInputs.trainingExperience || undefined,
+            trainingFrequency: initialClientInputs.trainingFrequency || 3,
+            trainingVolumePreference: initialClientInputs.trainingVolumePreference || "medium",
+            availableEquipment: initialClientInputs.availableEquipment || "",
             heightCm: initialClientInputs.heightCm ?? '',
             weightKg: initialClientInputs.weightKg ?? '',
             age: initialClientInputs.age ?? '',
             sex: initialClientInputs.sex ?? 'prefer_not_to_say',
-            professionalRole: initialClientInputs.professionalRole || undefined, // Garante que seja undefined se null
+            dietaryPreferences: initialClientInputs.dietaryPreferences || "",
         };
-        form.reset(preparedInitialInputs as any); // any para compatibilidade com string vs number
-    } else if (!planIdToEdit) {
+        form.reset(preparedInitialInputs as any); 
+    } else if (!isEditingExistingPlan) {
         form.reset({
             professionalRole: user?.professionalType || undefined,
             professionalRegistration: user?.professionalRegistration || "",
@@ -119,7 +126,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
             trainingFrequency: 3,
             trainingVolumePreference: "medium",
             availableEquipment: "",
-            heightCm: '' as any, // Começar com string vazia
+            heightCm: '' as any, 
             weightKg: '' as any,
             age: '' as any,
             sex: "prefer_not_to_say",
@@ -128,13 +135,13 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
     }
 
     if (initialPlanDataToEdit) {
-        setGeneratedPlanOutput(initialPlanDataToEdit);
+        setGeneratedPlanOutput(initialPlanDataToEdit); // Keep for potential reference, though editablePlanDetails is primary
         setEditablePlanDetails(JSON.parse(JSON.stringify(initialPlanDataToEdit)));
     } else {
         setGeneratedPlanOutput(null);
         setEditablePlanDetails(null);
     }
-}, [planIdToEdit, initialClientInputs, initialPlanDataToEdit, form, user]);
+  }, [planIdToEdit, initialClientInputs, initialPlanDataToEdit, form, user, isEditingExistingPlan]);
 
 
   async function onGenerateSubmit(values: ClientPersonalizedPlanInputValues) {
@@ -156,8 +163,8 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
 
     try {
       const result = await generatePersonalizedPlan(apiValues);
-      setGeneratedPlanOutput(result);
-      setEditablePlanDetails(JSON.parse(JSON.stringify(result))); 
+      setGeneratedPlanOutput(result); // Store the original AI output
+      setEditablePlanDetails(JSON.parse(JSON.stringify(result))); // Create a deep copy for editing
     } catch (e: any) {
       console.error("Erro ao gerar plano pela IA:", e);
       let errorMessage = "Falha ao gerar o plano base. O modelo de IA pode estar ocupado ou a solicitação muito complexa.";
@@ -202,7 +209,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
   
 
   const handleSavePlan = async () => {
-    if (!editablePlanDetails && !planIdToEdit) { // Se não tem plano editável E não está editando um plano existente (que já teria dados)
+    if (!editablePlanDetails && !isEditingExistingPlan) {
         toast({ title: "Nenhum plano para salvar", description: "Gere um plano base primeiro ou carregue um para edição.", variant: "destructive" });
         return;
     }
@@ -213,8 +220,6 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
 
     setIsSaving(true);
     const isValid = await form.trigger();
-    // console.log('Form validation result (isValid):', isValid);
-    // console.log('Form errors after trigger:', JSON.stringify(form.formState.errors, null, 2));
 
     if (!isValid) {
       toast({
@@ -227,9 +232,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
     }
 
     const rawClientInputs = form.getValues();
-    // console.log('Raw Client Inputs from form.getValues():', JSON.stringify(rawClientInputs, null, 2));
-
-    // Verificação crítica para professionalRole
+    
     if (rawClientInputs.professionalRole === undefined || !ClientPersonalizedPlanInputSchema.shape.professionalRole.Values[rawClientInputs.professionalRole as string]) {
       console.error("CRITICAL VALIDATION BYPASS or UNEXPECTED STATE: professionalRole is invalid/undefined even after form.trigger() reported success.", rawClientInputs.professionalRole);
       toast({
@@ -242,26 +245,22 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
       return;
     }
     
-    // Construir finalOriginalInputs garantindo que nenhum undefined seja enviado
     const finalOriginalInputs: ClientPersonalizedPlanInputValues = {
-        professionalRole: rawClientInputs.professionalRole, // Já deve ser válido
+        professionalRole: rawClientInputs.professionalRole,
         professionalRegistration: rawClientInputs.professionalRegistration || null,
-        clientName: rawClientInputs.clientName, // Obrigatório
-        goalPhase: rawClientInputs.goalPhase, // Obrigatório
-        trainingExperience: rawClientInputs.trainingExperience, // Obrigatório
-        trainingFrequency: rawClientInputs.trainingFrequency, // Obrigatório com default
-        trainingVolumePreference: rawClientInputs.trainingVolumePreference, // Obrigatório
-        availableEquipment: rawClientInputs.availableEquipment, // Obrigatório
-        // Para campos numéricos opcionais, Zod já converte string vazia para undefined.
-        // Aqui, convertemos undefined para null para o Firestore.
-        heightCm: rawClientInputs.heightCm === undefined ? null : Number(rawClientInputs.heightCm),
-        weightKg: rawClientInputs.weightKg === undefined ? null : Number(rawClientInputs.weightKg),
-        age: rawClientInputs.age === undefined ? null : Number(rawClientInputs.age),
+        clientName: rawClientInputs.clientName, 
+        goalPhase: rawClientInputs.goalPhase, 
+        trainingExperience: rawClientInputs.trainingExperience, 
+        trainingFrequency: rawClientInputs.trainingFrequency, 
+        trainingVolumePreference: rawClientInputs.trainingVolumePreference, 
+        availableEquipment: rawClientInputs.availableEquipment, 
+        heightCm: rawClientInputs.heightCm === '' || rawClientInputs.heightCm === undefined ? null : Number(rawClientInputs.heightCm),
+        weightKg: rawClientInputs.weightKg === '' || rawClientInputs.weightKg === undefined ? null : Number(rawClientInputs.weightKg),
+        age: rawClientInputs.age === '' || rawClientInputs.age === undefined ? null : Number(rawClientInputs.age),
         sex: (rawClientInputs.sex === "" || rawClientInputs.sex === "prefer_not_to_say" || rawClientInputs.sex === undefined) ? null : rawClientInputs.sex,
         dietaryPreferences: rawClientInputs.dietaryPreferences || null,
     };
     
-    // Última varredura para garantir que nenhum undefined escape para o Firestore
     Object.keys(finalOriginalInputs).forEach(key => {
         const k = key as keyof ClientPersonalizedPlanInputValues;
         if ((finalOriginalInputs as any)[k] === undefined) {
@@ -269,7 +268,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
         }
     });
 
-    const planDataContent = editablePlanDetails || initialPlanDataToEdit; // Usa o editável se existir, senão o inicial (caso de salvar sem editar um plano carregado)
+    const planDataContent = editablePlanDetails || initialPlanDataToEdit; 
 
     if (!planDataContent) {
          toast({ title: "Dados do Plano Ausentes", description: "Não foi possível encontrar os detalhes do plano para salvar.", variant: "destructive" });
@@ -288,8 +287,6 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
       updatedAt: serverTimestamp(),
     };
     
-    // console.log('Data being sent to Firestore (dataToSave):', JSON.stringify(dataToSave, null, 2));
-
     try {
       if (planIdToEdit) { 
         const planRef = doc(db, "userGeneratedPlans", user.id, "plans", planIdToEdit);
@@ -318,13 +315,12 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
             </Button>
           ),
         });
-        // Limpar formulário e estado após salvar novo plano
         setGeneratedPlanOutput(null);
         setEditablePlanDetails(null);
-        form.reset({ // Reset para valores iniciais (para um novo cliente)
+        form.reset({ 
             professionalRole: user?.professionalType || undefined,
             professionalRegistration: user?.professionalRegistration || "",
-            clientName: "", // Limpa nome do cliente
+            clientName: "", 
             goalPhase: undefined,
             trainingExperience: undefined,
             trainingFrequency: 3,
@@ -379,257 +375,255 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
     />
   );
 
-  // Condicional para mostrar o formulário de IA
-  const showAiForm = !planIdToEdit;
-
   return (
     <div className="space-y-8">
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center text-2xl">
             <Wand2 className="mr-2 h-6 w-6 text-primary" />
-            {planIdToEdit ? `Editando Plano de ${form.getValues('clientName') || 'Cliente'}` : "Gerador de Plano Base para Clientes por IA"}
+            {isEditingExistingPlan ? `Editando Plano de ${form.getValues('clientName') || 'Cliente'}` : "Gerar Plano Base para Cliente"}
           </CardTitle>
           <ShadCnCardDescription>
-            {planIdToEdit 
-              ? `Modifique os detalhes do plano para ${form.getValues('clientName') || 'este cliente'} abaixo. O seu registro profissional (${form.getValues('professionalRegistration') || 'N/A'}) será associado a este plano.`
-              : `Profissional, preencha os dados do seu cliente abaixo. Nossa IA criará um rascunho inicial de treino e dieta focado em hipertrofia. Este rascunho poderá ser revisado e editado por você antes de salvar.`
+            {isEditingExistingPlan 
+              ? `Modifique os dados do cliente e/ou os detalhes do plano abaixo. Seu registro profissional (${form.getValues('professionalRegistration') || 'N/A'}) será associado a este plano.`
+              : `Profissional, preencha os dados do seu cliente abaixo. A IA criará um rascunho inicial. Você poderá editá-lo antes de salvar.`
             }
           </ShadCnCardDescription>
         </CardHeader>
-        {/* Formulário de Inputs para a IA (condicional) */}
-        {showAiForm && (
-            <CardContent>
-            <Form {...form}>
-                <form onSubmit={form.handleSubmit(onGenerateSubmit)} className="space-y-6">
-                <h3 className="text-lg font-semibold border-b pb-2">Dados do Profissional e Cliente</h3>
-                <div className="grid md:grid-cols-2 gap-6">
-                    <FormField
-                    control={form.control}
-                    name="professionalRole"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Sua Principal Área de Atuação</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || undefined}>
-                            <FormControl>
-                            <SelectTrigger><SelectValue placeholder="Selecione sua área" /></SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                            <SelectItem value="physical_educator">Educador Físico (Foco em Treino)</SelectItem>
-                            <SelectItem value="nutritionist">Nutricionista (Foco em Dieta)</SelectItem>
-                            <SelectItem value="both">Ambos (Educador Físico e Nutricionista)</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                    <FormField
-                    control={form.control}
-                    name="professionalRegistration"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Seu Registro Profissional (CREF/CFN)</FormLabel>
-                        <FormControl><Input placeholder="Ex: 012345-G/SP ou CRN-3 12345" {...field} /></FormControl>
-                        <FormDescription>Obrigatório. Será exibido no plano final.</FormDescription>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                </div>
+        {/* Formulário de Inputs para a IA / Dados do Cliente - SEMPRE VISÍVEL */}
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onGenerateSubmit)} className="space-y-6">
+              <h3 className="text-lg font-semibold border-b pb-2">Dados do Profissional e Cliente</h3>
+              <div className="grid md:grid-cols-2 gap-6">
                 <FormField
-                    control={form.control}
-                    name="clientName"
-                    render={({ field }) => (
+                  control={form.control}
+                  name="professionalRole"
+                  render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Nome do Cliente</FormLabel>
-                        <FormControl><Input placeholder="Nome completo do cliente" {...field} /></FormControl>
-                        <FormDescription>Obrigatório. Para identificar o plano.</FormDescription>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-
-                <h3 className="text-lg font-semibold border-t pt-4 mt-6">Informações do Cliente para Geração IA</h3>
-                <div className="grid md:grid-cols-2 gap-6">
-                    <FormField
-                    control={form.control}
-                    name="goalPhase"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Objetivo Principal do Cliente</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || undefined}>
-                            <FormControl>
-                            <SelectTrigger><SelectValue placeholder="Selecione o objetivo do cliente" /></SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                            <SelectItem value="bulking">Bulking (Ganhar Músculo)</SelectItem>
-                            <SelectItem value="cutting">Cutting (Perder Gordura, Preservar Músculo)</SelectItem>
-                            <SelectItem value="maintenance">Manutenção (Manter Físico)</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                    <FormField
-                    control={form.control}
-                    name="trainingExperience"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Experiência de Treino do Cliente</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || undefined}>
-                            <FormControl>
-                            <SelectTrigger><SelectValue placeholder="Selecione o nível do cliente" /></SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                            <SelectItem value="beginner">Iniciante (&lt;1 ano treinando)</SelectItem>
-                            <SelectItem value="intermediate">Intermediário (1-3 anos treinando)</SelectItem>
-                            <SelectItem value="advanced">Avançado (3+ anos treinando)</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-6">
-                    <FormField
-                    control={form.control}
-                    name="trainingFrequency"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Dias de Treino por Semana (Cliente)</FormLabel>
+                      <FormLabel>Sua Principal Área de Atuação</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || undefined}>
                         <FormControl>
-                            <Input type="number" placeholder="Ex: 3 (2-6 dias)" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} />
+                          <SelectTrigger><SelectValue placeholder="Selecione sua área" /></SelectTrigger>
                         </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                    <FormField
-                    control={form.control}
-                    name="trainingVolumePreference"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Preferência de Volume Semanal (Cliente)</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || undefined}>
-                            <FormControl>
-                            <SelectTrigger><SelectValue placeholder="Selecione o volume" /></SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                            <SelectItem value="low">Baixo (10-13 séries/músculo)</SelectItem>
-                            <SelectItem value="medium">Médio (14-17 séries/músculo)</SelectItem>
-                            <SelectItem value="high">Alto (18-20 séries/músculo)</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <FormDescription>Séries por grupo muscular principal por semana para o cliente.</FormDescription>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                </div>
-
+                        <SelectContent>
+                          <SelectItem value="physical_educator">Educador Físico (Foco em Treino)</SelectItem>
+                          <SelectItem value="nutritionist">Nutricionista (Foco em Dieta)</SelectItem>
+                          <SelectItem value="both">Ambos (Educador Físico e Nutricionista)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <FormField
-                    control={form.control}
-                    name="availableEquipment"
-                    render={({ field }) => (
+                  control={form.control}
+                  name="professionalRegistration"
+                  render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Equipamentos Disponíveis para o Cliente</FormLabel>
-                        <FormControl>
-                        <Textarea placeholder="Ex: Academia completa, halteres e banco, peso corporal, elásticos" {...field} rows={2} />
-                        </FormControl>
-                        <FormMessage />
+                      <FormLabel>Seu Registro Profissional (CREF/CFN)</FormLabel>
+                      <FormControl><Input placeholder="Ex: 012345-G/SP ou CRN-3 12345" {...field} value={field.value || ""} /></FormControl>
+                      <FormDescription>Obrigatório. Será exibido no plano final.</FormDescription>
+                      <FormMessage />
                     </FormItem>
-                    )}
+                  )}
                 />
-                
-                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <FormField
-                    control={form.control}
-                    name="heightCm"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Altura Cliente (cm)</FormLabel>
-                        <FormControl><Input type="number" placeholder="Ex: 180" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))} /></FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                    <FormField
-                    control={form.control}
-                    name="weightKg"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Peso Cliente (kg)</FormLabel>
-                        <FormControl><Input type="number" placeholder="Ex: 75" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} /></FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                    <FormField
-                    control={form.control}
-                    name="age"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Idade Cliente</FormLabel>
-                        <FormControl><Input type="number" placeholder="Ex: 25" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))} /></FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                    <FormField
-                    control={form.control}
-                    name="sex"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Sexo Biológico Cliente</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value ?? "prefer_not_to_say"}>
-                            <FormControl>
-                            <SelectTrigger><SelectValue placeholder="Selecione o sexo" /></SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                            <SelectItem value="male">Masculino</SelectItem>
-                            <SelectItem value="female">Feminino</SelectItem>
-                            <SelectItem value="prefer_not_to_say">Prefiro não dizer</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                </div>
+              </div>
+              <FormField
+                control={form.control}
+                name="clientName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome do Cliente</FormLabel>
+                    <FormControl><Input placeholder="Nome completo do cliente" {...field} value={field.value || ""} /></FormControl>
+                    <FormDescription>Obrigatório. Para identificar o plano.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
+              <h3 className="text-lg font-semibold border-t pt-4 mt-6">Informações do Cliente para {isEditingExistingPlan ? "Referência" : "Geração IA"}</h3>
+              <div className="grid md:grid-cols-2 gap-6">
                 <FormField
-                    control={form.control}
-                    name="dietaryPreferences"
-                    render={({ field }) => (
+                  control={form.control}
+                  name="goalPhase"
+                  render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Preferências/Restrições Alimentares do Cliente</FormLabel>
+                      <FormLabel>Objetivo Principal do Cliente</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || undefined}>
                         <FormControl>
-                        <Textarea placeholder="Ex: Vegetariano, sem lactose, alergias, alimentos que não gosta..." {...field} value={field.value ?? ""} rows={3} />
+                          <SelectTrigger><SelectValue placeholder="Selecione o objetivo do cliente" /></SelectTrigger>
                         </FormControl>
-                        <FormDescription>Detalhe as preferências do cliente para um plano alimentar mais assertivo.
-                        </FormDescription>
-                        <FormMessage />
+                        <SelectContent>
+                          <SelectItem value="bulking">Bulking (Ganhar Músculo)</SelectItem>
+                          <SelectItem value="cutting">Cutting (Perder Gordura, Preservar Músculo)</SelectItem>
+                          <SelectItem value="maintenance">Manutenção (Manter Físico)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
                     </FormItem>
-                    )}
+                  )}
                 />
+                <FormField
+                  control={form.control}
+                  name="trainingExperience"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Experiência de Treino do Cliente</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || undefined}>
+                        <FormControl>
+                          <SelectTrigger><SelectValue placeholder="Selecione o nível do cliente" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="beginner">Iniciante (&lt;1 ano treinando)</SelectItem>
+                          <SelectItem value="intermediate">Intermediário (1-3 anos treinando)</SelectItem>
+                          <SelectItem value="advanced">Avançado (3+ anos treinando)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-6">
+                <FormField
+                  control={form.control}
+                  name="trainingFrequency"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Dias de Treino por Semana (Cliente)</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder="Ex: 3 (2-6 dias)" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} value={field.value || 3} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="trainingVolumePreference"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Preferência de Volume Semanal (Cliente)</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || "medium"}>
+                        <FormControl>
+                          <SelectTrigger><SelectValue placeholder="Selecione o volume" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="low">Baixo (10-13 séries/músculo)</SelectItem>
+                          <SelectItem value="medium">Médio (14-17 séries/músculo)</SelectItem>
+                          <SelectItem value="high">Alto (18-20 séries/músculo)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>Séries por grupo muscular principal por semana para o cliente.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="availableEquipment"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Equipamentos Disponíveis para o Cliente</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Ex: Academia completa, halteres e banco, peso corporal, elásticos" {...field} value={field.value || ""} rows={2} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <FormField
+                  control={form.control}
+                  name="heightCm"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Altura Cliente (cm)</FormLabel>
+                      <FormControl><Input type="number" placeholder="Ex: 180" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="weightKg"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Peso Cliente (kg)</FormLabel>
+                      <FormControl><Input type="number" placeholder="Ex: 75" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="age"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Idade Cliente</FormLabel>
+                      <FormControl><Input type="number" placeholder="Ex: 25" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="sex"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Sexo Biológico Cliente</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value ?? "prefer_not_to_say"}>
+                        <FormControl>
+                          <SelectTrigger><SelectValue placeholder="Selecione o sexo" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="male">Masculino</SelectItem>
+                          <SelectItem value="female">Feminino</SelectItem>
+                          <SelectItem value="prefer_not_to_say">Prefiro não dizer</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="dietaryPreferences"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Preferências/Restrições Alimentares do Cliente</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Ex: Vegetariano, sem lactose, alergias, alimentos que não gosta..." {...field} value={field.value ?? ""} rows={3} />
+                    </FormControl>
+                    <FormDescription>Detalhe as preferências do cliente para um plano alimentar mais assertivo.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              {/* Botão "Gerar Rascunho com IA" - Condicionalmente Visível */}
+              {!isEditingExistingPlan && (
                 <Button type="submit" className="w-full md:w-auto" disabled={isLoadingAi || isSaving}>
-                    {isLoadingAi ? (
+                  {isLoadingAi ? (
                     <> <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando Rascunho com IA... </>
-                    ) : (
+                  ) : (
                     <> <Wand2 className="mr-2 h-4 w-4" /> Gerar Rascunho com IA </>
-                    )}
+                  )}
                 </Button>
-                </form>
-            </Form>
-            </CardContent>
-        )}
+              )}
+            </form>
+          </Form>
+        </CardContent>
       </Card>
 
-      {error && !editablePlanDetails && ( // Só mostra erro de IA se não tiver plano editável ainda
+      {error && !editablePlanDetails && !isEditingExistingPlan && ( 
         <Card className="border-destructive bg-destructive/10 shadow-lg">
           <CardHeader>
             <CardTitle className="text-destructive">Erro ao Gerar Rascunho</CardTitle>
@@ -641,36 +635,35 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
         </Card>
       )}
       
-      {(editablePlanDetails || (planIdToEdit && initialPlanDataToEdit)) && ( // Mostra seção de edição se houver plano
+      {editablePlanDetails && ( 
         <div className="space-y-6 mt-8">
             <Card className="shadow-lg sticky top-20 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
                 <CardHeader>
                     <CardTitle className="text-xl text-primary">
-                    {planIdToEdit ? "Editando Plano de " : "Rascunho do Plano Gerado para "}
+                    {isEditingExistingPlan && editablePlanDetails ? "Editando Detalhes do Plano de " : "Rascunho do Plano para "}
                     <span className="font-semibold">{form.getValues('clientName') || 'Cliente'}</span>
                     </CardTitle>
                     <ShadCnCardDescription>
-                    Abaixo está o rascunho para o cliente. Revise e edite os detalhes conforme necessário.
-                    Lembre-se que seu registro profissional ({form.getValues('professionalRegistration') || 'N/A'}) será associado a este plano.
+                    Abaixo estão os detalhes {isEditingExistingPlan && editablePlanDetails ? 'atuais' : 'do rascunho'} para o cliente. Revise e edite conforme necessário.
+                    Seu registro profissional ({form.getValues('professionalRegistration') || 'N/A'}) será associado a este plano.
                     </ShadCnCardDescription>
                 </CardHeader>
                 <CardFooter className="flex flex-col sm:flex-row gap-4">
                     <Button onClick={handleSavePlan} disabled={isSaving || !user || isLoadingAi} className="w-full sm:w-auto">
                         {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                        {user ? (planIdToEdit ? "Salvar Alterações no Plano" : "Salvar Plano para Cliente") : "Faça login para Salvar"}
+                        {user ? (isEditingExistingPlan ? "Salvar Alterações no Plano" : "Salvar Plano para Cliente") : "Faça login para Salvar"}
                     </Button>
                 </CardFooter>
             </Card>
             
-            {/* Seção de Edição do Plano */}
             <Card className="shadow-lg">
                 <CardHeader><CardTitle className="text-lg">Resumo Geral (Editável)</CardTitle></CardHeader>
                 <CardContent>
-                {renderTextInput(editablePlanDetails?.overallSummary ?? initialPlanDataToEdit?.overallSummary, 'overallSummary', 'Resumo geral do plano...', true, 4)}
+                {renderTextInput(editablePlanDetails.overallSummary, 'overallSummary', 'Resumo geral do plano...', true, 4)}
                 </CardContent>
             </Card>
 
-            {(editablePlanDetails?.trainingPlan ?? initialPlanDataToEdit?.trainingPlan) && (
+            {editablePlanDetails.trainingPlan && (
                 <Card className="shadow-lg">
                 <CardHeader>
                     <CardTitle className="flex items-center"><Dumbbell className="mr-2 h-5 w-5 text-primary" /> Plano de Treino (Editável)</CardTitle>
@@ -678,14 +671,14 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
                 <CardContent className="space-y-4">
                     <div>
                     <Label className="text-sm font-medium">Descrição da Divisão Semanal</Label>
-                    {renderTextInput(editablePlanDetails?.trainingPlan?.weeklySplitDescription ?? initialPlanDataToEdit?.trainingPlan?.weeklySplitDescription, 'trainingPlan.weeklySplitDescription', 'Ex: Divisão ABCDE...', true)}
+                    {renderTextInput(editablePlanDetails.trainingPlan.weeklySplitDescription, 'trainingPlan.weeklySplitDescription', 'Ex: Divisão ABCDE...', true)}
                     </div>
                     <div>
                     <Label className="text-sm font-medium">Resumo do Volume Semanal</Label>
-                    {renderTextInput(editablePlanDetails?.trainingPlan?.weeklyVolumeSummary ?? initialPlanDataToEdit?.trainingPlan?.weeklyVolumeSummary, 'trainingPlan.weeklyVolumeSummary', 'Ex: Aprox. 15 séries por grupo...', true)}
+                    {renderTextInput(editablePlanDetails.trainingPlan.weeklyVolumeSummary, 'trainingPlan.weeklyVolumeSummary', 'Ex: Aprox. 15 séries por grupo...', true)}
                     </div>
 
-                    {(editablePlanDetails?.trainingPlan?.workouts ?? initialPlanDataToEdit?.trainingPlan?.workouts)?.map((workoutDay, dayIndex) => (
+                    {editablePlanDetails.trainingPlan.workouts?.map((workoutDay, dayIndex) => (
                     <Card key={dayIndex} className="p-4 border bg-muted/30">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
                         <div>
@@ -728,38 +721,38 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
                     ))}
                     <div>
                     <Label className="text-sm font-medium">Notas Gerais do Treino</Label>
-                    {renderTextInput(editablePlanDetails?.trainingPlan?.notes ?? initialPlanDataToEdit?.trainingPlan?.notes, 'trainingPlan.notes', 'Notas gerais sobre o treino...', true)}
+                    {renderTextInput(editablePlanDetails.trainingPlan.notes, 'trainingPlan.notes', 'Notas gerais sobre o treino...', true)}
                     </div>
                 </CardContent>
                 </Card>
             )}
 
-            {(editablePlanDetails?.dietGuidance ?? initialPlanDataToEdit?.dietGuidance) && (
+            {editablePlanDetails.dietGuidance && (
                 <Card className="shadow-lg">
                 <CardHeader>
-                    <CardTitle className="flex items-center"><Utensils className="mr-2 h-5 w-5 text-primary" /> Diretrizes de Dieta (Editável - {form.getValues('goalPhase')})</CardTitle>
+                    <CardTitle className="flex items-center"><Utensils className="mr-2 h-5 w-5 text-primary" /> Diretrizes de Dieta (Editável - {editablePlanDetails.dietGuidance && form.getValues('goalPhase')})</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
                         <Label className="text-xs font-medium">Calorias Diárias Est.</Label>
-                        {renderNumberInput(editablePlanDetails?.dietGuidance?.estimatedDailyCalories ?? initialPlanDataToEdit?.dietGuidance?.estimatedDailyCalories, 'dietGuidance.estimatedDailyCalories', 'Ex: 2500')}
+                        {renderNumberInput(editablePlanDetails.dietGuidance.estimatedDailyCalories, 'dietGuidance.estimatedDailyCalories', 'Ex: 2500')}
                     </div>
                     <div>
                         <Label className="text-xs font-medium">Proteínas (g)</Label>
-                        {renderNumberInput(editablePlanDetails?.dietGuidance?.proteinGrams ?? initialPlanDataToEdit?.dietGuidance?.proteinGrams, 'dietGuidance.proteinGrams', 'Ex: 180')}
+                        {renderNumberInput(editablePlanDetails.dietGuidance.proteinGrams, 'dietGuidance.proteinGrams', 'Ex: 180')}
                     </div>
                     <div>
                         <Label className="text-xs font-medium">Carboidratos (g)</Label>
-                        {renderNumberInput(editablePlanDetails?.dietGuidance?.carbGrams ?? initialPlanDataToEdit?.dietGuidance?.carbGrams, 'dietGuidance.carbGrams', 'Ex: 300')}
+                        {renderNumberInput(editablePlanDetails.dietGuidance.carbGrams, 'dietGuidance.carbGrams', 'Ex: 300')}
                     </div>
                     <div>
                         <Label className="text-xs font-medium">Gorduras (g)</Label>
-                        {renderNumberInput(editablePlanDetails?.dietGuidance?.fatGrams ?? initialPlanDataToEdit?.dietGuidance?.fatGrams, 'dietGuidance.fatGrams', 'Ex: 70')}
+                        {renderNumberInput(editablePlanDetails.dietGuidance.fatGrams, 'dietGuidance.fatGrams', 'Ex: 70')}
                     </div>
                     </div>
 
-                    {(editablePlanDetails?.dietGuidance?.dailyMealPlans ?? initialPlanDataToEdit?.dietGuidance?.dailyMealPlans)?.map((mealPlan, mealPlanIndex) => (
+                    {editablePlanDetails.dietGuidance.dailyMealPlans?.map((mealPlan, mealPlanIndex) => (
                     <Card key={mealPlanIndex} className="p-4 border bg-muted/30">
                         <div>
                         <Label className="text-sm font-semibold">Nome da Refeição</Label>
@@ -791,7 +784,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
                     ))}
                     <div>
                     <Label className="text-sm font-medium">Notas Gerais da Dieta</Label>
-                    {renderTextInput(editablePlanDetails?.dietGuidance?.notes ?? initialPlanDataToEdit?.dietGuidance?.notes, 'dietGuidance.notes', 'Notas sobre hidratação, suplementos...', true)}
+                    {renderTextInput(editablePlanDetails.dietGuidance.notes, 'dietGuidance.notes', 'Notas sobre hidratação, suplementos...', true)}
                     </div>
                 </CardContent>
                 </Card>
@@ -801,5 +794,3 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
     </div>
   );
 }
-
-    
