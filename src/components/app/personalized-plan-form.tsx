@@ -17,19 +17,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { PersonalizedPlanInput, PersonalizedPlanOutput, ExerciseDetail, DailyWorkout, FoodItemWithQuantity, MealOption, DailyMealPlan } from "@/ai/flows/generate-personalized-plan";
+import type { PersonalizedPlanInput, PersonalizedPlanOutput } from "@/ai/flows/generate-personalized-plan";
 import { generatePersonalizedPlan } from "@/ai/flows/generate-personalized-plan";
 import { useState, useEffect, ChangeEvent } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription as ShadCnCardDescription, CardFooter } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Loader2, Wand2, Dumbbell, Utensils, Save, Edit } from "lucide-react"; 
-import ReactMarkdown from 'react-markdown';
+import { Loader2, Wand2, Dumbbell, Utensils, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp, doc, updateDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
-import { APP_NAME } from "@/lib/constants";
 import type { ClientPersonalizedPlanInputValues, ClientPlan } from "@/types";
 
 // Schema para o formulário de geração de inputs para a IA
@@ -43,15 +41,15 @@ const ClientPersonalizedPlanInputSchema = z.object({
   trainingVolumePreference: z.enum(["low", "medium", "high"], { required_error: "Selecione a preferência de volume de treino do cliente."}),
   availableEquipment: z.string().min(5, { message: "Liste os equipamentos do cliente (mín. 5 caracteres)." }),
   heightCm: z.preprocess(
-    (val) => (val === "" ? undefined : val), 
+    (val) => (val === "" || val === null ? undefined : String(val).trim() === "" ? undefined : val),
     z.coerce.number({invalid_type_error: "Altura deve ser um número."}).positive({message: "Altura deve ser positiva."}).optional()
   ),
   weightKg: z.preprocess(
-    (val) => (val === "" ? undefined : val),
+    (val) => (val === "" || val === null ? undefined : String(val).trim() === "" ? undefined : val),
     z.coerce.number({invalid_type_error: "Peso deve ser um número."}).positive({message: "Peso deve ser positivo."}).optional()
   ),
   age: z.preprocess(
-    (val) => (val === "" ? undefined : val),
+    (val) => (val === "" || val === null ? undefined : String(val).trim() === "" ? undefined : val),
     z.coerce.number({invalid_type_error: "Idade deve ser um número."}).positive({message: "Idade deve ser positiva."}).optional()
   ),
   sex: z.enum(["male", "female", "prefer_not_to_say", ""], { errorMap: () => ({message: "Selecione o sexo biológico ou 'Prefiro não dizer'."}) }).optional(),
@@ -72,6 +70,12 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
   const [editablePlanDetails, setEditablePlanDetails] = useState<PersonalizedPlanOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
   
+  // Campos para edição direta no modo de edição (não parte do form principal)
+  const [editableClientName, setEditableClientName] = useState("");
+  const [editableProfessionalRegistration, setEditableProfessionalRegistration] = useState("");
+   const [editableProfessionalRole, setEditableProfessionalRole] = useState<"physical_educator" | "nutritionist" | "both" | undefined>(undefined);
+
+
   const { toast } = useToast();
   const { user } = useAuth();
   const router = useRouter();
@@ -97,25 +101,23 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
     },
   });
   
-  useEffect(() => {
+   useEffect(() => {
     if (isEditingExistingPlan && initialClientInputs) {
-        const preparedInitialInputs: ClientPersonalizedPlanInputValues = {
-            professionalRole: initialClientInputs.professionalRole || undefined,
-            professionalRegistration: initialClientInputs.professionalRegistration || user?.professionalRegistration || "",
-            clientName: initialClientInputs.clientName || "",
-            goalPhase: initialClientInputs.goalPhase || undefined,
-            trainingExperience: initialClientInputs.trainingExperience || undefined,
-            trainingFrequency: initialClientInputs.trainingFrequency || 3,
-            trainingVolumePreference: initialClientInputs.trainingVolumePreference || "medium",
-            availableEquipment: initialClientInputs.availableEquipment || "",
-            heightCm: initialClientInputs.heightCm ?? '',
-            weightKg: initialClientInputs.weightKg ?? '',
-            age: initialClientInputs.age ?? '',
-            sex: initialClientInputs.sex ?? 'prefer_not_to_say',
-            dietaryPreferences: initialClientInputs.dietaryPreferences || "",
-        };
-        form.reset(preparedInitialInputs); 
+        // Para o modo de edição, não resetamos o form principal da RHF.
+        // Populamos os estados locais para os campos editáveis e os dados do plano.
+        setEditableClientName(initialClientInputs.clientName || "");
+        setEditableProfessionalRegistration(initialClientInputs.professionalRegistration || user?.professionalRegistration || "");
+        setEditableProfessionalRole(initialClientInputs.professionalRole || user?.professionalType || undefined);
+
+        if (initialPlanDataToEdit) {
+            setGeneratedPlanOutput(initialPlanDataToEdit); // Manter uma cópia do original gerado se necessário
+            setEditablePlanDetails(JSON.parse(JSON.stringify(initialPlanDataToEdit)));
+        } else {
+            setGeneratedPlanOutput(null);
+            setEditablePlanDetails(null);
+        }
     } else if (!isEditingExistingPlan) {
+        // Modo de criação: resetar o formulário da RHF com defaults ou dados do usuário
         form.reset({
             professionalRole: user?.professionalType || undefined,
             professionalRegistration: user?.professionalRegistration || "",
@@ -125,20 +127,17 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
             trainingFrequency: 3,
             trainingVolumePreference: "medium",
             availableEquipment: "",
-            heightCm: '' , 
-            weightKg: '' ,
-            age: '' ,
+            heightCm: '', 
+            weightKg: '',
+            age: '',
             sex: "prefer_not_to_say",
             dietaryPreferences: "",
         });
-    }
-
-    if (initialPlanDataToEdit) {
-        setGeneratedPlanOutput(initialPlanDataToEdit);
-        setEditablePlanDetails(JSON.parse(JSON.stringify(initialPlanDataToEdit)));
-    } else {
-        setGeneratedPlanOutput(null);
-        setEditablePlanDetails(null);
+        setEditablePlanDetails(null); // Limpar detalhes editáveis
+        setGeneratedPlanOutput(null); // Limpar plano gerado
+        setEditableClientName("");
+        setEditableProfessionalRegistration(user?.professionalRegistration || "");
+        setEditableProfessionalRole(user?.professionalType || undefined);
     }
   }, [planIdToEdit, initialClientInputs, initialPlanDataToEdit, form, user, isEditingExistingPlan]);
 
@@ -208,90 +207,17 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
   
 
   const handleSavePlan = async () => {
-    if (!editablePlanDetails && !isEditingExistingPlan && !generatedPlanOutput) {
-        toast({ title: "Nenhum plano para salvar", description: "Gere um plano base primeiro ou carregue um para edição.", variant: "destructive" });
-        return;
-    }
     if (!user) {
         toast({ title: "Usuário não autenticado", description: "Faça login para salvar o plano do cliente.", variant: "destructive" });
         return;
     }
+    if (!editablePlanDetails && !initialPlanDataToEdit && !generatedPlanOutput) {
+        toast({ title: "Nenhum plano para salvar", description: "Gere um plano base primeiro ou carregue um para edição.", variant: "destructive" });
+        return;
+    }
 
     setIsSaving(true);
-    const isValid = await form.trigger();
-
-    if (!isValid) {
-      toast({
-        title: "Erro de Validação",
-        description: "Por favor, corrija os erros no formulário de dados do cliente antes de salvar.",
-        variant: "destructive",
-      });
-      setIsSaving(false);
-      return;
-    }
-    
-    const rawClientInputsFromForm = form.getValues();
-    
-    if (rawClientInputsFromForm.professionalRole === undefined || !ClientPersonalizedPlanInputSchema.shape.professionalRole.Values[rawClientInputsFromForm.professionalRole as string]) {
-      console.error("CRITICAL VALIDATION BYPASS or UNEXPECTED STATE: professionalRole is invalid/undefined even after form.trigger() reported success.", rawClientInputsFromForm.professionalRole);
-      toast({
-        title: "Erro Crítico de Dados",
-        description: "O campo 'Principal Área de Atuação' é obrigatório e parece não ter sido preenchido corretamente. Por favor, selecione uma opção válida e tente salvar novamente. Se o erro persistir, contate o suporte. (Ref: PR_INV_POST_VALID)",
-        variant: "destructive",
-        duration: 10000,
-      });
-      setIsSaving(false);
-      return;
-    }
-    
     let finalOriginalInputs: ClientPersonalizedPlanInputValues;
-
-    if (isEditingExistingPlan && initialClientInputs) {
-        finalOriginalInputs = {
-            ...initialClientInputs, // Base são os inputs carregados
-            professionalRole: rawClientInputsFromForm.professionalRole,
-            professionalRegistration: rawClientInputsFromForm.professionalRegistration || null,
-            clientName: rawClientInputsFromForm.clientName,
-        };
-        // Garante que os campos obrigatórios mantêm seus valores
-        finalOriginalInputs.goalPhase = initialClientInputs.goalPhase;
-        finalOriginalInputs.trainingExperience = initialClientInputs.trainingExperience;
-        finalOriginalInputs.trainingFrequency = initialClientInputs.trainingFrequency;
-        finalOriginalInputs.trainingVolumePreference = initialClientInputs.trainingVolumePreference;
-        finalOriginalInputs.availableEquipment = initialClientInputs.availableEquipment;
-        finalOriginalInputs.heightCm = initialClientInputs.heightCm === '' || initialClientInputs.heightCm === undefined ? null : Number(initialClientInputs.heightCm);
-        finalOriginalInputs.weightKg = initialClientInputs.weightKg === '' || initialClientInputs.weightKg === undefined ? null : Number(initialClientInputs.weightKg);
-        finalOriginalInputs.age = initialClientInputs.age === '' || initialClientInputs.age === undefined ? null : Number(initialClientInputs.age);
-        finalOriginalInputs.sex = (initialClientInputs.sex === "" || initialClientInputs.sex === "prefer_not_to_say" || initialClientInputs.sex === undefined) ? null : initialClientInputs.sex;
-        finalOriginalInputs.dietaryPreferences = initialClientInputs.dietaryPreferences || null;
-
-    } else {
-        // Criando novo plano, usar todos os valores do formulário
-        finalOriginalInputs = {
-            professionalRole: rawClientInputsFromForm.professionalRole,
-            professionalRegistration: rawClientInputsFromForm.professionalRegistration || null,
-            clientName: rawClientInputsFromForm.clientName, 
-            goalPhase: rawClientInputsFromForm.goalPhase, 
-            trainingExperience: rawClientInputsFromForm.trainingExperience, 
-            trainingFrequency: rawClientInputsFromForm.trainingFrequency, 
-            trainingVolumePreference: rawClientInputsFromForm.trainingVolumePreference, 
-            availableEquipment: rawClientInputsFromForm.availableEquipment, 
-            heightCm: rawClientInputsFromForm.heightCm === '' || rawClientInputsFromForm.heightCm === undefined ? null : Number(rawClientInputsFromForm.heightCm),
-            weightKg: rawClientInputsFromForm.weightKg === '' || rawClientInputsFromForm.weightKg === undefined ? null : Number(rawClientInputsFromForm.weightKg),
-            age: rawClientInputsFromForm.age === '' || rawClientInputsFromForm.age === undefined ? null : Number(rawClientInputsFromForm.age),
-            sex: (rawClientInputsFromForm.sex === "" || rawClientInputsFromForm.sex === "prefer_not_to_say" || rawClientInputsFromForm.sex === undefined) ? null : rawClientInputsFromForm.sex,
-            dietaryPreferences: rawClientInputsFromForm.dietaryPreferences || null,
-        };
-    }
-    
-    // Certifica que nenhum undefined seja enviado para campos opcionais de `finalOriginalInputs`
-    (Object.keys(finalOriginalInputs) as Array<keyof ClientPersonalizedPlanInputValues>).forEach(key => {
-        if (finalOriginalInputs[key] === undefined) {
-            (finalOriginalInputs as any)[key] = null;
-        }
-    });
-
-
     const planDataContent = editablePlanDetails || initialPlanDataToEdit || generatedPlanOutput;
 
     if (!planDataContent) {
@@ -300,14 +226,94 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
          return;
     }
 
+    if (isEditingExistingPlan) {
+        if (!initialClientInputs) {
+            toast({ title: "Erro Interno", description: "Dados originais do cliente não encontrados para edição.", variant: "destructive" });
+            setIsSaving(false);
+            return;
+        }
+        if (!editableClientName.trim() || editableClientName.trim().length < 2) {
+            toast({ title: "Erro de Validação", description: "Nome do cliente é obrigatório (mín. 2 caracteres).", variant: "destructive" });
+            setIsSaving(false);
+            return;
+        }
+        if (!editableProfessionalRegistration.trim() || editableProfessionalRegistration.trim().length < 3) {
+            toast({ title: "Erro de Validação", description: "Registro profissional é obrigatório (mín. 3 caracteres).", variant: "destructive" });
+            setIsSaving(false);
+            return;
+        }
+         if (!editableProfessionalRole) {
+            toast({ title: "Erro de Validação", description: "Área de atuação profissional é obrigatória.", variant: "destructive" });
+            setIsSaving(false);
+            return;
+        }
+
+        finalOriginalInputs = {
+            ...initialClientInputs, // Preserva todos os dados originais
+            clientName: editableClientName.trim(),
+            professionalRegistration: editableProfessionalRegistration.trim(),
+            professionalRole: editableProfessionalRole,
+        };
+    } else {
+        // Modo de criação: usa o react-hook-form
+        const isValid = await form.trigger(Object.keys(ClientPersonalizedPlanInputSchema.shape) as Array<keyof ClientPersonalizedPlanInputValues>);
+        if (!isValid) {
+            toast({ title: "Erro de Validação", description: "Por favor, corrija os erros no formulário de dados do cliente antes de salvar.", variant: "destructive" });
+            setIsSaving(false);
+            return;
+        }
+        const rawClientInputsFromForm = form.getValues();
+        finalOriginalInputs = { ...rawClientInputsFromForm };
+    }
+
+    // Sanitização final para Firestore (null em vez de undefined)
+    (Object.keys(finalOriginalInputs) as Array<keyof ClientPersonalizedPlanInputValues>).forEach(key => {
+        const k = key as keyof ClientPersonalizedPlanInputValues;
+        if (finalOriginalInputs[k] === undefined) {
+            (finalOriginalInputs as any)[k] = null;
+        } else if (typeof finalOriginalInputs[k] === 'string' && (finalOriginalInputs[k] as string).trim() === "" && 
+                   (k === 'heightCm' || k === 'weightKg' || k === 'age' || k === 'dietaryPreferences' || k === 'sex' )) {
+            (finalOriginalInputs as any)[k] = null;
+        } else if (k === 'sex' && finalOriginalInputs[k] === "prefer_not_to_say") {
+             (finalOriginalInputs as any)[k] = null;
+        }
+    });
+    
+    // Convert specific numeric fields to numbers or null
+    const numericFields = ['heightCm', 'weightKg', 'age'] as const;
+    numericFields.forEach(field => {
+        const val = finalOriginalInputs[field];
+        if (val !== null && val !== undefined && String(val).trim() !== "") {
+            const numVal = Number(val);
+            (finalOriginalInputs as any)[field] = isNaN(numVal) ? null : numVal;
+        } else {
+            (finalOriginalInputs as any)[field] = null;
+        }
+    });
+
+
+    // Verificações críticas finais
+    const requiredFields: Array<keyof ClientPersonalizedPlanInputValues> = ['professionalRole', 'professionalRegistration', 'clientName'];
+    if (!isEditingExistingPlan) {
+        requiredFields.push('goalPhase', 'trainingExperience', 'availableEquipment');
+    }
+    for (const field of requiredFields) {
+        if (finalOriginalInputs[field] === null || finalOriginalInputs[field] === undefined || String(finalOriginalInputs[field]).trim() === "") {
+            toast({ title: "Erro Crítico de Dados", description: `O campo '${field}' é obrigatório e não foi preenchido corretamente.`, variant: "destructive" });
+            setIsSaving(false);
+            return;
+        }
+    }
+
+
     const dataToSave: Omit<ClientPlan, 'id' | 'createdAt' | 'updatedAt'> & { updatedAt: any, createdAt?: any } = {
       planData: planDataContent, 
       originalInputs: finalOriginalInputs, 
       professionalId: user.id,
       professionalRegistration: finalOriginalInputs.professionalRegistration,
       clientName: finalOriginalInputs.clientName,
-      goalPhase: finalOriginalInputs.goalPhase,
-      trainingFrequency: finalOriginalInputs.trainingFrequency,
+      goalPhase: finalOriginalInputs.goalPhase!, // Já validado como não nulo
+      trainingFrequency: finalOriginalInputs.trainingFrequency!, // Já validado
       updatedAt: serverTimestamp(),
     };
     
@@ -339,6 +345,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
             </Button>
           ),
         });
+        // Limpa o estado após salvar um novo plano
         setGeneratedPlanOutput(null);
         setEditablePlanDetails(null);
         form.reset({ 
@@ -356,6 +363,9 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
             sex: "prefer_not_to_say",
             dietaryPreferences: "",
         });
+         setEditableClientName("");
+         setEditableProfessionalRegistration(user?.professionalRegistration || "");
+         setEditableProfessionalRole(user?.professionalType || undefined);
       }
     } catch (e: any) {
       console.error("Erro ao salvar plano:", e);
@@ -399,10 +409,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
     />
   );
 
-  const clientInfoSectionTitle = isEditingExistingPlan ? "Dados Principais do Cliente (Editável)" : "Dados do Profissional e Cliente";
-  const clientInfoSectionDescription = isEditingExistingPlan 
-    ? "Revise ou atualize os dados principais do cliente. Outros dados usados na geração original são mantidos."
-    : "Profissional, preencha os dados do seu cliente abaixo. A IA criará um rascunho inicial. Você poderá editá-lo antes de salvar.";
+  const clientInfoSectionTitle = isEditingExistingPlan ? `Editando Plano de ${initialClientInputs?.clientName || 'Cliente'}` : "Gerar Plano Base para Cliente";
 
 
   return (
@@ -411,251 +418,300 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
         <CardHeader>
           <CardTitle className="flex items-center text-2xl">
             <Wand2 className="mr-2 h-6 w-6 text-primary" />
-            {isEditingExistingPlan ? `Editando Plano de ${form.getValues('clientName') || 'Cliente'}` : "Gerar Plano Base para Cliente"}
+            {clientInfoSectionTitle}
           </CardTitle>
           <ShadCnCardDescription>
              {isEditingExistingPlan 
-              ? `Modifique os dados principais do cliente e/ou os detalhes do plano abaixo. Seu registro profissional (${form.getValues('professionalRegistration') || 'N/A'}) será associado a este plano.`
-              : `Profissional, preencha os dados do seu cliente abaixo. A IA criará um rascunho inicial. Você poderá editá-lo antes de salvar.`
+              ? `Ajuste os detalhes do plano abaixo. Seu registro profissional (${editableProfessionalRegistration || initialClientInputs?.professionalRegistration || 'N/A'}) será associado a este plano.`
+              : `Profissional, preencha os dados do seu cliente abaixo. A IA criará um rascunho inicial que você poderá editar antes de salvar.`
             }
           </ShadCnCardDescription>
         </CardHeader>
         <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onGenerateSubmit)} className="space-y-6">
-              <h3 className="text-lg font-semibold border-b pb-2">{clientInfoSectionTitle}</h3>
-               <ShadCnCardDescription>{clientInfoSectionDescription}</ShadCnCardDescription>
-              
-              <div className="grid md:grid-cols-2 gap-6">
-                <FormField
-                  control={form.control}
-                  name="professionalRole"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Sua Principal Área de Atuação</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || undefined}>
-                        <FormControl>
-                          <SelectTrigger><SelectValue placeholder="Selecione sua área" /></SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="physical_educator">Educador Físico (Foco em Treino)</SelectItem>
-                          <SelectItem value="nutritionist">Nutricionista (Foco em Dieta)</SelectItem>
-                          <SelectItem value="both">Ambos (Educador Físico e Nutricionista)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="professionalRegistration"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Seu Registro Profissional (CREF/CFN)</FormLabel>
-                      <FormControl><Input placeholder="Ex: 012345-G/SP ou CRN-3 12345" {...field} value={field.value || ""} /></FormControl>
-                      <FormDescription>Obrigatório. Será exibido no plano final.</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <FormField
-                control={form.control}
-                name="clientName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nome do Cliente</FormLabel>
-                    <FormControl><Input placeholder="Nome completo do cliente" {...field} value={field.value || ""} /></FormControl>
-                    <FormDescription>Obrigatório. Para identificar o plano.</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {!isEditingExistingPlan && (
-                <>
-                  <h3 className="text-lg font-semibold border-t pt-4 mt-6">Informações do Cliente para Geração IA</h3>
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="goalPhase"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Objetivo Principal do Cliente</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value || undefined}>
-                            <FormControl>
-                              <SelectTrigger><SelectValue placeholder="Selecione o objetivo do cliente" /></SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="bulking">Bulking (Ganhar Músculo)</SelectItem>
-                              <SelectItem value="cutting">Cutting (Perder Gordura, Preservar Músculo)</SelectItem>
-                              <SelectItem value="maintenance">Manutenção (Manter Físico)</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="trainingExperience"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Experiência de Treino do Cliente</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value || undefined}>
-                            <FormControl>
-                              <SelectTrigger><SelectValue placeholder="Selecione o nível do cliente" /></SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="beginner">Iniciante (&lt;1 ano treinando)</SelectItem>
-                              <SelectItem value="intermediate">Intermediário (1-3 anos treinando)</SelectItem>
-                              <SelectItem value="advanced">Avançado (3+ anos treinando)</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="trainingFrequency"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Dias de Treino por Semana (Cliente)</FormLabel>
+          {/* Formulário de Dados do Cliente (para criação ou edição limitada) */}
+          {!isEditingExistingPlan ? (
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onGenerateSubmit)} className="space-y-6">
+                <h3 className="text-lg font-semibold border-b pb-2">Dados do Profissional e Cliente</h3>
+                <ShadCnCardDescription>Profissional, preencha os dados do seu cliente abaixo. A IA criará um rascunho inicial. Você poderá editá-lo antes de salvar.</ShadCnCardDescription>
+                
+                <div className="grid md:grid-cols-2 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="professionalRole"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Sua Principal Área de Atuação</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || undefined}>
                           <FormControl>
-                            <Input type="number" placeholder="Ex: 3 (2-6 dias)" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} value={field.value || 3} />
+                            <SelectTrigger><SelectValue placeholder="Selecione sua área" /></SelectTrigger>
                           </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="trainingVolumePreference"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Preferência de Volume Semanal (Cliente)</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value || "medium"}>
-                            <FormControl>
-                              <SelectTrigger><SelectValue placeholder="Selecione o volume" /></SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="low">Baixo (10-13 séries/músculo)</SelectItem>
-                              <SelectItem value="medium">Médio (14-17 séries/músculo)</SelectItem>
-                              <SelectItem value="high">Alto (18-20 séries/músculo)</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormDescription>Séries por grupo muscular principal por semana para o cliente.</FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
+                          <SelectContent>
+                            <SelectItem value="physical_educator">Educador Físico (Foco em Treino)</SelectItem>
+                            <SelectItem value="nutritionist">Nutricionista (Foco em Dieta)</SelectItem>
+                            <SelectItem value="both">Ambos (Educador Físico e Nutricionista)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <FormField
                     control={form.control}
-                    name="availableEquipment"
+                    name="professionalRegistration"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Equipamentos Disponíveis para o Cliente</FormLabel>
+                        <FormLabel>Seu Registro Profissional (CREF/CFN)</FormLabel>
+                        <FormControl><Input placeholder="Ex: 012345-G/SP ou CRN-3 12345" {...field} value={field.value || ""} /></FormControl>
+                        <FormDescription>Obrigatório. Será exibido no plano final.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <FormField
+                  control={form.control}
+                  name="clientName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome do Cliente</FormLabel>
+                      <FormControl><Input placeholder="Nome completo do cliente" {...field} value={field.value || ""} /></FormControl>
+                      <FormDescription>Obrigatório. Para identificar o plano.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <h3 className="text-lg font-semibold border-t pt-4 mt-6">Informações do Cliente para Geração IA</h3>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="goalPhase"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Objetivo Principal do Cliente</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || undefined}>
+                          <FormControl>
+                            <SelectTrigger><SelectValue placeholder="Selecione o objetivo do cliente" /></SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="bulking">Bulking (Ganhar Músculo)</SelectItem>
+                            <SelectItem value="cutting">Cutting (Perder Gordura, Preservar Músculo)</SelectItem>
+                            <SelectItem value="maintenance">Manutenção (Manter Físico)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="trainingExperience"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Experiência de Treino do Cliente</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || undefined}>
+                          <FormControl>
+                            <SelectTrigger><SelectValue placeholder="Selecione o nível do cliente" /></SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="beginner">Iniciante (&lt;1 ano treinando)</SelectItem>
+                            <SelectItem value="intermediate">Intermediário (1-3 anos treinando)</SelectItem>
+                            <SelectItem value="advanced">Avançado (3+ anos treinando)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="trainingFrequency"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Dias de Treino por Semana (Cliente)</FormLabel>
                         <FormControl>
-                          <Textarea placeholder="Ex: Academia completa, halteres e banco, peso corporal, elásticos" {...field} value={field.value || ""} rows={2} />
+                          <Input type="number" placeholder="Ex: 3 (2-6 dias)" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} value={field.value || 3} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  
-                  <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="heightCm"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Altura Cliente (cm)</FormLabel>
-                          <FormControl><Input type="number" placeholder="Ex: 180" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))} /></FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="weightKg"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Peso Cliente (kg)</FormLabel>
-                          <FormControl><Input type="number" placeholder="Ex: 75" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} /></FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="age"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Idade Cliente</FormLabel>
-                          <FormControl><Input type="number" placeholder="Ex: 25" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))} /></FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="sex"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Sexo Biológico Cliente</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value ?? "prefer_not_to_say"}>
-                            <FormControl>
-                              <SelectTrigger><SelectValue placeholder="Selecione o sexo" /></SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="male">Masculino</SelectItem>
-                              <SelectItem value="female">Feminino</SelectItem>
-                              <SelectItem value="prefer_not_to_say">Prefiro não dizer</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
                   <FormField
                     control={form.control}
-                    name="dietaryPreferences"
+                    name="trainingVolumePreference"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Preferências/Restrições Alimentares do Cliente</FormLabel>
-                        <FormControl>
-                          <Textarea placeholder="Ex: Vegetariano, sem lactose, alergias, alimentos que não gosta..." {...field} value={field.value ?? ""} rows={3} />
-                        </FormControl>
-                        <FormDescription>Detalhe as preferências do cliente para um plano alimentar mais assertivo.
-                        </FormDescription>
+                        <FormLabel>Preferência de Volume Semanal (Cliente)</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || "medium"}>
+                          <FormControl>
+                            <SelectTrigger><SelectValue placeholder="Selecione o volume" /></SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="low">Baixo (10-13 séries/músculo)</SelectItem>
+                            <SelectItem value="medium">Médio (14-17 séries/músculo)</SelectItem>
+                            <SelectItem value="high">Alto (18-20 séries/músculo)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>Séries por grupo muscular principal por semana para o cliente.</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  <Button type="submit" className="w-full md:w-auto" disabled={isLoadingAi || isSaving}>
-                    {isLoadingAi ? (
-                      <> <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando Rascunho com IA... </>
-                    ) : (
-                      <> <Wand2 className="mr-2 h-4 w-4" /> {(editablePlanDetails || generatedPlanOutput) ? "Gerar Novo Rascunho (Substituirá Edições)" : "Gerar Rascunho com IA"} </>
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="availableEquipment"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Equipamentos Disponíveis para o Cliente</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Ex: Academia completa, halteres e banco, peso corporal, elásticos" {...field} value={field.value || ""} rows={2} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="heightCm"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Altura Cliente (cm)</FormLabel>
+                        <FormControl><Input type="number" placeholder="Ex: 180" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
                     )}
-                  </Button>
-                </>
-              )}
-            </form>
-          </Form>
+                  />
+                  <FormField
+                    control={form.control}
+                    name="weightKg"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Peso Cliente (kg)</FormLabel>
+                        <FormControl><Input type="number" placeholder="Ex: 75" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="age"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Idade Cliente</FormLabel>
+                        <FormControl><Input type="number" placeholder="Ex: 25" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="sex"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Sexo Biológico Cliente</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value ?? "prefer_not_to_say"}>
+                          <FormControl>
+                            <SelectTrigger><SelectValue placeholder="Selecione o sexo" /></SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="male">Masculino</SelectItem>
+                            <SelectItem value="female">Feminino</SelectItem>
+                            <SelectItem value="prefer_not_to_say">Prefiro não dizer</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <FormField
+                  control={form.control}
+                  name="dietaryPreferences"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Preferências/Restrições Alimentares do Cliente</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Ex: Vegetariano, sem lactose, alergias, alimentos que não gosta..." {...field} value={field.value ?? ""} rows={3} />
+                      </FormControl>
+                      <FormDescription>Detalhe as preferências do cliente para um plano alimentar mais assertivo.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full md:w-auto" disabled={isLoadingAi || isSaving}>
+                  {isLoadingAi ? (
+                    <> <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando Rascunho com IA... </>
+                  ) : (
+                    <> <Wand2 className="mr-2 h-4 w-4" /> {(editablePlanDetails || generatedPlanOutput) ? "Gerar Novo Rascunho (Substituirá Edições Atuais)" : "Gerar Rascunho com IA"} </>
+                  )}
+                </Button>
+              </form>
+            </Form>
+          ) : (
+            // Modo de Edição: Exibe alguns dados do cliente e campos para profissional
+            <div className="space-y-6">
+                <div>
+                    <h3 className="text-lg font-semibold border-b pb-2 mb-4">Dados do Profissional e Cliente</h3>
+                    <div className="grid md:grid-cols-2 gap-6 mb-4">
+                        <FormItem>
+                            <FormLabel>Sua Principal Área de Atuação</FormLabel>
+                             <Select onValueChange={(value) => setEditableProfessionalRole(value as any)} value={editableProfessionalRole || undefined}>
+                                <SelectTrigger><SelectValue placeholder="Selecione sua área" /></SelectTrigger>
+                                <SelectContent>
+                                <SelectItem value="physical_educator">Educador Físico (Foco em Treino)</SelectItem>
+                                <SelectItem value="nutritionist">Nutricionista (Foco em Dieta)</SelectItem>
+                                <SelectItem value="both">Ambos (Educador Físico e Nutricionista)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            {!editableProfessionalRole && <p className="text-sm text-destructive mt-1">Campo obrigatório.</p>}
+                        </FormItem>
+                        <FormItem>
+                            <FormLabel>Seu Registro Profissional (CREF/CFN)</FormLabel>
+                            <Input 
+                                placeholder="Ex: 012345-G/SP ou CRN-3 12345" 
+                                value={editableProfessionalRegistration} 
+                                onChange={(e) => setEditableProfessionalRegistration(e.target.value)} 
+                            />
+                            <FormDescription>Obrigatório. Será exibido no plano final.</FormDescription>
+                             {(!editableProfessionalRegistration || editableProfessionalRegistration.trim().length < 3) && <p className="text-sm text-destructive mt-1">Mínimo 3 caracteres.</p>}
+                        </FormItem>
+                    </div>
+                     <FormItem>
+                        <FormLabel>Nome do Cliente</FormLabel>
+                        <Input 
+                            placeholder="Nome completo do cliente" 
+                            value={editableClientName} 
+                            onChange={(e) => setEditableClientName(e.target.value)} 
+                        />
+                        <FormDescription>Obrigatório. Para identificar o plano.</FormDescription>
+                        {(!editableClientName || editableClientName.trim().length < 2) && <p className="text-sm text-destructive mt-1">Mínimo 2 caracteres.</p>}
+                    </FormItem>
+                </div>
+                {initialClientInputs && (
+                    <Card className="bg-muted/30 p-4">
+                        <CardHeader className="p-2 pt-0"><CardTitle className="text-base">Resumo dos Inputs Originais (Não Editável Aqui)</CardTitle></CardHeader>
+                        <CardContent className="p-2 text-sm space-y-1">
+                            <p><strong>Objetivo:</strong> {initialClientInputs.goalPhase}</p>
+                            <p><strong>Experiência:</strong> {initialClientInputs.trainingExperience}</p>
+                            <p><strong>Frequência Treino:</strong> {initialClientInputs.trainingFrequency} dias/semana</p>
+                            <p><strong>Equipamento:</strong> {initialClientInputs.availableEquipment}</p>
+                            {/* Adicionar mais campos se relevante para visualização */}
+                        </CardContent>
+                    </Card>
+                )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {error && !editablePlanDetails && !generatedPlanOutput && ( 
+      {error && !isEditingExistingPlan && !editablePlanDetails && !generatedPlanOutput && ( 
         <Card className="border-destructive bg-destructive/10 shadow-lg">
           <CardHeader>
             <CardTitle className="text-destructive">Erro ao Gerar Rascunho</CardTitle>
@@ -667,17 +723,16 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
         </Card>
       )}
       
-      {(editablePlanDetails || generatedPlanOutput) && ( 
+      {(editablePlanDetails || (isEditingExistingPlan && initialPlanDataToEdit)) && ( 
         <div className="space-y-6 mt-8">
             <Card className="shadow-lg sticky top-20 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
                 <CardHeader>
                     <CardTitle className="text-xl text-primary">
-                    {isEditingExistingPlan && editablePlanDetails ? "Editando Detalhes do Plano de " : "Rascunho do Plano para "}
-                    <span className="font-semibold">{form.getValues('clientName') || 'Cliente'}</span>
+                    Detalhes Editáveis do Plano para: <span className="font-semibold">{isEditingExistingPlan ? editableClientName : form.getValues('clientName') || 'Cliente'}</span>
                     </CardTitle>
                     <ShadCnCardDescription>
-                    Abaixo estão os detalhes {isEditingExistingPlan && editablePlanDetails ? 'atuais' : 'do rascunho'} para o cliente. Revise e edite conforme necessário.
-                    Seu registro profissional ({form.getValues('professionalRegistration') || 'N/A'}) será associado a este plano.
+                    Abaixo estão os detalhes {isEditingExistingPlan ? 'atuais' : 'do rascunho'} para o cliente. Revise e edite conforme necessário.
+                    Seu registro profissional ({isEditingExistingPlan ? editableProfessionalRegistration : form.getValues('professionalRegistration') || 'N/A'}) será associado a este plano.
                     </ShadCnCardDescription>
                 </CardHeader>
                 <CardFooter className="flex flex-col sm:flex-row gap-4">
@@ -762,7 +817,10 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
             {(editablePlanDetails?.dietGuidance || initialPlanDataToEdit?.dietGuidance) && (
                 <Card className="shadow-lg">
                 <CardHeader>
-                    <CardTitle className="flex items-center"><Utensils className="mr-2 h-5 w-5 text-primary" /> Diretrizes de Dieta (Editável - {form.getValues('goalPhase')})</CardTitle>
+                    <CardTitle className="flex items-center">
+                        <Utensils className="mr-2 h-5 w-5 text-primary" /> 
+                        Diretrizes de Dieta (Editável - {isEditingExistingPlan ? initialClientInputs?.goalPhase : form.getValues('goalPhase')})
+                    </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
