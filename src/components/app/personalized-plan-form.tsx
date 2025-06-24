@@ -247,7 +247,9 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
     
     const dataToSave: Omit<ClientPlan, 'id' | 'createdAt' | 'updatedAt'> & { updatedAt: any, createdAt?: any } = {
       planData: planDataContent,
-      originalInputs: finalOriginalInputs,
+      originalInputs: Object.fromEntries(
+        Object.entries(finalOriginalInputs).map(([key, value]) => [key, value === undefined ? null : value])
+      ) as ClientPersonalizedPlanInputValues,
       professionalId: user.id,
       professionalRegistration: finalOriginalInputs.professionalRegistration!,
       clientName: finalOriginalInputs.clientName!,
@@ -723,5 +725,3 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
     </div>
   );
 }
-
-    
