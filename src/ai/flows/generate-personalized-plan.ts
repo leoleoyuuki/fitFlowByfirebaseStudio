@@ -13,7 +13,7 @@ import {z} from 'genkit';
 
 const PersonalizedPlanInputSchema = z.object({
   professionalRole: z.enum(["physical_educator", "nutritionist", "both"], { required_error: "Selecione sua principal área de atuação." })
-    .describe('The professional\'s primary role: physical educator (focus on training), nutritionist (focus on diet), or both. This can tailor the plan emphasis slightly or the language used.'),
+    .describe('The professional\'s primary role: physical educator (focus on training), nutritionist (focus on diet), or both. This will determine the focus and any necessary disclaimers.'),
   professionalRegistration: z.string().optional().describe('The professional\'s registration number (CREF or CFN). Example: "012345-G/SP" or "CFN-9 12345". This will be displayed on the plan but not used by the AI for generation.'),
   goalPhase: z.enum(["bulking", "cutting", "maintenance"], { required_error: "Please select your client's primary goal (bulking, cutting, or maintenance)." })
     .describe('The client’s primary goal: bulking (muscle gain with calorie surplus), cutting (fat loss with calorie deficit while preserving muscle), or maintenance.'),
@@ -103,14 +103,19 @@ const prompt = ai.definePrompt({
   input: {schema: PersonalizedPlanInputSchema},
   output: {schema: PersonalizedPlanOutputSchema},
   prompt: `Você é um assistente especialista em cinesiologia e nutrição, auxiliando um PROFISSIONAL (Educador Físico e/ou Nutricionista) a criar um rascunho inicial de um plano de treino e dieta focado em hipertrofia para o cliente dele.
-Sua tarefa é gerar um plano ESTRUTURADO E DETALHADO em PORTUGUÊS (Brasil), baseado nos dados do cliente fornecidos pelo profissional. Este plano servirá como uma BASE SÓLIDA que o profissional irá REVISAR, AJUSTAR e VALIDAR com seu próprio CREF/CFN.
+Sua tarefa é gerar um plano ESTRUTURADO E DETALHADO em PORTUGUÊS (Brasil), baseado nos dados do cliente fornecidos pelo profissional. Este plano servirá como uma BASE SÓLIDA que o profissional irá REVISAR, AJUSTAR e VALIDAR.
+
+**VERIFIQUE O PAPEL DO PROFISSIONAL ANTES DE TUDO.**
+- Área de Atuação do Profissional: {{{professionalRole}}}
+  - Se 'physical_educator', a seção de dieta DEVE conter um aviso legal.
+  - Se 'nutritionist', a seção de treino é uma sugestão.
+  - Se 'both', ambas as seções são para revisão profissional.
 
 Dados do Cliente (fornecidos pelo profissional):
-- Área de Atuação do Profissional: {{{professionalRole}}} (physical_educator = Educador Físico, nutritionist = Nutricionista, both = Ambos)
-- Objetivo Principal do Cliente: {{{goalPhase}}} (bulking = superávit calórico para ganho de músculo; cutting = déficit calórico para perda de gordura preservando músculo; maintenance = manter físico atual)
+- Objetivo Principal do Cliente: {{{goalPhase}}}
 - Experiência de Treino do Cliente: {{{trainingExperience}}}
 - Frequência de Treino Semanal do Cliente: {{{trainingFrequency}}} dias
-- Preferência de Volume Semanal do Cliente: {{{trainingVolumePreference}}} (baixo: 10-13 séries/músculo/semana; médio: 14-17; alto: 18-20)
+- Preferência de Volume Semanal do Cliente: {{{trainingVolumePreference}}}
 - Equipamentos Disponíveis para o Cliente: {{{availableEquipment}}}
 - Altura (cm): {{#if heightCm}}{{{heightCm}}}{{else}}Não Fornecido{{/if}}
 - Peso (kg): {{#if weightKg}}{{{weightKg}}}{{else}}Não Fornecido{{/if}}
@@ -121,45 +126,20 @@ Dados do Cliente (fornecidos pelo profissional):
 Instruções para Geração do Rascunho do Plano (TODO O TEXTO DE SAÍDA DEVE ESTAR EM PORTUGUÊS - BRASIL):
 
 1.  **Rascunho do Plano de Treino:**
-    *   **Divisão Semanal:** Baseado na 'Frequência de Treino', desenhe uma divisão semanal apropriada. TODOS os principais grupos musculares (Peito, Costas, Ombros, Pernas (Quadríceps, Isquiotibiais, Glúteos, Panturrilhas), Bíceps, Tríceps) devem ser treinados.
-        *   2 dias/semana: Corpo Inteiro A / Corpo Inteiro B.
-        *   3 dias/semana: Corpo Inteiro A / B / C OU Empurrar / Puxar / Pernas.
-        *   4 dias/semana: Superior / Inferior / Descanso / Superior / Inferior.
-        *   5 dias/semana: Superior / Inferior / Empurrar / Puxar / Pernas (ou similar, ex: PPLUL).
-        *   6 dias/semana: Empurrar / Puxar / Pernas / Empurrar / Puxar / Pernas.
-    *   Indique claramente a divisão usada em 'weeklySplitDescription'.
-    *   **Volume:** Distribua as séries semanais por grupo muscular conforme 'Preferência de Volume'. Ex: se 'alto' (18-20 séries) para peito, distribua 18-20 séries totais para peito nos treinos da semana. Resuma em 'weeklyVolumeSummary'.
-    *   **Treinos Diários:** Para cada dia de treino:
-        *   Liste exercícios com séries e repetições específicas (ex: 6-10 para compostos, 10-15 para isolados). Priorize compostos. Nomes de exercícios em Português (ex: "Supino Reto").
-        *   Selecione exercícios conforme 'Equipamentos Disponíveis' e 'Experiência de Treino'.
-        *   Inclua tempos de descanso RECOMENDADOS EM SEGUNDOS (entre 120 a 300 segundos, para garantir 2-5 minutos de descanso). NÃO inclua tempo/cadência de exercício.
-        *   Forneça notas breves se útil (ex: 'Foco na forma correta').
-    *   **Notas Gerais do Treino:** Inclua conselhos sobre sobrecarga progressiva (ex: "Lembrar o cliente de buscar aumentar peso ou repetições, mantendo boa forma").
+    *   Baseie-se em todos os dados do cliente para criar um plano de treino detalhado e científico. Se a função do profissional for 'nutritionist', o plano de treino ainda deve ser completo, mas é entendido como uma sugestão para o cliente ou para colaboração com um educador físico.
 
 2.  **Rascunho das Diretrizes de Dieta:**
-    *   **Macros & Calorias:** Baseado em goalPhase e dados do cliente (se fornecidos), estime necessidades calóricas diárias.
-        *   Bulking: Superávit moderado (+250-500 kcal).
-        *   Cutting: Déficit moderado (-250-500 kcal).
-        *   Maintenance: Calorias para manter peso.
-    *   Calcule metas de macronutrientes (proteína, carboidratos, gordura) em gramas. Proteína: 1.6-2.2g/kg. Gordura: 20-30% das calorias totais. Carboidratos: Restante.
-    *   **Planos de Refeições Diárias:** Estruture um dia típico com 5 refeições: 'Café da Manhã', 'Lanche da Manhã', 'Almoço', 'Lanche da Tarde', 'Jantar'.
-        *   Para 'Café da Manhã', 'Almoço', 'Jantar', forneça 3 opções de refeição distintas.
-        *   Para 'Lanche da Manhã', 'Lanche da Tarde', 1-2 opções.
-        *   Cada opção deve listar itens alimentares específicos e suas **quantidades em gramas (g) ou unidades caseiras comuns em Português** (ex: "Peito de frango grelhado - 150g", "Banana - 1 unidade média"). A soma das calorias/macros deve se aproximar das metas diárias.
-        *   Priorize alimentos comuns no Brasil. Exemplos:
-            *   Proteínas: Frango, Ovos, Peixe, Carne magra, Iogurte, Whey.
-            *   Carboidratos: Arroz, Feijão, Batata doce, Mandioca, Aveia, Pão integral, Frutas.
-            *   Gorduras: Abacate, Azeite, Castanhas, Sementes, Pasta de amendoim.
-        *   Considere 'Preferências/Restrições Alimentares'.
-    *   **Notas Gerais da Dieta:** Inclua dicas sobre hidratação, alimentos integrais, fibras. Enfatize que são SUGESTÕES para o profissional adaptar.
+    *   **MUITO IMPORTANTE:** Se o papel do profissional ('professionalRole') for 'physical_educator', a orientação dietética é estritamente SUGESTIVA e EDUCACIONAL. Neste caso, você DEVE obrigatoriamente adicionar o seguinte texto no início do campo 'notes' de 'dietGuidance': "AVISO IMPORTANTE: Estas são sugestões alimentares com fins educacionais, baseadas em diretrizes gerais. Um plano alimentar individualizado e com caráter de prescrição dietética deve ser elaborado por um Nutricionista licenciado. Este material não substitui a consulta com um Nutricionista."
+    *   Se o papel for 'nutritionist' ou 'both', gere as diretrizes de dieta normalmente para revisão profissional.
+    *   **Macros & Calorias:** Baseado em goalPhase e dados do cliente, estime necessidades calóricas e metas de macronutrientes.
+    *   **Planos de Refeições Diárias:** Estruture 5 refeições (Café da Manhã, Lanche, Almoço, Lanche, Jantar) com múltiplas opções, detalhando alimentos e quantidades em gramas ou medidas caseiras. Priorize alimentos comuns no Brasil.
+    *   **Notas Gerais da Dieta:** Adicione dicas sobre hidratação e qualidade dos alimentos. Para 'nutritionist' e 'both', enfatize que são sugestões para o profissional adaptar.
 
 3.  **Resumo Geral:**
     *   Escreva um breve resumo (2-3 frases) do plano e recomendações chave, em Português, para o profissional.
 
-**Formato de Saída:**
-Sua resposta DEVE seguir estritamente o schema JSON definido para PersonalizedPlanOutputSchema.
-Mantenha um tom profissional e baseado em ciência. O resultado é um RASCUNHO para o profissional.
-Todo o texto de saída deve estar em PORTUGUÊS (Brasil).
+Formato de Saída:
+Sua resposta DEVE seguir estritamente o schema JSON definido para PersonalizedPlanOutputSchema. Todo o texto de saída deve estar em PORTUGUÊS (Brasil).
 `,
 });
 
