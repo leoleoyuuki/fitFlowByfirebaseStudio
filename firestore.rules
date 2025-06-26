@@ -1,46 +1,29 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper function to check if a user is signed in.
-    function isSignedIn() {
-      return request.auth.uid != null;
-    }
-
-    // /users/{userId}
-    // Users can only read and update their own profile.
-    // Creation is allowed if the new document ID matches the user's auth UID.
-    // Deletion from the client is disallowed.
+    // Professionals (users) can only read and modify their own user profile.
     match /users/{userId} {
-      allow read, update: if isSignedIn() && request.auth.uid == userId;
-      allow create: if isSignedIn() && request.auth.uid == userId;
-      allow delete: if false;
+      allow read, update, delete: if request.auth.uid == userId;
+      // A professional can only create their own user document upon signup.
+      allow create: if request.auth.uid == userId;
     }
 
-    // /userGeneratedPlans/{userId}/plans/{planId}
-    // A professional can only read and write (create, update, delete) plans
-    // that are stored under their own user ID in the path.
-    match /userGeneratedPlans/{userId}/plans/{planId} {
-      allow read, write: if isSignedIn() && request.auth.uid == userId;
+    // A professional can only read/write the client plans they have generated.
+    // The plans are stored in a subcollection under their own unique professional ID.
+    match /userGeneratedPlans/{professionalId}/plans/{planId} {
+      allow read, write: if request.auth.uid == professionalId;
     }
-
-    // /userProgressLogs/{logId}
-    // Security is based on the `userId` field within each document.
+    
+    // A professional can only manage progress logs associated with their account.
+    // The 'userId' field in the document must match the logged-in professional's UID.
     match /userProgressLogs/{logId} {
-      // Allow a user to get a specific log document if they are the owner.
-      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      // A professional can create a log if the log's userId is their own UID.
+      allow create: if request.auth.uid == request.resource.data.userId;
 
-      // Allow a user to list/query logs ONLY if the query explicitly filters
-      // for their own userId. This prevents listing all logs in the database.
-      allow list: if isSignedIn() && request.query.where.get('userId', '') == request.auth.uid;
-
-      // Allow a user to create a new log if the `userId` in the new data matches their auth UID.
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-
-      // Allow a user to update or delete a log if they are the owner of the existing document.
-      allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      // A professional can read, update, or delete a log if they are the owner.
+      allow read, update, delete: if request.auth.uid == resource.data.userId;
     }
   }
 }
