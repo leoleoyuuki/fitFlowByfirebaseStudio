@@ -5,8 +5,8 @@ import { Dumbbell, Zap, Heart, Target, Brain, User, Settings, LayoutDashboard, B
 export const APP_NAME = "FitFlow Pro"; // Nome alterado para B2B
 
 export const mainNavItems: NavItem[] = [
-  { title: "Para Profissionais", href: "/#features" },
-  { title: "Assinatura Pro", href: "/subscribe" },
+  { title: "Para Academias", href: "/#features" },
+  { title: "Assinatura", href: "/subscribe" },
 ];
 
 export const dashboardNavItems: NavItem[] = [
@@ -61,19 +61,19 @@ export const MOCK_EXERCISES: Exercise[] = [
 
 export const MOCK_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   { 
-    id: "hypertrophy", // Manter 'hypertrophy' como ID interno, mas o nome e descrição mudam
-    name: "FitFlow Pro para Profissionais", 
-    price: "R$297,90/mês", // Novo preço B2B
+    id: "hypertrophy",
+    name: "Plano para Academias", 
+    price: "R$297,90/mês",
     features: [
-      "Geração de Planos Base (Treino e Dieta) com IA para seus clientes",
-      "Ferramentas para Editar e Personalizar planos gerados pela IA",
-      "Campo para adicionar seu CREF/CFN aos planos",
-      "Salve e gerencie múltiplos planos de clientes",
-      "Biblioteca completa de exercícios com detalhes",
-      "Futuramente: Exportação de planos para PDF e gestão de clientes",
-      "Suporte prioritário e atualizações contínuas"
+      "Geração de planos de treino ilimitados para alunos",
+      "Ferramenta de edição para personalização pelos instrutores",
+      "Adicione o logo e o nome da sua academia nos planos (Em breve)",
+      "Painel para múltiplos instrutores (Em breve)",
+      "Biblioteca de exercícios para padronização da prescrição",
+      "Aumente a retenção e a percepção de valor dos seus alunos",
+      "Suporte prioritário para sua equipe"
     ], 
-    stripePriceId: "price_B2B_PLAN_ID_REPLACE_ME" // **NECESSÁRIO CRIAR ESTE NOVO PREÇO NO STRIPE**
+    stripePriceId: "price_B2B_PLAN_ID_REPLACE_ME"
   },
 ];
 
@@ -83,5 +83,3 @@ export const MOCK_PROGRESS_LOGS: ProgressLog[] = [
   { id: "log3", date: new Date(2024, 6, 22).toISOString(), exerciseId: "1", exerciseName: "Agachamento Livre com Barra", sets: 4, reps: 8, weight: 102.5, userId: "mockUser" },
   { id: "log5", date: new Date(2024, 6, 24).toISOString(), exerciseId: "10", exerciseName: "Remada Curvada", sets: 3, reps: 12, weight: 60, userId: "mockUser" },
 ];
-
-    

@@ -18,8 +18,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: `${APP_NAME}: Otimize Tempo na Criação de Planos Fitness e Nutricionais`,
-  description: `${APP_NAME} é a ferramenta IA para personal trainers e nutricionistas economizarem tempo na criação de planos de treino e dieta, focando mais nos clientes.`,
+  title: `FitFlow Pro | Otimize a Entrega de Planos de Treino na sua Academia`,
+  description: `A ferramenta de IA para academias que desejam agilizar a prescrição de treinos, padronizar a qualidade e aumentar a retenção de alunos. Entregue valor desde o primeiro dia.`,
 };
 
 export default function RootLayout({

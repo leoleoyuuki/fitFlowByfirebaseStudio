@@ -8,7 +8,7 @@ import 'aos/dist/aos.css';
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardFooter, CardTitle } from "@/components/ui/card";
-import { Brain, UserCheck, Clock, Utensils, CheckCircle, TrendingUp, Target, Zap } from "lucide-react";
+import { Brain, UserCheck, Clock, CheckCircle, TrendingUp, Target, Zap, Group } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { APP_NAME } from '@/lib/constants';
@@ -26,23 +26,23 @@ export default function HomePage() {
   const features = [
     {
       icon: <Brain className="h-8 w-8 text-primary" />,
-      title: "Planos Base Instantâneos com IA",
-      description: "Chega de começar do zero! Gere rascunhos completos de treino e dieta em segundos. Nossa IA cria uma base sólida e científica, otimizando seu fluxo de trabalho.",
+      title: "Retenção Máxima desde o Dia 1",
+      description: "Entregue um plano de treino completo e profissional na primeira visita do aluno. Uma experiência de onboarding que impressiona e fideliza.",
     },
     {
       icon: <UserCheck className="h-8 w-8 text-primary" />,
-      title: "Controle Total e Personalização Profissional",
-      description: "A IA é sua aliada, não sua substituta. Edite cada detalhe, incorpore sua expertise, adicione seu CREF/CFN e ajuste o plano para a individualidade de cada cliente.",
+      title: "Padrão de Qualidade Elevado",
+      description: "Garanta que todos os instrutores prescrevam treinos com a mesma base científica de alta qualidade. A IA cria a base, seu time personaliza.",
     },
     {
       icon: <Clock className="h-8 w-8 text-primary" />,
-      title: "Mais Tempo para Seus Clientes, Menos Tempo Planejando",
-      description: "Liberte-se das horas gastas em planilhas. Com FitFlow Pro, você dedica mais tempo ao acompanhamento personalizado, feedback e ao relacionamento com seus clientes.",
+      title: "Instrutores Livres para Engajar",
+      description: "Reduza drasticamente o tempo gasto com planilhas. Libere seus instrutores para focar em vendas de personal, aulas e no atendimento de excelência no salão.",
     },
     {
-      icon: <Utensils className="h-8 w-8 text-primary" />,
-      title: "Sua Biblioteca de Exercícios Inteligente",
-      description: "Consulte rapidamente uma vasta biblioteca de exercícios com instruções detalhadas, agilizando a prescrição e garantindo clareza para seus clientes.",
+      icon: <Group className="h-8 w-8 text-primary" />,
+      title: "Experiência do Aluno Aprimorada",
+      description: "Ofereça um diferencial competitivo com tecnologia de ponta, melhorando a percepção de valor da sua academia e a satisfação dos seus membros.",
     },
   ];
 
@@ -55,21 +55,21 @@ export default function HomePage() {
           <div className="container mx-auto px-4 text-center">
             <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl">
               <span className="block text-primary" data-aos="fade-up" data-aos-delay="100">
-                Bem-vindo ao {APP_NAME}:
+                Sua Academia na Frente da Concorrência.
               </span>
               <span className="mt-2 block text-foreground sm:mt-3" data-aos="fade-up" data-aos-delay="200">
-                Sua Rotina Otimizada, Seus Clientes Satisfeitos.
+                Planos de Treino Instantâneos para Cada Novo Aluno.
               </span>
             </h1>
             <p className="mt-6 max-w-3xl mx-auto text-lg text-muted-foreground sm:text-xl" data-aos="fade-up" data-aos-delay="300">
-              Profissional de Educação Física ou Nutrição? Reduza drasticamente o tempo gasto na criação de planos de treino e dieta. Com {APP_NAME}, você usa a inteligência artificial como seu assistente para elaborar bases científicas rapidamente, liberando mais tempo para o que realmente importa: seus clientes.
+              Chega de perder alunos no primeiro mês. Com {APP_NAME}, seus instrutores geram planos de treino de alta qualidade em segundos, garantindo uma experiência fantástica desde o primeiro dia e aumentando a retenção.
             </p>
             <div className="mt-10 flex flex-col items-center space-y-4 sm:flex-row sm:justify-center sm:space-y-0 sm:space-x-4" data-aos="fade-up" data-aos-delay="400" data-aos-anchor-placement="top-bottom">
               <Button asChild size="lg" className="text-lg px-8 py-6 w-full sm:w-auto">
-                <Link href="/signup">Cadastre-se e Otimize Já</Link>
+                <Link href="/signup">Otimize sua Academia Agora</Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="text-lg px-8 py-6 w-full sm:w-auto">
-                <Link href="/#features">Descubra Como</Link>
+                <Link href="/#features">Veja como Funciona</Link>
               </Button>
             </div>
           </div>
@@ -79,7 +79,7 @@ export default function HomePage() {
         <section id="features" className="py-16 md:py-24 bg-background">
           <div className="container mx-auto px-4">
             <h2 className="text-3xl font-bold text-center mb-12 text-foreground" data-aos="fade-down">
-              Transforme Sua Rotina Profissional com Eficiência
+              Uma Ferramenta, Múltiplos Benefícios para sua Academia
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {features.map((feature, index) => (
@@ -105,16 +105,16 @@ export default function HomePage() {
         <section className="py-16 md:py-24 bg-primary/5">
             <div className="container mx-auto px-4">
                 <div className="text-center mb-12" data-aos="fade-down">
-                    <h2 className="text-3xl font-bold text-foreground">Sua Nova Ferramenta para Máxima Eficiência</h2>
+                    <h2 className="text-3xl font-bold text-foreground">Acelere o Onboarding, Não a Qualidade</h2>
                     <p className="mt-4 text-lg text-muted-foreground max-w-3xl mx-auto" data-aos-delay="100">
-                        {APP_NAME} usa IA para acelerar a parte demorada da criação de planos. Você recebe uma base robusta e científica, economizando horas para que possa aplicar seu conhecimento único e refinar cada plano com perfeição.
+                        {APP_NAME} usa IA para eliminar a espera na criação de planos. Sua equipe recebe uma base científica e robusta em segundos, liberando tempo para aplicar seu conhecimento único e refinar cada plano com perfeição.
                     </p>
                 </div>
                 <div className="grid md:grid-cols-3 gap-8 text-center">
                     {[
-                        { icon: <TrendingUp className="h-10 w-10 text-primary mx-auto" />, title: "Base Científica Sólida e Rápida", description: "Planos iniciais considerando sobrecarga progressiva, volume e seleção de exercícios, tudo em segundos." },
-                        { icon: <UserCheck className="h-10 w-10 text-primary mx-auto" />, title: "Seu Toque Profissional Essencial", description: "Ajuste cada detalhe, adicione suas observações e seu registro profissional (CREF/CFN) aos planos gerados." },
-                        { icon: <Target className="h-10 w-10 text-primary mx-auto" />, title: "Foco Total no Cliente", description: "Dedique mais tempo ao acompanhamento individualizado e à evolução dos seus clientes, não à papelada." }
+                        { icon: <TrendingUp className="h-10 w-10 text-primary mx-auto" />, title: "Base Científica Instantânea", description: "Planos iniciais considerando sobrecarga progressiva, volume e seleção de exercícios, tudo em segundos." },
+                        { icon: <UserCheck className="h-10 w-10 text-primary mx-auto" />, title: "Personalização da sua Equipe", description: "Seus instrutores ajustam cada detalhe, aplicando a expertise da sua marca a cada plano gerado." },
+                        { icon: <Target className="h-10 w-10 text-primary mx-auto" />, title: "Foco Total no Aluno", description: "Mais tempo para acompanhamento individualizado, engajamento no salão e construção de um relacionamento duradouro." }
                     ].map((item, index) => (
                          <div 
                             key={item.title} 
@@ -134,16 +134,16 @@ export default function HomePage() {
         <section id="pricing" className="py-16 md:py-24 bg-background">
           <div className="container mx-auto px-4">
             <h2 className="text-3xl font-bold text-center mb-4 text-foreground" data-aos="fade-down" data-aos-delay="100">
-              Invista na Sua Produtividade e Resultados
+              Um Investimento Inteligente na Sua Academia
             </h2>
             <p className="text-lg text-muted-foreground text-center mb-12 max-w-xl mx-auto" data-aos="fade-down" data-aos-delay="200">
-              Acesso total à plataforma {APP_NAME} para otimizar seu trabalho e entregar mais valor aos seus clientes.
+              Aumente a retenção de alunos e a eficiência da sua equipe com um único plano.
             </p>
             <div className="flex justify-center">
               <Card className="w-full max-w-md shadow-xl border-2 border-primary ring-4 ring-primary/20" data-aos="zoom-in" data-aos-duration="1000" data-aos-delay="300">
                 <CardHeader className="text-center items-center">
                   <Zap className="h-10 w-10 text-primary mb-3" />
-                  <CardTitle className="text-2xl font-semibold text-primary">Plano {APP_NAME}</CardTitle>
+                  <CardTitle className="text-2xl font-semibold text-primary">Plano para Academias</CardTitle>
                 </CardHeader>
                 <CardContent className="text-center">
                   <p className="text-5xl font-extrabold text-foreground mb-2">
@@ -153,17 +153,18 @@ export default function HomePage() {
                     Cancele quando quiser. Sem contratos de fidelidade.
                   </p>
                   <ul className="space-y-2 text-sm text-muted-foreground mb-6 list-none text-left">
-                    <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Geração IA Rápida de Planos Base (Treino e Dieta)</li>
-                    <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Ferramentas Completas de Edição e Personalização</li>
-                    <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Adição de CREF/CFN e Logo aos Planos (Em breve)</li>
-                    <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Gestão de Múltiplos Planos de Clientes</li>
-                    <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Biblioteca Completa de Exercícios com Vídeos</li>
-                    <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Suporte Prioritário</li>
+                    <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Geração de planos de treino ilimitados para alunos</li>
+                    <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Ferramenta de edição para personalização pelos instrutores</li>
+                    <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Adicione o logo e o nome da sua academia nos planos (Em breve)</li>
+                    <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Painel para múltiplos instrutores (Em breve)</li>
+                    <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Biblioteca de exercícios para padronização da prescrição</li>
+                    <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Aumente a retenção e a percepção de valor dos seus alunos</li>
+                    <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Suporte prioritário para sua equipe</li>
                   </ul>
                 </CardContent>
                 <CardFooter className="flex-col space-y-4 p-6 pt-0">
                    <Button asChild size="lg" className="w-full text-lg px-8 py-6">
-                    <Link href="/subscribe">Assine Agora e Transforme Sua Prática</Link>
+                    <Link href="/subscribe">Assine e Modernize sua Academia</Link>
                   </Button>
                 </CardFooter>
               </Card>
@@ -173,12 +174,12 @@ export default function HomePage() {
 
         <section className="py-16 md:py-24 bg-primary/10">
           <div className="container mx-auto px-4 text-center">
-            <h2 className="text-3xl font-bold text-foreground mb-6" data-aos="fade-up" data-aos-delay="100">Recupere Seu Tempo e Eleve Seus Serviços!</h2>
+            <h2 className="text-3xl font-bold text-foreground mb-6" data-aos="fade-up" data-aos-delay="100">Transforme a Experiência do Aluno e a Produtividade da sua Equipe!</h2>
             <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto" data-aos="fade-up" data-aos-delay="200">
-              Experimente como {APP_NAME} pode transformar a maneira como você cria planos de treino e dieta, tornando seu trabalho mais eficiente e permitindo que você se concentre no sucesso dos seus clientes.
+              Experimente como {APP_NAME} pode revolucionar o onboarding da sua academia, fidelizar mais alunos e liberar o potencial da sua equipe de instrutores.
             </p>
             <Button asChild size="lg" className="text-lg px-8 py-6" data-aos="zoom-in" data-aos-delay="300">
-              <Link href="/signup">Quero Otimizar Meu Tempo Agora</Link>
+              <Link href="/signup">Quero Otimizar Minha Academia</Link>
             </Button>
           </div>
         </section>
@@ -186,7 +187,7 @@ export default function HomePage() {
 
       <footer className="py-8 bg-background border-t">
         <div className="container mx-auto px-4 text-center text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} {APP_NAME}. Menos tempo planejando, mais tempo com seus clientes.</p>
+          <p>&copy; {new Date().getFullYear()} {APP_NAME}. Menos espera, mais resultados para sua academia.</p>
         </div>
       </footer>
     </div>
