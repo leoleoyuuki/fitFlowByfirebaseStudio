@@ -37,7 +37,7 @@ export default function HomePage() {
     {
       icon: <Clock className="h-8 w-8 text-primary" />,
       title: "Instrutores Livres para Engajar",
-      description: "Reduza drasticamente o tempo gasto com planilhas. Libere seus instrutores para focar em vendas de personal, aulas e no atendimento de excelência no salão.",
+      description: "Reduza drastically o tempo gasto com planilhas. Libere seus instrutores para focar em vendas de personal, aulas e no atendimento de excelência no salão.",
     },
     {
       icon: <Group className="h-8 w-8 text-primary" />,
@@ -147,7 +147,7 @@ export default function HomePage() {
                 </CardHeader>
                 <CardContent className="text-center">
                   <p className="text-5xl font-extrabold text-foreground mb-2">
-                    R$297,90<span className="text-xl font-normal text-muted-foreground">/mês</span>
+                    R$99,90<span className="text-xl font-normal text-muted-foreground">/mês</span>
                   </p>
                   <p className="text-sm text-muted-foreground mb-6">
                     Cancele quando quiser. Sem contratos de fidelidade.
@@ -155,8 +155,6 @@ export default function HomePage() {
                   <ul className="space-y-2 text-sm text-muted-foreground mb-6 list-none text-left">
                     <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Geração de planos de treino ilimitados para alunos</li>
                     <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Ferramenta de edição para personalização pelos instrutores</li>
-                    <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Adicione o logo e o nome da sua academia nos planos (Em breve)</li>
-                    <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Painel para múltiplos instrutores (Em breve)</li>
                     <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Biblioteca de exercícios para padronização da prescrição</li>
                     <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Aumente a retenção e a percepção de valor dos seus alunos</li>
                     <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Suporte prioritário para sua equipe</li>
@@ -193,3 +191,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    

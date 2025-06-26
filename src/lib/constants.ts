@@ -63,12 +63,10 @@ export const MOCK_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   { 
     id: "hypertrophy",
     name: "Plano para Academias", 
-    price: "R$297,90/mês",
+    price: "R$99,90/mês",
     features: [
       "Geração de planos de treino ilimitados para alunos",
       "Ferramenta de edição para personalização pelos instrutores",
-      "Adicione o logo e o nome da sua academia nos planos (Em breve)",
-      "Painel para múltiplos instrutores (Em breve)",
       "Biblioteca de exercícios para padronização da prescrição",
       "Aumente a retenção e a percepção de valor dos seus alunos",
       "Suporte prioritário para sua equipe"
@@ -83,3 +81,5 @@ export const MOCK_PROGRESS_LOGS: ProgressLog[] = [
   { id: "log3", date: new Date(2024, 6, 22).toISOString(), exerciseId: "1", exerciseName: "Agachamento Livre com Barra", sets: 4, reps: 8, weight: 102.5, userId: "mockUser" },
   { id: "log5", date: new Date(2024, 6, 24).toISOString(), exerciseId: "10", exerciseName: "Remada Curvada", sets: 3, reps: 12, weight: 60, userId: "mockUser" },
 ];
+
+    
