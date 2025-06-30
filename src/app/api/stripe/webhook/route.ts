@@ -42,7 +42,6 @@ async function updateUserSubscriptionInDb(
 }
 
 // Helper function to find user by Stripe Customer ID
-// In a real app, you might want to index the 'stripeCustomerId' field in Firestore for efficiency.
 async function findUserByStripeCustomerId(stripeCustomerId: string): Promise<UserProfile | null> {
     const usersRef = collection(db, 'users');
     const q = query(usersRef, where("stripeCustomerId", "==", stripeCustomerId));
@@ -75,13 +74,9 @@ export async function POST(req: NextRequest) {
   let event: Stripe.Event;
 
   try {
-    console.log('Attempting to construct Stripe event...');
-    console.log(`Stripe-Signature header received: ${signature ? 'Yes (length: ' + signature.length + ')' : 'No'}`);
-    console.log(`Webhook secret loaded from .env: ${webhookSecret ? 'Yes' : 'No'}`);
     event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
-    console.log('Stripe event constructed successfully. Type:', event.type);
   } catch (err: any) {
-    console.error(`Stripe Webhook Signature Verification Failed: ${err.message}. \n>>> IMPORTANT: This usually means the STRIPE_WEBHOOK_SECRET environment variable on your server (e.g., Vercel) does not match the 'Signing secret' for the LIVE webhook endpoint in your Stripe Dashboard. \n1. Go to your Stripe Dashboard > Developers > Webhooks. \n2. Select the webhook endpoint configured for your Vercel deployment. Ensure it's set to receive LIVE events. \n3. Reveal and copy the 'Signing secret' (it starts with 'whsec_...'). \n4. Update the STRIPE_WEBHOOK_SECRET environment variable in Vercel (or your server's .env file) with this live secret. \n5. Redeploy your application if changes were made to environment variables.`);
+    console.error(`Stripe Webhook Signature Verification Failed: ${err.message}. \n>>> IMPORTANT: This usually means the STRIPE_WEBHOOK_SECRET environment variable on your server (e.g., Vercel) does not match the 'Signing secret' for the LIVE webhook endpoint in your Stripe Dashboard. Please check and update the variable.`);
     return createCorsResponse({ error: `Webhook Signature Verification Error: ${err.message}` }, 400);
   }
 
@@ -95,26 +90,53 @@ export async function POST(req: NextRequest) {
         const subscriptionId = typeof session.subscription === 'string' ? session.subscription : null;
         const customerId = typeof session.customer === 'string' ? session.customer : null;
         
-        console.log(`Checkout session completed for user ID: ${userId}`);
-        console.log(`Subscription ID: ${subscriptionId}, Customer ID: ${customerId}`);
+        console.log(`Checkout session completed for user ID: ${userId}. Linking with Customer ID: ${customerId}`);
 
-        if (userId && subscriptionId && customerId) {
-          const plan = MOCK_SUBSCRIPTION_PLANS.find(p => p.stripePriceId === session.line_items?.data[0]?.price?.id || p.id === 'hypertrophy'); // Try to match by price ID or default to hypertrophy
-          if (plan) {
-              await updateUserSubscriptionInDb(userId, {
-                  stripeSubscriptionId: subscriptionId,
-                  stripeCustomerId: customerId,
-                  subscriptionTier: plan.id as 'free' | 'hypertrophy',
-                  subscriptionStatus: 'active',
-              });
-          } else {
-              console.error(`Plan details not found for session ${session.id} or default plan 'hypertrophy' missing price ID.`);
-          }
+        // The primary job of this event is to create the link between our user and Stripe's customer.
+        if (userId && customerId && subscriptionId) {
+            await updateUserSubscriptionInDb(userId, {
+                stripeCustomerId: customerId,
+                stripeSubscriptionId: subscriptionId,
+            });
         } else {
-          console.error('Checkout session completed but missing userId, subscriptionId, or customerId.', session);
+          console.error('Checkout session completed but missing critical info to link user.', { userId, customerId, subscriptionId });
         }
         break;
 
+      case 'invoice.payment_succeeded':
+        const invoice = event.data.object as Stripe.Invoice;
+        const subIdForInvoice = typeof invoice.subscription === 'string' ? invoice.subscription : null;
+        const customerIdForInvoice = typeof invoice.customer === 'string' ? invoice.customer : null;
+
+        console.log(`Invoice payment succeeded for customer: ${customerIdForInvoice}, subscription: ${subIdForInvoice}`);
+        
+        // This is the reliable event for provisioning access (for new subscriptions and renewals).
+        if (customerIdForInvoice && subIdForInvoice) {
+           const user = await findUserByStripeCustomerId(customerIdForInvoice);
+           if (user && user.id) {
+               const lineItem = invoice.lines.data[0];
+               if (!lineItem || !lineItem.price) {
+                 console.error(`Invoice ${invoice.id} for customer ${customerIdForInvoice} has no line items or price.`);
+                 break;
+               }
+               const priceId = lineItem.price.id;
+               const plan = MOCK_SUBSCRIPTION_PLANS.find(p => p.stripePriceId === priceId);
+               
+               if (plan) {
+                    await updateUserSubscriptionInDb(user.id, {
+                        stripeSubscriptionId: subIdForInvoice,
+                        subscriptionTier: plan.id as 'free' | 'hypertrophy', 
+                        subscriptionStatus: 'active',
+                    });
+               } else {
+                   console.error(`Could not find a plan in MOCK_SUBSCRIPTION_PLANS matching priceId ${priceId} from invoice ${invoice.id}.`);
+               }
+           } else {
+               console.error("Could not find user for invoice payment succeeded by customer ID:", customerIdForInvoice);
+           }
+        }
+        break;
+        
       case 'customer.subscription.updated':
         const updatedSubscription = event.data.object as Stripe.Subscription;
         console.log(`Subscription updated: ${updatedSubscription.id} for customer ${updatedSubscription.customer}, status: ${updatedSubscription.status}`);
@@ -124,7 +146,6 @@ export async function POST(req: NextRequest) {
             await updateUserSubscriptionInDb(userToUpdate.id, {
               stripeSubscriptionId: updatedSubscription.id,
               subscriptionStatus: updatedSubscription.status as 'active' | 'canceled' | 'past_due' | 'incomplete',
-              // subscriptionTier: 'hypertrophy' // Determine from plan items if needed
             });
           } else {
             console.error("Could not find user for subscription update by customer ID:", updatedSubscription.customer);
@@ -148,29 +169,6 @@ export async function POST(req: NextRequest) {
           }
         }
         break;
-        
-      case 'invoice.payment_succeeded':
-        const invoice = event.data.object as Stripe.Invoice;
-        const subIdForInvoice = typeof invoice.subscription === 'string' ? invoice.subscription : null;
-        const customerIdForInvoice = typeof invoice.customer === 'string' ? invoice.customer : null;
-
-        console.log(`Invoice payment succeeded for customer: ${customerIdForInvoice}, subscription: ${subIdForInvoice}`);
-        if (customerIdForInvoice && subIdForInvoice) {
-           const user = await findUserByStripeCustomerId(customerIdForInvoice);
-           if (user && user.id) {
-               // Determine plan based on subscription items if possible, or default
-               const plan = MOCK_SUBSCRIPTION_PLANS.find(p => p.id === 'hypertrophy'); // Or more complex logic
-               await updateUserSubscriptionInDb(user.id, {
-                    stripeSubscriptionId: subIdForInvoice,
-                    stripeCustomerId: customerIdForInvoice,
-                    subscriptionTier: plan ? plan.id as 'free' | 'hypertrophy' : 'hypertrophy', 
-                    subscriptionStatus: 'active',
-               });
-           } else {
-               console.error("Could not find user for invoice payment succeeded by customer ID:", customerIdForInvoice);
-           }
-        }
-        break;
 
       case 'invoice.payment_failed':
         const failedInvoice = event.data.object as Stripe.Invoice;
@@ -178,12 +176,10 @@ export async function POST(req: NextRequest) {
         const customerIdForFailedInvoice = typeof failedInvoice.customer === 'string' ? failedInvoice.customer : null;
 
         console.log(`Invoice payment failed for customer: ${customerIdForFailedInvoice}, subscription: ${subIdForFailedInvoice}`);
-        if (customerIdForFailedInvoice && subIdForFailedInvoice) {
+        if (customerIdForFailedInvoice) {
            const user = await findUserByStripeCustomerId(customerIdForFailedInvoice);
            if (user && user.id) {
                await updateUserSubscriptionInDb(user.id, {
-                    stripeSubscriptionId: subIdForFailedInvoice,
-                    stripeCustomerId: customerIdForFailedInvoice,
                     subscriptionStatus: 'past_due', 
                });
            } else {
@@ -197,10 +193,8 @@ export async function POST(req: NextRequest) {
     }
   } catch (processingError: any) {
     console.error(`Error processing webhook event ${event.type} (ID: ${event.id || 'N/A'}):`, processingError);
-    // Return a 500 error to Stripe to indicate failure and potentially retry
     return createCorsResponse({ error: `Webhook event processing error: ${processingError.message}` }, 500);
   }
 
   return createCorsResponse({ received: true }, 200);
 }
-
