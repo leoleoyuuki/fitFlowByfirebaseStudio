@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
         const session = event.data.object as Stripe.Checkout.Session;
         const userId = session.client_reference_id; 
         const subscriptionId = typeof session.subscription === 'string' ? session.subscription : null;
-        const customerId = typeof session.customer === 'string' ? session.customer : null;
+        const customerId = typeof session.customer === 'string' ? session.customer : (session.customer as Stripe.Customer)?.id;
         
         console.log(`Checkout session completed for user ID: ${userId}. Linking with Customer ID: ${customerId}`);
 
@@ -106,85 +106,114 @@ export async function POST(req: NextRequest) {
       case 'invoice.payment_succeeded':
         const invoice = event.data.object as Stripe.Invoice;
         const subIdForInvoice = typeof invoice.subscription === 'string' ? invoice.subscription : null;
-        const customerIdForInvoice = typeof invoice.customer === 'string' ? invoice.customer : null;
+        const customerIdForInvoice = typeof invoice.customer === 'string' ? invoice.customer : (invoice.customer as Stripe.Customer)?.id;
+
+        if (!customerIdForInvoice || !subIdForInvoice) {
+            console.error('invoice.payment_succeeded event without customer or subscription ID.');
+            break;
+        }
 
         console.log(`Invoice payment succeeded for customer: ${customerIdForInvoice}, subscription: ${subIdForInvoice}`);
         
         // This is the reliable event for provisioning access (for new subscriptions and renewals).
-        if (customerIdForInvoice && subIdForInvoice) {
-           const user = await findUserByStripeCustomerId(customerIdForInvoice);
-           if (user && user.id) {
-               const lineItem = invoice.lines.data[0];
-               if (!lineItem || !lineItem.price) {
-                 console.error(`Invoice ${invoice.id} for customer ${customerIdForInvoice} has no line items or price.`);
-                 break;
-               }
-               const priceId = lineItem.price.id;
-               const plan = MOCK_SUBSCRIPTION_PLANS.find(p => p.stripePriceId === priceId);
-               
-               if (plan) {
-                    await updateUserSubscriptionInDb(user.id, {
-                        stripeSubscriptionId: subIdForInvoice,
-                        subscriptionTier: plan.id as 'free' | 'hypertrophy', 
-                        subscriptionStatus: 'active',
-                    });
-               } else {
-                   console.error(`Could not find a plan in MOCK_SUBSCRIPTION_PLANS matching priceId ${priceId} from invoice ${invoice.id}.`);
-               }
-           } else {
-               console.error("Could not find user for invoice payment succeeded by customer ID:", customerIdForInvoice);
-           }
+        const user = await findUserByStripeCustomerId(customerIdForInvoice);
+        if (user && user.id) {
+            const lineItem = invoice.lines.data[0];
+            if (!lineItem || !lineItem.price) {
+              console.error(`Invoice ${invoice.id} for customer ${customerIdForInvoice} has no line items or price.`);
+              break;
+            }
+            const priceId = lineItem.price.id;
+            const plan = MOCK_SUBSCRIPTION_PLANS.find(p => p.stripePriceId === priceId);
+            
+            if (plan) {
+                await updateUserSubscriptionInDb(user.id, {
+                    stripeSubscriptionId: subIdForInvoice,
+                    subscriptionTier: plan.id as 'free' | 'hypertrophy', 
+                    subscriptionStatus: 'active',
+                });
+            } else {
+                console.error(`Could not find a plan in MOCK_SUBSCRIPTION_PLANS matching priceId ${priceId} from invoice ${invoice.id}.`);
+            }
+        } else {
+            console.error("Could not find user for invoice payment succeeded by customer ID:", customerIdForInvoice);
         }
         break;
         
       case 'customer.subscription.updated':
         const updatedSubscription = event.data.object as Stripe.Subscription;
-        console.log(`Subscription updated: ${updatedSubscription.id} for customer ${updatedSubscription.customer}, status: ${updatedSubscription.status}`);
-        if (updatedSubscription.customer) {
-          const userToUpdate = await findUserByStripeCustomerId(updatedSubscription.customer as string);
-          if (userToUpdate && userToUpdate.id) {
-            await updateUserSubscriptionInDb(userToUpdate.id, {
-              stripeSubscriptionId: updatedSubscription.id,
-              subscriptionStatus: updatedSubscription.status as 'active' | 'canceled' | 'past_due' | 'incomplete',
-            });
-          } else {
-            console.error("Could not find user for subscription update by customer ID:", updatedSubscription.customer);
-          }
+        const customerIdForUpdate = typeof updatedSubscription.customer === 'string' ? updatedSubscription.customer : (updatedSubscription.customer as Stripe.Customer)?.id;
+
+        if (!customerIdForUpdate) {
+            console.error('customer.subscription.updated event without a customer ID.');
+            break;
+        }
+
+        console.log(`Subscription updated: ${updatedSubscription.id} for customer ${customerIdForUpdate}, status: ${updatedSubscription.status}`);
+
+        const userToUpdate = await findUserByStripeCustomerId(customerIdForUpdate);
+        if (userToUpdate && userToUpdate.id) {
+            const priceId = updatedSubscription.items.data[0]?.price.id;
+            const plan = MOCK_SUBSCRIPTION_PLANS.find(p => p.stripePriceId === priceId);
+
+            const dataToUpdate: Partial<UserProfile> = {
+                stripeSubscriptionId: updatedSubscription.id,
+                subscriptionStatus: updatedSubscription.status as 'active' | 'canceled' | 'past_due' | 'incomplete',
+            };
+
+            if (plan) {
+                dataToUpdate.subscriptionTier = plan.id as 'free' | 'hypertrophy';
+            } else {
+                console.warn(`Webhook: customer.subscription.updated: Could not find a plan matching priceId ${priceId}. Subscription tier not updated.`);
+            }
+
+            await updateUserSubscriptionInDb(userToUpdate.id, dataToUpdate);
+        } else {
+            console.error("Could not find user for subscription update by customer ID:", customerIdForUpdate);
         }
         break;
 
       case 'customer.subscription.deleted': 
         const deletedSubscription = event.data.object as Stripe.Subscription;
-        console.log(`Subscription deleted: ${deletedSubscription.id} for customer ${deletedSubscription.customer}`);
-        if (deletedSubscription.customer) {
-          const userToUpdate = await findUserByStripeCustomerId(deletedSubscription.customer as string);
-          if (userToUpdate && userToUpdate.id) {
-            await updateUserSubscriptionInDb(userToUpdate.id, {
+        const customerIdForDelete = typeof deletedSubscription.customer === 'string' ? deletedSubscription.customer : (deletedSubscription.customer as Stripe.Customer)?.id;
+
+        if (!customerIdForDelete) {
+            console.error('customer.subscription.deleted event without a customer ID.');
+            break;
+        }
+        
+        console.log(`Subscription deleted: ${deletedSubscription.id} for customer ${customerIdForDelete}`);
+        
+        const userToDeleteSub = await findUserByStripeCustomerId(customerIdForDelete);
+        if (userToDeleteSub && userToDeleteSub.id) {
+            await updateUserSubscriptionInDb(userToDeleteSub.id, {
               subscriptionTier: 'free',
               subscriptionStatus: 'canceled',
               stripeSubscriptionId: null, 
             });
-          } else {
-             console.error("Could not find user for subscription deletion by customer ID:", deletedSubscription.customer);
-          }
+        } else {
+             console.error("Could not find user for subscription deletion by customer ID:", customerIdForDelete);
         }
         break;
 
       case 'invoice.payment_failed':
         const failedInvoice = event.data.object as Stripe.Invoice;
-        const subIdForFailedInvoice = typeof failedInvoice.subscription === 'string' ? failedInvoice.subscription : null;
-        const customerIdForFailedInvoice = typeof failedInvoice.customer === 'string' ? failedInvoice.customer : null;
+        const customerIdForFailedInvoice = typeof failedInvoice.customer === 'string' ? failedInvoice.customer : (failedInvoice.customer as Stripe.Customer)?.id;
 
-        console.log(`Invoice payment failed for customer: ${customerIdForFailedInvoice}, subscription: ${subIdForFailedInvoice}`);
-        if (customerIdForFailedInvoice) {
-           const user = await findUserByStripeCustomerId(customerIdForFailedInvoice);
-           if (user && user.id) {
-               await updateUserSubscriptionInDb(user.id, {
-                    subscriptionStatus: 'past_due', 
-               });
-           } else {
-               console.error("Could not find user for invoice payment failed by customer ID:", customerIdForFailedInvoice);
-           }
+        if (!customerIdForFailedInvoice) {
+            console.error('invoice.payment_failed event without a customer ID.');
+            break;
+        }
+
+        console.log(`Invoice payment failed for customer: ${customerIdForFailedInvoice}`);
+        
+        const userForFailedInvoice = await findUserByStripeCustomerId(customerIdForFailedInvoice);
+        if (userForFailedInvoice && userForFailedInvoice.id) {
+            await updateUserSubscriptionInDb(userForFailedInvoice.id, {
+                subscriptionStatus: 'past_due', 
+            });
+        } else {
+            console.error("Could not find user for invoice payment failed by customer ID:", customerIdForFailedInvoice);
         }
         break;
       
