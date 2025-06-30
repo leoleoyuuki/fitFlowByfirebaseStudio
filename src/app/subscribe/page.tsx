@@ -31,6 +31,7 @@ function SubscribePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isSubscribing, setIsSubscribing] = useState<string | null>(null);
+  const [isManagingSubscription, setIsManagingSubscription] = useState(false);
 
   const hypertrophyPlan = MOCK_SUBSCRIPTION_PLANS.find(p => p.id === 'hypertrophy');
 
@@ -167,10 +168,46 @@ function SubscribePageContent() {
     }
   };
 
-  const handleManageSubscription = () => {
-    // This is a static link to your Stripe Customer Portal login page.
-    const portalUrl = "https://billing.stripe.com/p/login/28E7sM6RAed43aL2Kk9Ve00";
-    window.open(portalUrl, '_blank', 'noopener,noreferrer');
+  const handleManageSubscription = async () => {
+    if (!user || !user.stripeCustomerId) {
+      toast({
+        title: "Erro",
+        description: "Seu ID de cliente Stripe não foi encontrado. Isso pode acontecer se você assinou no modo de teste e agora está tentando gerenciar no modo de produção. Tente assinar novamente ou contate o suporte.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsManagingSubscription(true);
+    try {
+      const response = await fetch('/api/stripe/create-portal-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerId: user.stripeCustomerId }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || data.error) {
+        let errorMessage = data.error || "Falha ao criar sessão do portal.";
+        if (typeof data.error === 'string') {
+            if (data.error.includes("Cliente Stripe não encontrado") || data.error.includes("No such customer")) {
+                errorMessage = "Seu ID de cliente Stripe não foi encontrado no ambiente atual. Se você assinou no modo de Teste, esse ID não é válido no modo de Produção. Para gerenciar sua assinatura, você pode precisar assinar novamente no ambiente de Produção ou contatar o suporte.";
+            } else if (data.error.includes("Conflito de ambiente de chaves Stripe")) {
+                 errorMessage = "Detectamos um conflito entre o ambiente do seu ID de cliente (Teste/Produção) e as chaves de API atuais. Por favor, verifique suas configurações ou contate o suporte.";
+            }
+        }
+        throw new Error(errorMessage);
+      }
+      window.location.href = data.url; 
+    } catch (error: any) {
+      console.error("Erro ao gerenciar assinatura:", error);
+      toast({
+        title: "Erro ao Gerenciar Assinatura",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsManagingSubscription(false);
+    }
   };
   
   const Content = () => {
@@ -189,9 +226,9 @@ function SubscribePageContent() {
           <Button 
             onClick={handleManageSubscription} 
             className="mt-8 text-lg px-8 py-6"
-            disabled={authLoading}
+            disabled={isManagingSubscription || authLoading}
           >
-            <Settings className="mr-2 h-5 w-5" />
+            {isManagingSubscription ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Settings className="mr-2 h-5 w-5" />}
             Gerenciar Minha Assinatura Pro
           </Button>
            <p className="mt-4 text-sm text-muted-foreground">
