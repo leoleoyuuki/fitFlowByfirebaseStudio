@@ -5,8 +5,11 @@ import { APP_NAME } from '@/lib/constants';
 import type Stripe from 'stripe';
 
 export async function POST(req: NextRequest) {
+  let customerId: string | null = null; // Declarado aqui para estar acessível em todo o escopo da função
+
   try {
-    const { customerId } = await req.json();
+    const body = await req.json();
+    customerId = body.customerId; // Atribuído dentro do try
 
     if (!customerId) {
       return NextResponse.json({ error: 'Stripe Customer ID é obrigatório.' }, { status: 400 });
@@ -32,10 +35,10 @@ export async function POST(req: NextRequest) {
       switch (error.type) {
         case 'StripeInvalidRequestError':
           if (error.message.toLowerCase().includes('no such customer')) {
-            errorMessage = `Cliente Stripe não encontrado: ${customerId}. Este ID pode ser de um ambiente diferente (Teste vs. Live) ou o cliente foi excluído.`;
+            errorMessage = `Cliente Stripe não encontrado: ${customerId || 'ID não disponível'}. Este ID pode ser de um ambiente diferente (Teste vs. Live) ou o cliente foi excluído.`;
             statusCode = 404; 
           } else if (error.message.toLowerCase().includes("customer a similar object exists in live mode, but a test mode key was used") || error.message.toLowerCase().includes("customer a similar object exists in test mode, but a live mode key was used")) {
-            errorMessage = `Conflito de ambiente de chaves Stripe: O ID do cliente '${customerId}' parece ser de um ambiente (Teste/Live) diferente do ambiente das chaves de API que estão sendo usadas. Verifique suas chaves de API e o ID do cliente.`;
+            errorMessage = `Conflito de ambiente de chaves Stripe: O ID do cliente '${customerId || 'ID não disponível'}' parece ser de um ambiente (Teste/Live) diferente do ambiente das chaves de API que estão sendo usadas. Verifique suas chaves de API e o ID do cliente.`;
             statusCode = 400;
           } else {
             errorMessage = `Erro de requisição inválida do Stripe: ${error.message}`;
