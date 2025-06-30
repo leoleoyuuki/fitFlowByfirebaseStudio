@@ -15,7 +15,7 @@ if (!admin.apps.length) {
       credential: admin.credential.cert(serviceAccount),
     });
     console.log('Firebase Admin SDK Initialized successfully.');
-  } catch (error: any) {
+  } catch (error: any)
     // Log a more helpful error message.
     console.error('Firebase admin initialization error. Make sure your Firebase Admin SDK environment variables (FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY) are set correctly in your .env file or Vercel environment.', error.stack);
   }
