@@ -12,10 +12,11 @@ import {
   signOut as firebaseSignOut, 
   onAuthStateChanged,
   updateProfile,
+  sendPasswordResetEmail,
   type User as FirebaseUser
 } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { APP_NAME } from '@/lib/constants';
 
 interface AuthContextType {
@@ -25,6 +26,7 @@ interface AuthContextType {
   signup: (email: string, pass: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
   updateUserProfileField: (userId: string, field: keyof UserProfile, value: any) => Promise<void>;
+  sendPasswordReset: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -120,8 +122,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           email: userCredential.user.email || "",
           displayName: name,
           photoURL: userCredential.user.photoURL || null,
-          professionalType: null, // Novo campo
-          professionalRegistration: null, // Novo campo
+          professionalType: null,
+          professionalRegistration: null, 
           subscriptionTier: 'free',
           stripeCustomerId: null,
           stripeSubscriptionId: null,
@@ -134,7 +136,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(initialUserProfile);
       }
       toast({ title: "Cadastro Realizado", description: `Bem-vindo(a) ao ${APP_NAME}! Sua conta profissional foi criada.` });
-      router.push('/dashboard'); // Pode ser /subscribe ou uma página de onboarding para profissionais
+      router.push('/dashboard');
     } catch (error: any) {
       console.error("Erro no cadastro:", error);
       let description = "Não foi possível criar a conta. Tente novamente.";
@@ -169,7 +171,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         [field]: value,
         updatedAt: serverTimestamp()
       });
-      // Atualiza o estado local do usuário também
       setUser(prevUser => prevUser ? ({ ...prevUser, [field]: value, updatedAt: new Date() }) : null);
       toast({ title: "Perfil Atualizado", description: "Suas informações foram atualizadas." });
     } catch (error: any) {
@@ -178,8 +179,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const sendPasswordReset = async (email: string) => {
+    setLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, email);
+      toast({
+        title: "E-mail de Redefinição Enviado",
+        description: `Se uma conta com o e-mail ${email} existir, você receberá um link para redefinição. Verifique sua caixa de entrada e spam.`,
+      });
+      router.push('/login');
+    } catch (error: any) {
+      console.error("Erro ao enviar e-mail de redefinição (ocultado do usuário):", error);
+      toast({
+        title: "E-mail de Redefinição Enviado",
+        description: `Se uma conta com o e-mail ${email} existir, você receberá um link para redefinição. Verifique sua caixa de entrada e spam.`,
+      });
+      router.push('/login');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout, updateUserProfileField }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, updateUserProfileField, sendPasswordReset }}>
       {children}
     </AuthContext.Provider>
   );
@@ -192,5 +214,3 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
-
-    

@@ -18,6 +18,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { AuthFormWrapper } from "@/components/auth/auth-form-wrapper";
 import { Loader2 } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
+import Link from "next/link";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Endereço de e-mail inválido." }),
@@ -69,7 +70,12 @@ export default function LoginPage() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Senha</FormLabel>
+                <div className="flex items-center justify-between">
+                  <FormLabel>Senha</FormLabel>
+                  <Button asChild variant="link" className="p-0 h-auto text-sm font-normal">
+                    <Link href="/forgot-password" tabIndex={-1}>Esqueci minha senha</Link>
+                  </Button>
+                </div>
                 <FormControl>
                   <Input type="password" placeholder="••••••••" {...field} disabled={loading} />
                 </FormControl>
@@ -92,5 +98,3 @@ export default function LoginPage() {
     </AuthFormWrapper>
   );
 }
-
-    
