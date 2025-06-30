@@ -2,33 +2,26 @@
 import admin from 'firebase-admin';
 import type { ServiceAccount } from 'firebase-admin';
 
-// This setup is designed for Vercel. It expects environment variables
-// for the service account credentials.
-const serviceAccount: ServiceAccount = {
-  projectId: process.env.FIREBASE_PROJECT_ID,
-  clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-  // The private key needs to be parsed correctly from the environment variable.
-  // Vercel escapes newlines, so we need to replace \\n with \n.
-  privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
-};
-
 if (!admin.apps.length) {
   try {
-    // Check if all required service account properties are present
-    if (serviceAccount.projectId && serviceAccount.clientEmail && serviceAccount.privateKey) {
-        admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount),
-        });
-        console.log('Firebase Admin SDK Initialized successfully.');
-    } else {
-        console.warn('Firebase Admin SDK not initialized: Missing environment variables (FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY).');
-    }
+    const serviceAccount: ServiceAccount = {
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+    };
+    
+    // This will throw an error if the credentials are not valid, which is what we want.
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+    console.log('Firebase Admin SDK Initialized successfully.');
   } catch (error: any) {
-    console.error('Firebase admin initialization error:', error.stack);
+    // Log a more helpful error message.
+    console.error('Firebase admin initialization error. Make sure your Firebase Admin SDK environment variables (FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY) are set correctly in your .env file or Vercel environment.', error.stack);
   }
 }
 
-// Export the admin db instance. Note: this might be an uninitialized app if env vars are missing.
-// The code using it should handle this possibility if necessary.
+// These exports will now only run after the initialization block.
+// If initialization fails, they will throw an error when used, which is the expected behavior.
 export const adminDb = admin.firestore();
 export const adminAuth = admin.auth();
