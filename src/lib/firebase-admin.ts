@@ -9,11 +9,18 @@ if (!admin.apps.length) {
   const privateKey = process.env.FIREBASE_PRIVATE_KEY;
 
   if (projectId && clientEmail && privateKey) {
+    const formattedPrivateKey = privateKey.replace(/\\n/g, '\n');
+
+    // Log key details for debugging in production without exposing the full key.
+    console.log('Firebase Admin Init: Attempting to initialize...');
+    console.log(`Firebase Admin Init: Key starts with "${formattedPrivateKey.substring(0, 35)}..."`);
+    console.log(`Firebase Admin Init: Key ends with "...${formattedPrivateKey.substring(formattedPrivateKey.length - 35)}"`);
+    
     try {
       const serviceAccount: ServiceAccount = {
         projectId,
         clientEmail,
-        privateKey: privateKey.replace(/\\n/g, '\n'),
+        privateKey: formattedPrivateKey,
       };
       
       admin.initializeApp({
@@ -21,7 +28,10 @@ if (!admin.apps.length) {
       });
       console.log('Firebase Admin SDK Initialized successfully.');
     } catch (error: any) {
-      console.error('Firebase admin initialization error:', error.stack);
+      console.error('CRITICAL: Firebase admin initialization failed.', error);
+      if (error.message && error.message.includes('DECODER routines')) {
+        console.error('DECODER ERROR HINT: This error almost always means the FIREBASE_PRIVATE_KEY is corrupted or incorrectly formatted in your Vercel environment variables. Please re-copy the entire key from your Firebase service account JSON file into Vercel.');
+      }
     }
   } else {
     const missingVars = [];
