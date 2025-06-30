@@ -25,6 +25,7 @@ async function updateUserSubscriptionInDb(
     console.log(`Subscription updated in DB for user ${userId}:`, data);
   } catch (error: any) {
     console.error(`Error updating subscription in DB for user ${userId}:`, error);
+    // Re-throw the error with a more specific message
     throw new Error(`Erro de permissão ou falha ao atualizar o banco de dados para o usuário ${userId}: ${error.message}`);
   }
 }
@@ -46,6 +47,7 @@ export async function POST(req: NextRequest) {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
   if (!webhookSecret) {
+    console.error("CRITICAL: STRIPE_WEBHOOK_SECRET não está configurado no servidor.");
     return NextResponse.json({ error: 'Webhook secret não configurado no servidor.' }, { status: 500 });
   }
 
@@ -157,13 +159,32 @@ export async function POST(req: NextRequest) {
       }
       
       default:
-        // Ignore unhandled events to prevent log noise.
+        // You can uncomment this for debugging if you want to see all events
+        // console.log(`Unhandled event type: ${event.type}`);
         break;
     }
   } catch (processingError: any) {
-    console.error(`Error processing webhook event ${event.type}:`, processingError);
-    return NextResponse.json({ error: `Webhook processing error: ${processingError.message}` }, { status: 500 });
+    console.error(`---! WEBHOOK PROCESSING ERROR !---`);
+    console.error(`Event Type: ${event.type}`);
+    console.error('Error Details:', processingError);
+    if (processingError instanceof Error) {
+        console.error('Stack Trace:', processingError.stack);
+    }
+    
+    let errorMessage = 'An unknown error occurred during webhook processing.';
+    if (processingError instanceof Error) {
+        errorMessage = processingError.message;
+    } else if (typeof processingError === 'string') {
+        errorMessage = processingError;
+    }
+
+    return NextResponse.json(
+        { 
+            error: `Webhook processing failed. Event: ${event.type}. Reason: ${errorMessage}` 
+        }, 
+        { status: 500 }
+    );
   }
 
-  return NextResponse.json({ received: true }, 200);
+  return NextResponse.json({ received: true }, { status: 200 });
 }

@@ -24,7 +24,11 @@ if (!admin.apps.length) {
       console.error('Firebase admin initialization error:', error.stack);
     }
   } else {
-    console.error('Firebase Admin SDK environment variables are missing. Required: FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY. The webhook API will not work.');
+    const missingVars = [];
+    if (!process.env.FIREBASE_PROJECT_ID) missingVars.push('FIREBASE_PROJECT_ID');
+    if (!process.env.FIREBASE_CLIENT_EMAIL) missingVars.push('FIREBASE_CLIENT_EMAIL');
+    if (!process.env.FIREBASE_PRIVATE_KEY) missingVars.push('FIREBASE_PRIVATE_KEY');
+    console.error(`CRITICAL ERROR: Firebase Admin SDK initialization failed. The following environment variables are missing on your Vercel deployment: ${missingVars.join(', ')}. The webhook API will not work without them.`);
   }
 }
 
