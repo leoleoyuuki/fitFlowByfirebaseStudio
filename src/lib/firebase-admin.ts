@@ -2,22 +2,29 @@
 import admin from 'firebase-admin';
 import type { ServiceAccount } from 'firebase-admin';
 
+// Check if the app is already initialized to avoid errors
 if (!admin.apps.length) {
-  try {
-    const serviceAccount: ServiceAccount = {
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
-    };
-    
-    // This will throw an error if the credentials are not valid, which is what we want.
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-    console.log('Firebase Admin SDK Initialized successfully.');
-  } catch (error: any)
-    // Log a more helpful error message.
-    console.error('Firebase admin initialization error. Make sure your Firebase Admin SDK environment variables (FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY) are set correctly in your .env file or Vercel environment.', error.stack);
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+
+  if (projectId && clientEmail && privateKey) {
+    try {
+      const serviceAccount: ServiceAccount = {
+        projectId,
+        clientEmail,
+        privateKey: privateKey.replace(/\\n/g, '\n'),
+      };
+      
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
+      console.log('Firebase Admin SDK Initialized successfully.');
+    } catch (error: any) {
+      console.error('Firebase admin initialization error:', error.stack);
+    }
+  } else {
+    console.error('Firebase Admin SDK environment variables are missing. Required: FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY. The webhook API will not work.');
   }
 }
 
