@@ -71,7 +71,7 @@ export const MOCK_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       "Aumente a retenção e a percepção de valor dos seus alunos",
       "Suporte prioritário para sua equipe"
     ], 
-    stripePriceId: "price_1RTUKXLZkqAmFk4bJsGGtlfW"
+    stripePriceId: "price_1RfZpmKOlX31rMUJWypRXgee"
   },
 ];
 
