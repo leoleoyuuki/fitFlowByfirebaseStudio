@@ -27,7 +27,7 @@ async function updateUserSubscriptionInDb(
 ) {
   if (!userId) {
     console.error('updateUserSubscriptionInDb: Missing userId');
-    return;
+    throw new Error('ID de usuário ausente ao tentar atualizar a assinatura.');
   }
   try {
     const userRef = adminDb.collection('users').doc(userId);
@@ -36,10 +36,10 @@ async function updateUserSubscriptionInDb(
         updatedAt: FieldValue.serverTimestamp()
     }, { merge: true });
     console.log(`Subscription updated in DB for user ${userId}:`, data);
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Error updating subscription in DB for user ${userId}:`, error);
-    // Re-throw the error to be caught by the main handler
-    throw error;
+    // Re-throw a more specific error for the main handler
+    throw new Error(`Erro de permissão ou falha ao atualizar o banco de dados para o usuário ${userId}: ${error.message}`);
   }
 }
 
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
 
   if (!webhookSecret) {
     console.error('FATAL: STRIPE_WEBHOOK_SECRET is not set in .env. Webhook processing cannot continue.');
-    return createCorsResponse({ error: 'Webhook secret not configured on the server.' }, 500);
+    return createCorsResponse({ error: 'Webhook secret não configurado no servidor.' }, 500);
   }
 
   const rawBody = await req.text();
@@ -89,27 +89,26 @@ export async function POST(req: NextRequest) {
       case 'checkout.session.completed':
         const session = event.data.object as Stripe.Checkout.Session;
         const userId = session.client_reference_id; 
-        const subscriptionId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
         const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
         
         console.log(`Checkout session completed for user ID: ${userId}. Linking with Customer ID: ${customerId}`);
 
         // The primary job of this event is to create the link between our user and Stripe's customer.
-        if (userId && customerId && subscriptionId) {
+        if (userId && customerId) {
             await updateUserSubscriptionInDb(userId, {
                 stripeCustomerId: customerId,
-                stripeSubscriptionId: subscriptionId,
             });
         } else {
-          console.error('Checkout session completed but missing critical info to link user.', { userId, customerId, subscriptionId });
+          console.error('Checkout session completed but missing critical info to link user.', { userId, customerId });
         }
         break;
 
-      case 'invoice.payment_succeeded':
+      case 'invoice.payment_succeeded': {
         const invoice = event.data.object as Stripe.Invoice;
-        const subIdForInvoice = typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription?.id;
-        const customerIdForInvoice = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id;
-
+        // This is a more robust way to get customer and subscription IDs.
+        const customerIdForInvoice = typeof invoice.customer === 'string' ? invoice.customer : (invoice.customer as Stripe.Customer)?.id;
+        const subIdForInvoice = typeof invoice.subscription === 'string' ? invoice.subscription : (invoice.subscription as Stripe.Subscription)?.id;
+        
         if (!customerIdForInvoice || !subIdForInvoice) {
             console.error('invoice.payment_succeeded event without customer or subscription ID.', { customer: invoice.customer, subscription: invoice.subscription });
             break;
@@ -117,7 +116,6 @@ export async function POST(req: NextRequest) {
 
         console.log(`Invoice payment succeeded for customer: ${customerIdForInvoice}, subscription: ${subIdForInvoice}`);
         
-        // This is the reliable event for provisioning access (for new subscriptions and renewals).
         const user = await findUserByStripeCustomerId(customerIdForInvoice);
         if (user && user.id) {
             const lineItem = invoice.lines.data[0];
@@ -141,10 +139,11 @@ export async function POST(req: NextRequest) {
             console.error("Could not find user for invoice payment succeeded by customer ID:", customerIdForInvoice);
         }
         break;
+      }
         
-      case 'customer.subscription.updated':
+      case 'customer.subscription.updated': {
         const updatedSubscription = event.data.object as Stripe.Subscription;
-        const customerIdForUpdate = typeof updatedSubscription.customer === 'string' ? updatedSubscription.customer : updatedSubscription.customer?.id;
+        const customerIdForUpdate = typeof updatedSubscription.customer === 'string' ? updatedSubscription.customer : (updatedSubscription.customer as Stripe.Customer)?.id;
 
         if (!customerIdForUpdate) {
             console.error('customer.subscription.updated event without a customer ID.');
@@ -168,16 +167,24 @@ export async function POST(req: NextRequest) {
             } else {
                 console.warn(`Webhook: customer.subscription.updated: Could not find a plan matching priceId ${priceId}. Subscription tier not updated.`);
             }
+            
+            // Handle cancelation at period end vs immediate cancelation
+            if (updatedSubscription.status === 'canceled' || updatedSubscription.cancel_at_period_end) {
+                dataToUpdate.subscriptionStatus = 'canceled';
+                dataToUpdate.subscriptionTier = 'free';
+                dataToUpdate.stripeSubscriptionId = null;
+            }
 
             await updateUserSubscriptionInDb(userToUpdate.id, dataToUpdate);
         } else {
             console.error("Could not find user for subscription update by customer ID:", customerIdForUpdate);
         }
         break;
+      }
 
-      case 'customer.subscription.deleted': 
+      case 'customer.subscription.deleted': {
         const deletedSubscription = event.data.object as Stripe.Subscription;
-        const customerIdForDelete = typeof deletedSubscription.customer === 'string' ? deletedSubscription.customer : deletedSubscription.customer?.id;
+        const customerIdForDelete = typeof deletedSubscription.customer === 'string' ? deletedSubscription.customer : (deletedSubscription.customer as Stripe.Customer)?.id;
 
         if (!customerIdForDelete) {
             console.error('customer.subscription.deleted event without a customer ID.');
@@ -197,33 +204,15 @@ export async function POST(req: NextRequest) {
              console.error("Could not find user for subscription deletion by customer ID:", customerIdForDelete);
         }
         break;
-
-      case 'invoice.payment_failed':
-        const failedInvoice = event.data.object as Stripe.Invoice;
-        const customerIdForFailedInvoice = typeof failedInvoice.customer === 'string' ? failedInvoice.customer : failedInvoice.customer?.id;
-
-        if (!customerIdForFailedInvoice) {
-            console.error('invoice.payment_failed event without a customer ID.');
-            break;
-        }
-
-        console.log(`Invoice payment failed for customer: ${customerIdForFailedInvoice}`);
-        
-        const userForFailedInvoice = await findUserByStripeCustomerId(customerIdForFailedInvoice);
-        if (userForFailedInvoice && userForFailedInvoice.id) {
-            await updateUserSubscriptionInDb(userForFailedInvoice.id, {
-                subscriptionStatus: 'past_due', 
-            });
-        } else {
-            console.error("Could not find user for invoice payment failed by customer ID:", customerIdForFailedInvoice);
-        }
-        break;
+      }
       
       default:
-        console.log(`Unhandled event type ${event.type}`);
+        // Quietly ignore unhandled events to prevent unnecessary noise in logs.
+        // console.log(`Unhandled event type ${event.type}`);
     }
   } catch (processingError: any) {
     console.error(`Error processing webhook event ${event.type} (ID: ${event.id || 'N/A'}):`, processingError);
+    // Return a 500 so Stripe knows to retry the webhook
     return createCorsResponse({ error: `Webhook event processing error: ${processingError.message}` }, 500);
   }
 
