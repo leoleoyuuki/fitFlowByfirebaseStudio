@@ -2,10 +2,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import type Stripe from 'stripe';
-import { db } from '@/lib/firebase';
-import { doc, setDoc, updateDoc, serverTimestamp, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { adminDb } from '@/lib/firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
 import type { UserProfile } from '@/types';
-import { MOCK_SUBSCRIPTION_PLANS } from '@/lib/constants'; // Ensure this path is correct
+import { MOCK_SUBSCRIPTION_PLANS } from '@/lib/constants';
 
 // Helper function to construct response with CORS headers
 function createCorsResponse(body: any, status: number) {
@@ -30,22 +30,24 @@ async function updateUserSubscriptionInDb(
     return;
   }
   try {
-    const userRef = doc(db, 'users', userId);
-    await setDoc(userRef, {
+    const userRef = adminDb.collection('users').doc(userId);
+    await userRef.set({
         ...data,
-        updatedAt: serverTimestamp()
+        updatedAt: FieldValue.serverTimestamp()
     }, { merge: true });
     console.log(`Subscription updated in DB for user ${userId}:`, data);
   } catch (error) {
     console.error(`Error updating subscription in DB for user ${userId}:`, error);
+    // Re-throw the error to be caught by the main handler
+    throw error;
   }
 }
 
 // Helper function to find user by Stripe Customer ID
 async function findUserByStripeCustomerId(stripeCustomerId: string): Promise<UserProfile | null> {
-    const usersRef = collection(db, 'users');
-    const q = query(usersRef, where("stripeCustomerId", "==", stripeCustomerId));
-    const querySnapshot = await getDocs(q);
+    const usersRef = adminDb.collection('users');
+    const q = usersRef.where("stripeCustomerId", "==", stripeCustomerId);
+    const querySnapshot = await q.get();
     if (!querySnapshot.empty) {
         // Assuming one user per customer ID
         const userDoc = querySnapshot.docs[0];
@@ -87,8 +89,8 @@ export async function POST(req: NextRequest) {
       case 'checkout.session.completed':
         const session = event.data.object as Stripe.Checkout.Session;
         const userId = session.client_reference_id; 
-        const subscriptionId = typeof session.subscription === 'string' ? session.subscription : null;
-        const customerId = typeof session.customer === 'string' ? session.customer : (session.customer as Stripe.Customer)?.id;
+        const subscriptionId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
+        const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
         
         console.log(`Checkout session completed for user ID: ${userId}. Linking with Customer ID: ${customerId}`);
 
@@ -105,11 +107,11 @@ export async function POST(req: NextRequest) {
 
       case 'invoice.payment_succeeded':
         const invoice = event.data.object as Stripe.Invoice;
-        const subIdForInvoice = typeof invoice.subscription === 'string' ? invoice.subscription : null;
-        const customerIdForInvoice = typeof invoice.customer === 'string' ? invoice.customer : (invoice.customer as Stripe.Customer)?.id;
+        const subIdForInvoice = typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription?.id;
+        const customerIdForInvoice = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id;
 
         if (!customerIdForInvoice || !subIdForInvoice) {
-            console.error('invoice.payment_succeeded event without customer or subscription ID.');
+            console.error('invoice.payment_succeeded event without customer or subscription ID.', { customer: invoice.customer, subscription: invoice.subscription });
             break;
         }
 
@@ -142,7 +144,7 @@ export async function POST(req: NextRequest) {
         
       case 'customer.subscription.updated':
         const updatedSubscription = event.data.object as Stripe.Subscription;
-        const customerIdForUpdate = typeof updatedSubscription.customer === 'string' ? updatedSubscription.customer : (updatedSubscription.customer as Stripe.Customer)?.id;
+        const customerIdForUpdate = typeof updatedSubscription.customer === 'string' ? updatedSubscription.customer : updatedSubscription.customer?.id;
 
         if (!customerIdForUpdate) {
             console.error('customer.subscription.updated event without a customer ID.');
@@ -175,7 +177,7 @@ export async function POST(req: NextRequest) {
 
       case 'customer.subscription.deleted': 
         const deletedSubscription = event.data.object as Stripe.Subscription;
-        const customerIdForDelete = typeof deletedSubscription.customer === 'string' ? deletedSubscription.customer : (deletedSubscription.customer as Stripe.Customer)?.id;
+        const customerIdForDelete = typeof deletedSubscription.customer === 'string' ? deletedSubscription.customer : deletedSubscription.customer?.id;
 
         if (!customerIdForDelete) {
             console.error('customer.subscription.deleted event without a customer ID.');
@@ -198,7 +200,7 @@ export async function POST(req: NextRequest) {
 
       case 'invoice.payment_failed':
         const failedInvoice = event.data.object as Stripe.Invoice;
-        const customerIdForFailedInvoice = typeof failedInvoice.customer === 'string' ? failedInvoice.customer : (failedInvoice.customer as Stripe.Customer)?.id;
+        const customerIdForFailedInvoice = typeof failedInvoice.customer === 'string' ? failedInvoice.customer : failedInvoice.customer?.id;
 
         if (!customerIdForFailedInvoice) {
             console.error('invoice.payment_failed event without a customer ID.');
