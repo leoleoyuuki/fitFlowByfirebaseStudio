@@ -71,56 +71,87 @@ export async function POST(req: NextRequest) {
     console.log('Stripe Webhook Event Received:', event.type);
 
     switch (event.type) {
-      // Step 1: Link our user with the Stripe customer.
+      // Step 1 & 2: Link user and grant access on successful payment.
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
-        const userId = session.client_reference_id; 
-        const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
-        
-        if (userId && customerId) {
-            await updateUserSubscriptionInDb(userId, {
-                stripeCustomerId: customerId,
-            });
-            console.log(`User ${userId} linked with Stripe Customer ${customerId}`);
+        const userId = session.client_reference_id;
+
+        // This event can fire for various reasons, we only care about successful subscription payments.
+        if (session.payment_status === 'paid' && userId) {
+            // Retrieve the session with line_items expanded to reliably get the priceId.
+            const sessionWithLineItems = await stripe.checkout.sessions.retrieve(
+                session.id,
+                { expand: ['line_items'] }
+            );
+            const lineItems = sessionWithLineItems.line_items;
+
+            const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
+            const subscriptionId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
+            const priceId = lineItems?.data[0]?.price?.id;
+            const plan = MOCK_SUBSCRIPTION_PLANS.find(p => p.stripePriceId === priceId);
+
+            if (customerId && subscriptionId && plan) {
+                await updateUserSubscriptionInDb(userId, {
+                    stripeCustomerId: customerId,
+                    stripeSubscriptionId: subscriptionId,
+                    subscriptionTier: plan.id as 'free' | 'hypertrophy',
+                    subscriptionStatus: 'active',
+                });
+                console.log(`User ${userId} subscription activated for plan ${plan.id}`);
+            } else {
+                 // Fallback if we can't activate here, just link the customer
+                 if(customerId) {
+                    await updateUserSubscriptionInDb(userId, { stripeCustomerId: customerId });
+                    console.log(`User ${userId} linked with Stripe Customer ${customerId}. Activation will follow from other events.`);
+                 }
+                console.error('checkout.session.completed with paid status, but missing data for full activation.', { customerId, subscriptionId, planExists: !!plan });
+            }
         } else {
-          console.error('checkout.session.completed missing userId or customerId.');
+          console.log(`checkout.session.completed event for user ${userId} ignored. Status: ${session.payment_status}.`);
         }
         break;
       }
 
-      // Step 2: Grant access on successful payment.
+      // Step 3: Handle renewals.
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object as Stripe.Invoice;
-        const customerId = typeof invoice.customer === 'string' ? invoice.customer : (invoice.customer as Stripe.Customer)?.id;
-        const subscriptionId = typeof invoice.subscription === 'string' ? invoice.subscription : (invoice.subscription as Stripe.Subscription)?.id;
+        // This handles renewals. Initial activation is now handled by checkout.session.completed.
+        // We only care about invoices related to a subscription.
+        if (invoice.billing_reason === 'subscription_cycle') {
+            const customerId = typeof invoice.customer === 'string' ? invoice.customer : (invoice.customer as Stripe.Customer)?.id;
+            const subscriptionId = typeof invoice.subscription === 'string' ? invoice.subscription : (invoice.subscription as Stripe.Subscription)?.id;
         
-        if (!customerId || !subscriptionId) {
-            console.error('invoice.payment_succeeded event missing customer or subscription ID.');
-            break;
-        }
-        
-        const user = await findUserByStripeCustomerId(customerId);
-        if (user && user.id) {
-            const lineItem = invoice.lines.data[0];
-            const priceId = lineItem?.price?.id;
-            const plan = MOCK_SUBSCRIPTION_PLANS.find(p => p.stripePriceId === priceId);
+            if (!customerId || !subscriptionId) {
+                console.error('invoice.payment_succeeded (renewal) event missing customer or subscription ID.');
+                break;
+            }
             
-            if (plan) {
-                await updateUserSubscriptionInDb(user.id, {
-                    stripeSubscriptionId: subscriptionId,
-                    subscriptionTier: plan.id as 'free' | 'hypertrophy', 
-                    subscriptionStatus: 'active',
-                });
+            const user = await findUserByStripeCustomerId(customerId);
+            if (user && user.id) {
+                const lineItem = invoice.lines.data[0];
+                const priceId = lineItem?.price?.id;
+                const plan = MOCK_SUBSCRIPTION_PLANS.find(p => p.stripePriceId === priceId);
+                
+                if (plan) {
+                    await updateUserSubscriptionInDb(user.id, {
+                        stripeSubscriptionId: subscriptionId,
+                        subscriptionTier: plan.id as 'free' | 'hypertrophy', 
+                        subscriptionStatus: 'active',
+                    });
+                     console.log(`Subscription renewal processed for user ${user.id}`);
+                } else {
+                    console.warn(`Could not find a plan matching priceId ${priceId} from renewal invoice ${invoice.id}.`);
+                }
             } else {
-                console.warn(`Could not find a plan matching priceId ${priceId} from invoice ${invoice.id}.`);
+                console.error("Could not find user for invoice.payment_succeeded (renewal) by customer ID:", customerId);
             }
         } else {
-            console.error("Could not find user for invoice.payment_succeeded by customer ID:", customerId);
+             console.log(`invoice.payment_succeeded event ignored. Reason: ${invoice.billing_reason}`);
         }
         break;
       }
         
-      // Step 3: Handle subscription changes (e.g., cancellation).
+      // Step 4: Handle subscription changes (e.g., cancellation).
       case 'customer.subscription.deleted':
       case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription;
@@ -142,7 +173,7 @@ export async function POST(req: NextRequest) {
             });
             console.log(`Subscription canceled for user ${user.id}`);
           } else {
-             // For other updates (e.g., past_due, active)
+             // For other updates (e.g., past_due, active, or plan changes)
              const priceId = subscription.items.data[0]?.price.id;
              const plan = MOCK_SUBSCRIPTION_PLANS.find(p => p.stripePriceId === priceId);
              await updateUserSubscriptionInDb(user.id, {
@@ -159,8 +190,7 @@ export async function POST(req: NextRequest) {
       }
       
       default:
-        // You can uncomment this for debugging if you want to see all events
-        // console.log(`Unhandled event type: ${event.type}`);
+        console.log(`Unhandled event type: ${event.type}`);
         break;
     }
   } catch (processingError: any) {
