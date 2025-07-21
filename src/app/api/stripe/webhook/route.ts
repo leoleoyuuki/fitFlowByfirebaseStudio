@@ -4,7 +4,7 @@ import { stripe } from '@/lib/stripe';
 import type Stripe from 'stripe';
 import { adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
-import type { UserProfile } from '@/types';
+import type { UserProfile, SubscriptionPlan } from '@/types';
 import { MOCK_SUBSCRIPTION_PLANS } from '@/lib/constants';
 
 // Helper function to update user data in Firestore
@@ -88,13 +88,13 @@ export async function POST(req: NextRequest) {
             const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
             const subscriptionId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
             const priceId = lineItems?.data[0]?.price?.id;
-            const plan = MOCK_SUBSCRIPTION_PLANS.find(p => p.stripePriceId === priceId);
+            const plan = MOCK_SUBSCRIPTION_PLANS.find(p => p.stripePriceId === priceId) as SubscriptionPlan | undefined;
 
             if (customerId && subscriptionId && plan) {
                 await updateUserSubscriptionInDb(userId, {
                     stripeCustomerId: customerId,
                     stripeSubscriptionId: subscriptionId,
-                    subscriptionTier: plan.id as 'free' | 'hypertrophy',
+                    subscriptionTier: plan.id as 'light' | 'pro' | 'elite',
                     subscriptionStatus: 'active',
                 });
                 console.log(`User ${userId} subscription activated for plan ${plan.id}`);
@@ -130,12 +130,12 @@ export async function POST(req: NextRequest) {
             if (user && user.id) {
                 const lineItem = invoice.lines.data[0];
                 const priceId = lineItem?.price?.id;
-                const plan = MOCK_SUBSCRIPTION_PLANS.find(p => p.stripePriceId === priceId);
+                const plan = MOCK_SUBSCRIPTION_PLANS.find(p => p.stripePriceId === priceId) as SubscriptionPlan | undefined;
                 
                 if (plan) {
                     await updateUserSubscriptionInDb(user.id, {
                         stripeSubscriptionId: subscriptionId,
-                        subscriptionTier: plan.id as 'free' | 'hypertrophy', 
+                        subscriptionTier: plan.id as 'light' | 'pro' | 'elite',
                         subscriptionStatus: 'active',
                     });
                      console.log(`Subscription renewal processed for user ${user.id}`);
@@ -175,10 +175,10 @@ export async function POST(req: NextRequest) {
           } else {
              // For other updates (e.g., past_due, active, or plan changes)
              const priceId = subscription.items.data[0]?.price.id;
-             const plan = MOCK_SUBSCRIPTION_PLANS.find(p => p.stripePriceId === priceId);
+             const plan = MOCK_SUBSCRIPTION_PLANS.find(p => p.stripePriceId === priceId) as SubscriptionPlan | undefined;
              await updateUserSubscriptionInDb(user.id, {
                 subscriptionStatus: subscription.status,
-                subscriptionTier: plan ? (plan.id as 'free' | 'hypertrophy') : user.subscriptionTier,
+                subscriptionTier: plan ? (plan.id as 'light' | 'pro' | 'elite') : user.subscriptionTier,
                 stripeSubscriptionId: subscription.id,
              });
              console.log(`Subscription status updated to ${subscription.status} for user ${user.id}`);

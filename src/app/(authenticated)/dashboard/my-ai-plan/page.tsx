@@ -51,7 +51,7 @@ function MyAiPlanPageContent() {
       return;
     }
     
-    if (user.subscriptionTier !== 'hypertrophy' || user.subscriptionStatus !== 'active') {
+    if (user.subscriptionTier === 'free' || user.subscriptionStatus !== 'active') {
       setIsLoading(false);
       return; 
     }
@@ -134,7 +134,7 @@ function MyAiPlanPageContent() {
     );
   }
   
-  if (user && (user.subscriptionTier !== 'hypertrophy' || user.subscriptionStatus !== 'active')) {
+  if (user && (user.subscriptionTier === 'free' || user.subscriptionStatus !== 'active')) {
     return <SubscriptionRequiredBlock featureName="seus Planos Salvos de Clientes" />;
   }
 
@@ -381,5 +381,3 @@ export default function MyAiPlanPage() {
     </Suspense>
   );
 }
-
-    

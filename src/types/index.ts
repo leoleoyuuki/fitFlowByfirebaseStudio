@@ -18,7 +18,7 @@ export interface UserProfile {
   photoURL?: string | null; 
   professionalType?: 'physical_educator' | 'nutritionist' | 'both' | null; 
   professionalRegistration?: string | null; 
-  subscriptionTier?: 'free' | 'hypertrophy'; 
+  subscriptionTier?: 'free' | 'light' | 'pro' | 'elite'; 
   stripeCustomerId?: string | null;
   stripeSubscriptionId?: string | null;
   subscriptionStatus?: 'active' | 'canceled' | 'past_due' | 'incomplete' | null;
@@ -49,11 +49,14 @@ export interface Exercise {
 }
 
 export interface SubscriptionPlan {
-  id: 'free' | 'hypertrophy'; 
+  id: 'light' | 'pro' | 'elite';
   name: string;
   price: string;
+  description: string;
   features: string[];
-  stripePriceId: string; 
+  stripePriceId: string;
+  isPopular?: boolean;
+  icon?: LucideIcon;
 }
 
 export interface ProgressLog {

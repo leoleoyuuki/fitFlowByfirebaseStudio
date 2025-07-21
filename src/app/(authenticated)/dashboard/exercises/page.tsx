@@ -20,7 +20,7 @@ export default function ExercisesPage() {
     );
   }
 
-  if (!user || user.subscriptionTier !== 'hypertrophy' || user.subscriptionStatus !== 'active') {
+  if (!user || user.subscriptionTier === 'free' || user.subscriptionStatus !== 'active') {
     return <SubscriptionRequiredBlock featureName="a Biblioteca de Exercícios" />;
   }
 
@@ -44,4 +44,3 @@ export default function ExercisesPage() {
     </div>
   );
 }
-

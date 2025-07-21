@@ -1,6 +1,6 @@
 
 import type { NavItem, Workout, Exercise, SubscriptionPlan, ProgressLog } from '@/types';
-import { Dumbbell, Zap, Heart, Target, Brain, User, Settings, LayoutDashboard, BookOpen, Activity, Gift, Flame, Pizza, Utensils, FileText, Users } from 'lucide-react';
+import { Dumbbell, Zap, Heart, Target, Brain, User, Settings, LayoutDashboard, BookOpen, Activity, Gift, Flame, Pizza, Utensils, FileText, Users, Crown, Star } from 'lucide-react';
 
 export const APP_NAME = "FitFlow Pro"; // Nome alterado para B2B
 
@@ -61,19 +61,50 @@ export const MOCK_EXERCISES: Exercise[] = [
 
 export const MOCK_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   { 
-    id: "hypertrophy",
-    name: "Plano para Academias", 
-    price: "R$99,90/mês",
+    id: "light",
+    name: "Plano Light", 
+    price: "R$149/mês",
+    description: "Para academias até 200 alunos.",
     features: [
-      "Geração de planos de treino ilimitados para alunos",
-      "Ferramenta de edição para personalização pelos instrutores",
-      "Biblioteca de exercícios para padronização da prescrição",
-      "Aumente a retenção e a percepção de valor dos seus alunos",
-      "Suporte prioritário para sua equipe"
+      "Geração de planos ilimitada",
+      "Ferramentas de edição e personalização",
+      "Biblioteca completa de exercícios",
+      "Suporte via e-mail"
     ], 
-    stripePriceId: "price_1RfZWYKOlX31rMUJXmeVodiK"
+    stripePriceId: "price_LIGHT_PLAN_ID_REPLACE_ME", // Substitua pelo seu Price ID real
+    icon: Flame,
+  },
+  { 
+    id: "pro",
+    name: "Plano Pro", 
+    price: "R$249/mês",
+    description: "Até 500 alunos.",
+    features: [
+      "Todos os benefícios do plano Light",
+      "Gestão de múltiplos profissionais (em breve)",
+      "Relatórios de engajamento (em breve)",
+      "Suporte prioritário"
+    ], 
+    stripePriceId: "price_PRO_PLAN_ID_REPLACE_ME", // Substitua pelo seu Price ID real
+    icon: Star,
+    isPopular: true,
+  },
+  { 
+    id: "elite",
+    name: "Plano Elite", 
+    price: "R$399/mês",
+    description: "Acima de 500 alunos.",
+    features: [
+      "Todos os benefícios do plano Pro",
+      "API de integração (em breve)",
+      "Gerente de conta dedicado (em breve)",
+      "Suporte via WhatsApp"
+    ], 
+    stripePriceId: "price_ELITE_PLAN_ID_REPLACE_ME", // Substitua pelo seu Price ID real
+    icon: Crown,
   },
 ];
+
 
 export const MOCK_PROGRESS_LOGS: ProgressLog[] = [
   { id: "log1", date: new Date(2024, 6, 20).toISOString(), exerciseId: "1", exerciseName: "Agachamento Livre com Barra", sets: 4, reps: 8, weight: 100, userId: "mockUser" },
@@ -81,5 +112,3 @@ export const MOCK_PROGRESS_LOGS: ProgressLog[] = [
   { id: "log3", date: new Date(2024, 6, 22).toISOString(), exerciseId: "1", exerciseName: "Agachamento Livre com Barra", sets: 4, reps: 8, weight: 102.5, userId: "mockUser" },
   { id: "log5", date: new Date(2024, 6, 24).toISOString(), exerciseId: "10", exerciseName: "Remada Curvada", sets: 3, reps: 12, weight: 60, userId: "mockUser" },
 ];
-
-    
