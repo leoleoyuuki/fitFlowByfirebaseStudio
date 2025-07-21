@@ -69,10 +69,12 @@ export const MOCK_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       "Geração de planos ilimitada",
       "Ferramentas de edição e personalização",
       "Biblioteca completa de exercícios",
+      "Limite de 200 planos de clientes salvos",
       "Suporte via e-mail"
     ], 
     stripePriceId: "price_1RnOtNKOlX31rMUJpAlZxDms",
     icon: Flame,
+    planLimit: 200,
   },
   { 
     id: "pro",
@@ -81,6 +83,7 @@ export const MOCK_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     description: "Até 500 alunos.",
     features: [
       "Todos os benefícios do plano Light",
+      "Limite de 500 planos de clientes salvos",
       "Gestão de múltiplos profissionais (em breve)",
       "Relatórios de engajamento (em breve)",
       "Suporte prioritário"
@@ -88,6 +91,7 @@ export const MOCK_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     stripePriceId: "price_1RnOtbKOlX31rMUJB5wIupHg",
     icon: Star,
     isPopular: true,
+    planLimit: 500,
   },
   { 
     id: "elite",
@@ -96,12 +100,14 @@ export const MOCK_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     description: "Acima de 500 alunos.",
     features: [
       "Todos os benefícios do plano Pro",
+      "Planos de clientes salvos ILIMITADOS",
       "API de integração (em breve)",
       "Gerente de conta dedicado (em breve)",
       "Suporte via WhatsApp"
     ], 
     stripePriceId: "price_1RnOtuKOlX31rMUJMnIVSjIm",
     icon: Crown,
+    planLimit: Infinity, // Usando Infinity para representar ilimitado
   },
 ];
 

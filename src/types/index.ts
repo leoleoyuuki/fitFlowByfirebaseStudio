@@ -57,6 +57,7 @@ export interface SubscriptionPlan {
   stripePriceId: string;
   isPopular?: boolean;
   icon?: LucideIcon;
+  planLimit: number;
 }
 
 export interface ProgressLog {
