@@ -38,7 +38,7 @@ export default function DashboardPage() {
         )}
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
         <Card className="shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Planos de Clientes Salvos</CardTitle>
@@ -54,26 +54,6 @@ export default function DashboardPage() {
             <Button variant="outline" size="sm" className="mt-4" asChild disabled={!isSubscribed}>
               <Link href={isSubscribed ? "/dashboard/my-ai-plan" : "/subscribe"}>
                 {isSubscribed ? "Ver Planos Salvos" : "Ver Planos (Bloqueado)"}
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-lg">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Biblioteca de Exercícios</CardTitle>
-            <Dumbbell className="h-5 w-5 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-                {isSubscribed ? "Acesso Completo" : "Conteúdo Pro"}
-            </div>
-            <p className="text-xs text-muted-foreground">
-                {isSubscribed ? "Detalhes e vídeos para seus clientes" : "Assine para acesso total à biblioteca"}
-            </p>
-             <Button variant="outline" size="sm" className="mt-4" asChild disabled={!isSubscribed}>
-              <Link href={isSubscribed ? "/dashboard/exercises" : "/subscribe"}>
-                {isSubscribed ? "Explorar Exercícios" : "Explorar (Bloqueado)"}
               </Link>
             </Button>
           </CardContent>

@@ -1,4 +1,3 @@
-
 import type { NavItem, Workout, Exercise, SubscriptionPlan, ProgressLog } from '@/types';
 import { Dumbbell, Zap, Heart, Target, Brain, User, Settings, LayoutDashboard, BookOpen, Activity, Gift, Flame, Pizza, Utensils, FileText, Users, Crown, Star } from 'lucide-react';
 
@@ -12,8 +11,7 @@ export const mainNavItems: NavItem[] = [
 export const dashboardNavItems: NavItem[] = [
   { title: "Painel Principal", href: "/dashboard", icon: LayoutDashboard },
   { title: "Gerar Plano Cliente", href: "/dashboard/personalized-plan", icon: Brain },
-  { title: "Planos Salvos", href: "/dashboard/my-ai-plan", icon: FileText }, // Renomeado e aponta para a lista
-  { title: "Biblioteca de Exercícios", href: "/dashboard/exercises", icon: BookOpen },
+  { title: "Planos Salvos", href: "/dashboard/my-ai-plan", icon: FileText },
   // { title: "Registrar Progresso Cliente", href: "/dashboard/progress", icon: Activity }, // Talvez reavaliar para B2B
   { title: "Assinatura Pro", href: "/subscribe", icon: Gift },
   { title: "Configurações da Conta", href: "/dashboard/settings", icon: Settings },
@@ -68,8 +66,8 @@ export const MOCK_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     features: [
       "Geração de planos ilimitada",
       "Ferramentas de edição e personalização",
-      "Biblioteca completa de exercícios",
       "Limite de 200 planos de clientes salvos",
+      "Exportação de planos em PDF",
       "Suporte via e-mail"
     ], 
     stripePriceId: "price_1RnOnZKOlX31rMUJYKonjRp2",
