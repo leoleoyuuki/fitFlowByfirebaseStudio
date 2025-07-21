@@ -5,11 +5,12 @@ import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { MOCK_SUBSCRIPTION_PLANS, APP_NAME } from "@/lib/constants";
-import { CheckCircle, Loader2, Zap, Settings } from "lucide-react";
+import { CheckCircle, Loader2, Zap, Settings, Star } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type Stripe as StripeType, loadStripe } from '@stripe/stripe-js';
+import { cn } from "@/lib/utils";
 
 let stripePromiseInstance: Promise<StripeType | null> | null = null;
 
@@ -33,25 +34,25 @@ function SubscribePageContent() {
   const [isSubscribing, setIsSubscribing] = useState<string | null>(null);
   const [isManagingSubscription, setIsManagingSubscription] = useState(false);
 
-  const hypertrophyPlan = MOCK_SUBSCRIPTION_PLANS.find(p => p.id === 'hypertrophy');
-
   useEffect(() => {
-    if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY && hypertrophyPlan && hypertrophyPlan.stripePriceId !== 'price_B2B_PLAN_ID_REPLACE_ME') { // Verifica se o price ID não é o placeholder
+    if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
          toast({
             title: "Erro de Configuração do Stripe",
             description: "A chave publicável do Stripe não está definida. Pagamentos para planos não funcionarão.",
             variant: "destructive",
         });
     }
-     if (hypertrophyPlan && hypertrophyPlan.stripePriceId === 'price_B2B_PLAN_ID_REPLACE_ME') {
+
+    const hasPlaceholderId = MOCK_SUBSCRIPTION_PLANS.some(p => p.stripePriceId.includes('_REPLACE_ME'));
+     if (hasPlaceholderId) {
       toast({
         title: "Aviso de Configuração",
-        description: "O plano Pro requer um Price ID do Stripe válido. Configure-o em src/lib/constants.ts e no seu Stripe Dashboard.",
+        description: "Os planos de assinatura requerem Price IDs do Stripe válidos. Configure-os em src/lib/constants.ts e no seu Stripe Dashboard.",
         variant: "default",
         duration: 10000,
       });
     }
-  }, [toast, hypertrophyPlan]);
+  }, [toast]);
 
   useEffect(() => {
     const success = searchParams.get("success");
@@ -63,7 +64,7 @@ function SubscribePageContent() {
         description: `Seu plano ${APP_NAME} está ativo. Potencialize seus serviços!`,
       });
       setTimeout(() => {
-          if (user && user.subscriptionTier === 'hypertrophy' && user.subscriptionStatus === 'active') {
+          if (user && user.subscriptionTier !== 'free' && user.subscriptionStatus === 'active') {
             router.push("/dashboard");
           } else {
             router.replace('/subscribe?subscription_updated=true', undefined);
@@ -104,14 +105,14 @@ function SubscribePageContent() {
     if (!user) {
       toast({
         title: "Login Necessário",
-        description: "Por favor, faça login ou cadastre-se para assinar o plano Pro.",
+        description: "Por favor, faça login ou cadastre-se para assinar.",
         variant: "destructive",
       });
       router.push(`/login?redirect=/subscribe&planId=${planId}`);
       return;
     }
 
-    if (!plan.stripePriceId || plan.stripePriceId === 'price_B2B_PLAN_ID_REPLACE_ME') {
+    if (!plan.stripePriceId || plan.stripePriceId.includes('_REPLACE_ME')) {
       toast({
         title: "Erro de Configuração do Plano",
         description: "Este plano não está configurado corretamente para pagamento (Stripe Price ID ausente ou placeholder). Contate o suporte ou verifique as configurações.",
@@ -211,17 +212,18 @@ function SubscribePageContent() {
   };
   
   const Content = () => {
-    const isHypertrophySubscriber = user && user.subscriptionTier === 'hypertrophy' && user.subscriptionStatus === 'active';
+    const isSubscribed = user && user.subscriptionTier !== 'free' && user.subscriptionStatus === 'active';
 
-    if (isHypertrophySubscriber) {
+    if (isSubscribed) {
+      const currentPlan = MOCK_SUBSCRIPTION_PLANS.find(p => p.id === user.subscriptionTier);
       return (
         <div className="container mx-auto px-4 py-12 md:py-16 text-center">
           <Zap className="h-12 w-12 text-primary mx-auto mb-4" />
           <h1 className="text-3xl font-extrabold tracking-tight text-primary sm:text-4xl">
-            Você já é um Assinante {APP_NAME}!
+            Você já é um Assinante {currentPlan?.name || APP_NAME}!
           </h1>
           <p className="mt-4 max-w-xl mx-auto text-lg text-muted-foreground">
-            Continue aproveitando todos os benefícios do seu plano Pro para otimizar a criação de planos para seus clientes.
+            Continue aproveitando todos os benefícios do seu plano para otimizar a criação de planos para seus clientes.
           </p>
           <Button 
             onClick={handleManageSubscription} 
@@ -229,7 +231,7 @@ function SubscribePageContent() {
             disabled={isManagingSubscription || authLoading}
           >
             {isManagingSubscription ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Settings className="mr-2 h-5 w-5" />}
-            Gerenciar Minha Assinatura Pro
+            Gerenciar Minha Assinatura
           </Button>
            <p className="mt-4 text-sm text-muted-foreground">
             Você será redirecionado para o portal do Stripe para gerenciar seus pagamentos e assinatura.
@@ -238,11 +240,11 @@ function SubscribePageContent() {
       );
     }
 
-    if (!hypertrophyPlan) {
+    if (!MOCK_SUBSCRIPTION_PLANS.length) {
         return (
              <div className="container mx-auto px-4 py-12 md:py-16 text-center">
                 <h1 className="text-3xl font-bold text-destructive">Erro de Configuração</h1>
-                <p className="mt-4 text-muted-foreground">O plano de assinatura principal não pôde ser carregado. Por favor, contate o suporte.</p>
+                <p className="mt-4 text-muted-foreground">Os planos de assinatura não puderam ser carregados. Por favor, contate o suporte.</p>
             </div>
         )
     }
@@ -251,53 +253,63 @@ function SubscribePageContent() {
       <div className="container mx-auto px-4 py-12 md:py-16">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-extrabold tracking-tight text-primary sm:text-5xl">
-            Assine o {APP_NAME} para Profissionais
+            Escolha o Plano Ideal para sua Academia
           </h1>
           <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground sm:text-xl">
             Desbloqueie a geração de planos base com IA, ferramentas de personalização e economize tempo valioso.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-1 gap-8 max-w-md mx-auto">
-            <Card key={hypertrophyPlan.id} className={`flex flex-col shadow-xl hover:shadow-2xl transition-shadow duration-300 border-primary border-2 ring-4 ring-primary/20`}>
-              <CardHeader className="text-center">
-                <Zap className="h-8 w-8 text-accent mx-auto mb-2" />
-                <CardTitle className="text-2xl font-semibold text-primary">{hypertrophyPlan.name}</CardTitle>
-                <CardDescription className="text-4xl font-bold text-foreground mt-2">{hypertrophyPlan.price}</CardDescription>
-                <p className="text-sm font-medium text-accent">Potencialize Seus Serviços</p>
-              </CardHeader>
-              <CardContent className="flex-grow">
-                <ul className="space-y-3">
-                  {hypertrophyPlan.features.map((feature, index) => (
-                    <li key={index} className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5 shrink-0" />
-                      <span className="text-muted-foreground">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-              <CardFooter>
-                <Button 
-                  className="w-full text-lg py-6" 
-                  variant='default'
-                  onClick={() => handleSubscribe(hypertrophyPlan.id)}
-                  disabled={authLoading || isSubscribing === hypertrophyPlan.id || (user?.subscriptionTier === hypertrophyPlan.id) || (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) || (!hypertrophyPlan.stripePriceId || hypertrophyPlan.stripePriceId === 'price_B2B_PLAN_ID_REPLACE_ME')}
-                >
-                  {isSubscribing === hypertrophyPlan.id ? (
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  ) : (user?.subscriptionTier === hypertrophyPlan.id) ? "Plano Pro Atual" : `Assinar ${hypertrophyPlan.name}`}
-                </Button>
-              </CardFooter>
-            </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-5xl mx-auto items-stretch">
+            {MOCK_SUBSCRIPTION_PLANS.map((plan) => (
+              <Card key={plan.id} className={cn(
+                  "flex flex-col shadow-lg hover:shadow-2xl transition-shadow duration-300 relative",
+                  plan.isPopular ? "border-primary border-2 ring-4 ring-primary/20" : "border"
+              )}>
+                {plan.isPopular && (
+                  <div className="absolute -top-4 right-4 bg-primary text-primary-foreground px-3 py-1 text-sm font-bold rounded-full flex items-center gap-1">
+                    <Star className="w-4 h-4" /> Mais Popular
+                  </div>
+                )}
+                <CardHeader className="text-center">
+                  {plan.icon && <plan.icon className="h-8 w-8 text-primary mx-auto mb-2" />}
+                  <CardTitle className="text-2xl font-semibold">{plan.name}</CardTitle>
+                  <CardDescription className="text-muted-foreground">{plan.description}</CardDescription>
+                  <p className="text-4xl font-bold text-foreground mt-2">{plan.price}</p>
+                </CardHeader>
+                <CardContent className="flex-grow">
+                  <ul className="space-y-3">
+                    {plan.features.map((feature, index) => (
+                      <li key={index} className="flex items-start">
+                        <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5 shrink-0" />
+                        <span className="text-muted-foreground">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+                <CardFooter>
+                  <Button 
+                    className="w-full text-lg py-6" 
+                    variant={plan.isPopular ? 'default' : 'outline'}
+                    onClick={() => handleSubscribe(plan.id)}
+                    disabled={authLoading || isSubscribing === plan.id || (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) || (!plan.stripePriceId || plan.stripePriceId.includes('_REPLACE_ME'))}
+                  >
+                    {isSubscribing === plan.id ? (
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    ) : `Assinar ${plan.name}`}
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))}
         </div>
         <p className="text-center mt-12 text-sm text-muted-foreground">
-          A assinatura é mensal e recorrente. Você pode gerenciar ou cancelar sua assinatura a qualquer momento.
+          Todas as assinaturas são mensais e recorrentes. Você pode gerenciar ou cancelar sua assinatura a qualquer momento.
         </p>
       </div>
     );
   };
 
-  if (authLoading && !user) { // Apenas mostra loader global se estiver autenticando e não houver usuário ainda
+  if (authLoading && !user) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -309,7 +321,7 @@ function SubscribePageContent() {
     <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-1 bg-gradient-to-br from-primary/5 via-background to-background">
-        {authLoading && user ? ( // Mostra um loader menor se já tem usuário mas ainda está loading (ex: atualizando estado da subscription)
+        {authLoading && user ? (
              <div className="flex items-center justify-center py-10">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 <p className="ml-3 text-muted-foreground">Verificando assinatura...</p>

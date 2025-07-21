@@ -70,7 +70,7 @@ function PersonalizedPlanPageContent() {
     );
   }
 
-  if (!user || user.subscriptionTier !== 'hypertrophy' || user.subscriptionStatus !== 'active') {
+  if (!user || user.subscriptionTier === 'free' || user.subscriptionStatus !== 'active') {
     return <SubscriptionRequiredBlock featureName="o Gerador de Planos com IA" />;
   }
   

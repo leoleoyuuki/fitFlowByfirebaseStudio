@@ -117,7 +117,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await updateProfile(userCredential.user, { displayName: name });
         
         const userDocRef = doc(db, "users", userCredential.user.uid);
-        const initialUserProfile: UserProfile = {
+        const initialUserProfile: Omit<UserProfile, 'createdAt' | 'updatedAt'> & { createdAt: any, updatedAt: any } = {
           id: userCredential.user.uid,
           email: userCredential.user.email || "",
           displayName: name,
@@ -133,7 +133,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         };
         await setDoc(userDocRef, initialUserProfile);
 
-        setUser(initialUserProfile);
+        setUser(initialUserProfile as UserProfile);
       }
       toast({ title: "Cadastro Realizado", description: `Bem-vindo(a) ao ${APP_NAME}! Sua conta profissional foi criada.` });
       router.push('/dashboard');

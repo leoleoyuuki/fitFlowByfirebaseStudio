@@ -26,9 +26,11 @@ import { Loader2, Wand2, Dumbbell, Utensils, Save, Download, Info } from "lucide
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp, doc, updateDoc } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, doc, updateDoc, getCountFromServer } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import type { ClientPersonalizedPlanInputValues, ClientPlan } from "@/types";
+import { MOCK_SUBSCRIPTION_PLANS } from "@/lib/constants";
+import Link from "next/link";
 
 const ClientPersonalizedPlanInputSchema = z.object({
   professionalRole: z.enum(["physical_educator", "nutritionist", "both"], { required_error: "Selecione sua principal área de atuação." }),
@@ -108,8 +110,8 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
 
   useEffect(() => {
     if (isEditingExistingPlan && initialClientInputs) {
-        setEditableProfessionalRole(initialClientInputs.professionalRole || user?.professionalType || undefined);
-        setEditableProfessionalRegistration(initialClientInputs.professionalRegistration || user?.professionalRegistration || "");
+        setEditableProfessionalRole(initialClientInputs.professionalRole || undefined);
+        setEditableProfessionalRegistration(initialClientInputs.professionalRegistration || "");
         setEditableClientName(initialClientInputs.clientName || "");
         setProfRoleError(null); setProfRegError(null); setClientNameError(null);
         
@@ -213,6 +215,31 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
 
     setIsSaving(true);
     let finalOriginalInputs: ClientPersonalizedPlanInputValues;
+
+    // Plan limit check
+    if (!isEditingExistingPlan) {
+        const currentPlanTier = user.subscriptionTier || 'free';
+        const planDetails = MOCK_SUBSCRIPTION_PLANS.find(p => p.id === currentPlanTier);
+        const planLimit = planDetails?.planLimit ?? 0;
+
+        if (currentPlanTier !== 'free' && planLimit !== Infinity) {
+            const plansCollectionRef = collection(db, "userGeneratedPlans", user.id, "plans");
+            const snapshot = await getCountFromServer(plansCollectionRef);
+            const currentPlanCount = snapshot.data().count;
+
+            if (currentPlanCount >= planLimit) {
+                toast({
+                    title: "Limite de Planos Atingido",
+                    description: `Você atingiu o limite de ${planLimit} planos para o seu plano ${planDetails?.name}. Para salvar mais planos, considere fazer um upgrade.`,
+                    variant: "destructive",
+                    action: <Button asChild variant="outline" size="sm"><Link href="/subscribe">Ver Planos</Link></Button>,
+                });
+                setIsSaving(false);
+                return;
+            }
+        }
+    }
+
 
     if (isEditingExistingPlan && initialClientInputs) {
         let manualValidationOk = true;

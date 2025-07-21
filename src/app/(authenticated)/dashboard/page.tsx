@@ -10,7 +10,7 @@ import { APP_NAME } from "@/lib/constants";
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const isSubscribed = user && user.subscriptionTier === 'hypertrophy' && user.subscriptionStatus === 'active';
+  const isSubscribed = user && user.subscriptionTier !== 'free' && user.subscriptionStatus === 'active';
 
   return (
     <div className="space-y-8">
@@ -19,8 +19,8 @@ export default function DashboardPage() {
           <h1 className="text-3xl font-bold tracking-tight">Bem-vindo(a) ao {APP_NAME}, {user?.displayName || "Profissional"}!</h1>
           <p className="text-muted-foreground">
             {isSubscribed 
-              ? "Pronto para otimizar a criação de planos para seus clientes?" 
-              : `Desbloqueie todo o potencial do ${APP_NAME} com nossa assinatura Pro.`}
+              ? `Você está no plano ${user.subscriptionTier}. Pronto para otimizar a criação de planos?` 
+              : `Desbloqueie todo o potencial do ${APP_NAME} com uma de nossas assinaturas.`}
           </p>
         </div>
         {isSubscribed ? (
@@ -32,7 +32,7 @@ export default function DashboardPage() {
         ) : (
           <Button asChild>
             <Link href="/subscribe">
-              <Gift className="mr-2 h-4 w-4" /> Assine o {APP_NAME} Pro
+              <Gift className="mr-2 h-4 w-4" /> Ver Planos de Assinatura
             </Link>
           </Button>
         )}
@@ -122,7 +122,7 @@ export default function DashboardPage() {
             </p>
             {!isSubscribed && (
                 <p className="text-sm text-primary mt-3">
-                    <Link href="/subscribe" className="underline hover:text-primary/80">Assine o {APP_NAME} Pro</Link> para ter acesso completo às ferramentas de personalização e IA.
+                    <Link href="/subscribe" className="underline hover:text-primary/80">Assine um dos nossos planos</Link> para ter acesso completo às ferramentas de personalização e IA.
                 </p>
             )}
           </div>
@@ -131,5 +131,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    

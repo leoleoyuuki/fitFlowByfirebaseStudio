@@ -75,9 +75,9 @@ export default function ProgressPage() {
   useEffect(() => {
     if (authLoading) return;
 
-    if (user && user.subscriptionTier === 'hypertrophy' && user.subscriptionStatus === 'active') {
+    if (user && user.subscriptionTier !== 'free' && user.subscriptionStatus === 'active') {
       fetchUserLogs();
-    } else if (user && (user.subscriptionTier !== 'hypertrophy' || user.subscriptionStatus !== 'active')) {
+    } else if (user && (user.subscriptionTier === 'free' || user.subscriptionStatus !== 'active')) {
       setLogs([]);
       setIsLoadingLogs(false);
     } else if (!user) {
@@ -198,7 +198,7 @@ export default function ProgressPage() {
     );
   }
 
-  if (!user || user.subscriptionTier !== 'hypertrophy' || user.subscriptionStatus !== 'active') {
+  if (!user || user.subscriptionTier === 'free' || user.subscriptionStatus !== 'active') {
     return <SubscriptionRequiredBlock featureName="o Log de Progresso" />;
   }
 
@@ -367,5 +367,3 @@ export default function ProgressPage() {
     </div>
   );
 }
-
-    
