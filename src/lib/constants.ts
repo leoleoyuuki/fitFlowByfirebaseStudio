@@ -72,7 +72,7 @@ export const MOCK_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       "Limite de 200 planos de clientes salvos",
       "Suporte via e-mail"
     ], 
-    stripePriceId: "price_1RnOtNKOlX31rMUJpAlZxDms",
+    stripePriceId: "price_1RnOnZKOlX31rMUJYKonjRp2",
     icon: Flame,
     planLimit: 200,
   },
@@ -88,7 +88,7 @@ export const MOCK_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       "Relatórios de engajamento (em breve)",
       "Suporte prioritário"
     ], 
-    stripePriceId: "price_1RnOtbKOlX31rMUJB5wIupHg",
+    stripePriceId: "price_1RnOoLKOlX31rMUJdEl5K8uq",
     icon: Star,
     isPopular: true,
     planLimit: 500,
@@ -105,7 +105,7 @@ export const MOCK_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       "Gerente de conta dedicado (em breve)",
       "Suporte via WhatsApp"
     ], 
-    stripePriceId: "price_1RnOtuKOlX31rMUJMnIVSjIm",
+    stripePriceId: "price_1RnOoyKOlX31rMUJW3GCa38Q",
     icon: Crown,
     planLimit: Infinity, // Usando Infinity para representar ilimitado
   },
