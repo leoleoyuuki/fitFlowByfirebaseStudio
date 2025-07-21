@@ -70,7 +70,7 @@ export const MOCK_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       "Exportação de planos em PDF",
       "Suporte via e-mail"
     ], 
-    stripePriceId: "price_1RnOnZKOlX31rMUJYKonjRp2",
+    stripePriceId: "price_1RfZpmKOlX31rMUJWypRXgee",
     icon: Flame,
     planLimit: 200,
   },
