@@ -71,7 +71,7 @@ export const MOCK_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       "Biblioteca completa de exercícios",
       "Suporte via e-mail"
     ], 
-    stripePriceId: "price_LIGHT_PLAN_ID_REPLACE_ME", // Substitua pelo seu Price ID real
+    stripePriceId: "price_1RnOtNKOlX31rMUJpAlZxDms", // Substitua pelo seu Price ID real
     icon: Flame,
   },
   { 
@@ -85,7 +85,7 @@ export const MOCK_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       "Relatórios de engajamento (em breve)",
       "Suporte prioritário"
     ], 
-    stripePriceId: "price_PRO_PLAN_ID_REPLACE_ME", // Substitua pelo seu Price ID real
+    stripePriceId: "price_1RnOtbKOlX31rMUJB5wIupHg", // Substitua pelo seu Price ID real
     icon: Star,
     isPopular: true,
   },
@@ -100,7 +100,7 @@ export const MOCK_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       "Gerente de conta dedicado (em breve)",
       "Suporte via WhatsApp"
     ], 
-    stripePriceId: "price_ELITE_PLAN_ID_REPLACE_ME", // Substitua pelo seu Price ID real
+    stripePriceId: "price_1RnOtuKOlX31rMUJMnIVSjIm", // Substitua pelo seu Price ID real
     icon: Crown,
   },
 ];
