@@ -462,9 +462,9 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
 
                 <FormField control={form.control} name="availableEquipment" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Equipamentos Disponíveis</FormLabel>
+                      <FormLabel>Equipamentos disponiveis + Preferencias de treino</FormLabel>
                       <FormControl>
-                        <Textarea placeholder="Ex: Academia completa, halteres e banco, peso corporal..." {...field} value={field.value || ""} rows={2} />
+                        <Textarea placeholder="Ex: Equipamentos: Academia completa com halteres, barras e máquinas.&#10;Preferências: Gosta de treinar peito, mas não gosta de agachamento livre. Focar em exercícios para glúteos." {...field} value={field.value || ""} rows={4} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -759,3 +759,5 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
     </div>
   );
 }
+
+    
