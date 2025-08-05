@@ -5,7 +5,7 @@ import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { MOCK_SUBSCRIPTION_PLANS, APP_NAME } from "@/lib/constants";
-import { CheckCircle, Loader2, Zap, Settings, Star } from "lucide-react";
+import { CheckCircle, Loader2, Zap, Settings, Star, XCircle } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -274,15 +274,19 @@ function SubscribePageContent() {
                 <CardHeader className="text-center">
                   {plan.icon && <plan.icon className="h-8 w-8 text-primary mx-auto mb-2" />}
                   <CardTitle className="text-2xl font-semibold">{plan.name}</CardTitle>
-                  <CardDescription className="text-muted-foreground">{plan.description}</CardDescription>
                   <p className="text-4xl font-bold text-foreground mt-2">{plan.price}</p>
+                  <CardDescription className="text-muted-foreground font-medium h-10">{plan.description}</CardDescription>
                 </CardHeader>
                 <CardContent className="flex-grow">
                   <ul className="space-y-3">
                     {plan.features.map((feature, index) => (
                       <li key={index} className="flex items-start">
-                        <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5 shrink-0" />
-                        <span className="text-muted-foreground">{feature}</span>
+                        {feature.included ? (
+                            <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5 shrink-0" />
+                        ) : (
+                            <XCircle className="h-5 w-5 text-red-500 mr-2 mt-0.5 shrink-0 opacity-70" />
+                        )}
+                        <span className={cn("text-muted-foreground", !feature.included && "opacity-70 line-through")}>{feature.text}</span>
                       </li>
                     ))}
                   </ul>

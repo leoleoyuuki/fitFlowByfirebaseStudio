@@ -48,12 +48,17 @@ export interface Exercise {
   muscleGroups?: string[]; 
 }
 
+export interface PlanFeature {
+    text: string;
+    included: boolean;
+}
+
 export interface SubscriptionPlan {
   id: 'light' | 'pro' | 'elite';
   name: string;
   price: string;
   description: string;
-  features: string[];
+  features: PlanFeature[];
   stripePriceId: string;
   isPopular?: boolean;
   icon?: LucideIcon;

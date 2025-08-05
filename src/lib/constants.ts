@@ -64,11 +64,10 @@ export const MOCK_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     price: "R$149/mês",
     description: "Para academias até 200 alunos.",
     features: [
-      "Geração de planos ilimitada",
-      "Ferramentas de edição e personalização",
-      "Limite de 200 planos de clientes salvos",
-      "Exportação de planos em PDF",
-      "Suporte via e-mail"
+      { text: "Geração de planos de Dieta + Treino", included: true },
+      { text: "Suporte Incluso", included: true },
+      { text: "Sem Contrato de Fidelidade", included: true },
+      { text: "Treinamento de equipe incluso", included: false },
     ], 
     stripePriceId: "price_1RnOnZKOlX31rMUJYKonjRp2",
     icon: Flame,
@@ -80,11 +79,10 @@ export const MOCK_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     price: "R$249/mês",
     description: "Até 500 alunos.",
     features: [
-      "Todos os benefícios do plano Light",
-      "Limite de 500 planos de clientes salvos",
-      "Gestão de múltiplos profissionais (em breve)",
-      "Relatórios de engajamento (em breve)",
-      "Suporte prioritário"
+      { text: "Geração de planos de Dieta + Treino", included: true },
+      { text: "Suporte Incluso", included: true },
+      { text: "Sem Contrato de Fidelidade", included: true },
+      { text: "Treinamento de equipe incluso", included: false },
     ], 
     stripePriceId: "price_1RnOoLKOlX31rMUJdEl5K8uq",
     icon: Star,
@@ -97,11 +95,10 @@ export const MOCK_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     price: "R$399/mês",
     description: "Acima de 500 alunos.",
     features: [
-      "Todos os benefícios do plano Pro",
-      "Planos de clientes salvos ILIMITADOS",
-      "API de integração (em breve)",
-      "Gerente de conta dedicado (em breve)",
-      "Suporte via WhatsApp"
+      { text: "Geração de planos de Dieta + Treino", included: true },
+      { text: "Suporte Incluso", included: true },
+      { text: "Sem Contrato de Fidelidade", included: true },
+      { text: "Treinamento de equipe incluso", included: true },
     ], 
     stripePriceId: "price_1RnOoyKOlX31rMUJW3GCa38Q",
     icon: Crown,
