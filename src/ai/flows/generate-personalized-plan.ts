@@ -127,6 +127,8 @@ Instruções para Geração do Rascunho do Plano (TODO O TEXTO DE SAÍDA DEVE ES
 
 1.  **Rascunho do Plano de Treino:**
     *   Baseie-se em todos os dados do cliente para criar um plano de treino detalhado e científico. Se a função do profissional for 'nutritionist', o plano de treino ainda deve ser completo, mas é entendido como uma sugestão para o cliente ou para colaboração com um educador físico.
+    *   **ATENÇÃO ÀS PREFERÊNCIAS:** Analise o campo 'availableEquipment' cuidadosamente para identificar quaisquer preferências ou aversões a exercícios ou grupos musculares (ex: 'não gosta de agachamento', 'focar em glúteos'). Adapte o plano para respeitar isso.
+    *   **NOMEAÇÃO DA DIVISÃO DE TREINO:** Se a divisão de treino resultante das preferências do cliente não for um padrão conhecido (ex: ABC, Upper/Lower), nomeie os dias de forma genérica, como "Dia A", "Dia B", "Dia C", etc., e use o campo 'focus' para descrever os músculos trabalhados (ex: day: "Dia A", focus: "Peito, Ombros e Tríceps").
 
 2.  **Rascunho das Diretrizes de Dieta:**
     *   **MUITO IMPORTANTE:** Se o papel do profissional ('professionalRole') for 'physical_educator', a orientação dietética é estritamente SUGESTIVA e EDUCACIONAL. Neste caso, você DEVE obrigatoriamente adicionar o seguinte texto no início do campo 'notes' de 'dietGuidance': "AVISO IMPORTANTE: Estas são sugestões alimentares com fins educacionais, baseadas em diretrizes gerais. Um plano alimentar individualizado e com caráter de prescrição dietética deve ser elaborado por um Nutricionista licenciado. Este material não substitui a consulta com um Nutricionista."
