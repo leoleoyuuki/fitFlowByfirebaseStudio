@@ -8,10 +8,12 @@ import 'aos/dist/aos.css';
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardFooter, CardTitle } from "@/components/ui/card";
-import { Brain, UserCheck, Clock, CheckCircle, TrendingUp, Target, Zap, FileText } from "lucide-react";
+import { Brain, UserCheck, Clock, CheckCircle, TrendingUp, Target, Zap, FileText, XCircle, Flame, Star, Crown } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { APP_NAME } from '@/lib/constants';
+import { cn } from '@/lib/utils';
+import { MOCK_SUBSCRIPTION_PLANS } from '@/lib/constants';
 
 export default function HomePage() {
   useEffect(() => {
@@ -136,36 +138,49 @@ export default function HomePage() {
             <h2 className="text-3xl font-bold text-center mb-4 text-foreground" data-aos="fade-down" data-aos-delay="100">
               Um Investimento Inteligente na Sua Academia
             </h2>
-            <p className="text-lg text-muted-foreground text-center mb-12 max-w-xl mx-auto" data-aos="fade-down" data-aos-delay="200">
-              Aumente a retenção de alunos e a eficiência da sua equipe com um único plano.
+            <p className="text-lg text-muted-foreground text-center mb-12 max-w-2xl mx-auto" data-aos="fade-down" data-aos-delay="200">
+              Aumente a retenção de alunos e a eficiência da sua equipe com planos transparentes.
             </p>
-            <div className="flex justify-center">
-              <Card className="w-full max-w-md shadow-xl border-2 border-primary ring-4 ring-primary/20" data-aos="zoom-in" data-aos-duration="1000" data-aos-delay="300">
-                <CardHeader className="text-center items-center">
-                  <Zap className="h-10 w-10 text-primary mb-3" />
-                  <CardTitle className="text-2xl font-semibold text-primary">Plano para Academias</CardTitle>
-                </CardHeader>
-                <CardContent className="text-center">
-                  <p className="text-5xl font-extrabold text-foreground mb-2">
-                    R$99,90<span className="text-xl font-normal text-muted-foreground">/mês</span>
-                  </p>
-                  <p className="text-sm text-muted-foreground mb-6">
-                    Cancele quando quiser. Sem contratos de fidelidade.
-                  </p>
-                  <ul className="space-y-2 text-sm text-muted-foreground mb-6 list-none text-left">
-                    <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Geração de planos de treino ilimitados para alunos</li>
-                    <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Ferramenta de edição para personalização pelos instrutores</li>
-                    <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Exportação de planos em formato PDF profissional</li>
-                    <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Aumente a retenção e a percepção de valor dos seus alunos</li>
-                    <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Suporte prioritário para sua equipe</li>
-                  </ul>
-                </CardContent>
-                <CardFooter className="flex-col space-y-4 p-6 pt-0">
-                   <Button asChild size="lg" className="w-full text-lg px-8 py-6">
-                    <Link href="/subscribe">Assine e Modernize sua Academia</Link>
-                  </Button>
-                </CardFooter>
-              </Card>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-5xl mx-auto items-stretch">
+                {MOCK_SUBSCRIPTION_PLANS.map((plan) => (
+                  <Card 
+                    key={plan.id} 
+                    className={cn("flex flex-col shadow-lg hover:shadow-2xl transition-shadow duration-300 relative", 
+                    plan.isPopular ? "border-primary border-2 ring-4 ring-primary/20" : "border")}
+                    data-aos="zoom-in-up"
+                    data-aos-delay={plan.id === 'light' ? 100 : plan.id === 'pro' ? 200 : 300}
+                  >
+                    {plan.isPopular && (
+                      <div className="absolute -top-4 right-4 bg-primary text-primary-foreground px-3 py-1 text-sm font-bold rounded-full flex items-center gap-1">
+                        <Star className="w-4 h-4" /> Mais Popular
+                      </div>
+                    )}
+                    <CardHeader className="items-center text-center">
+                      {plan.icon && <plan.icon className="h-10 w-10 text-primary mb-3" />}
+                      <CardTitle className="text-2xl font-semibold">{plan.name}</CardTitle>
+                      <p className="text-4xl font-extrabold text-foreground">{plan.price.replace('/mês', '')}<span className="text-lg font-normal text-muted-foreground">/mês</span></p>
+                      <p className="text-sm text-muted-foreground font-medium">{plan.description}</p>
+                    </CardHeader>
+                    <CardContent className="flex-grow">
+                      <ul className="space-y-3 text-sm text-muted-foreground">
+                        <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Geração de planos de Dieta + Treino</li>
+                        <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Suporte Incluso</li>
+                        <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Sem Contrato de Fidelidade</li>
+                        
+                        {plan.id === 'elite' ? (
+                          <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Treinamento de equipe incluso</li>
+                        ) : (
+                          <li className="flex items-center opacity-70"><XCircle className="h-5 w-5 text-red-500 mr-2 shrink-0" /> Treinamento de equipe incluso</li>
+                        )}
+                      </ul>
+                    </CardContent>
+                    <CardFooter className="flex-col space-y-4 p-6 pt-0">
+                      <Button asChild size="lg" className="w-full text-lg px-8 py-6" variant={plan.isPopular ? 'default' : 'outline'}>
+                        <Link href="/subscribe">Assinar Plano {plan.name}</Link>
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))}
             </div>
           </div>
         </section>
@@ -191,3 +206,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    
