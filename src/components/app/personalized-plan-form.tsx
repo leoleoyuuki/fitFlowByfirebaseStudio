@@ -127,9 +127,16 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
             professionalRole: user?.professionalType || undefined,
             professionalRegistration: user?.professionalRegistration || "",
             clientName: "",
+            goalPhase: undefined,
+            trainingExperience: undefined,
             trainingFrequency: 3,
             trainingVolumePreference: "medium",
+            availableEquipment: "",
+            heightCm: "",
+            weightKg: "",
+            age: "",
             sex: "prefer_not_to_say",
+            dietaryPreferences: "",
         };
         form.reset(defaultNewPlanInputs);
         setEditablePlanDetails(null);
@@ -468,7 +475,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
                   <FormField control={form.control} name="heightCm" render={({ field }) => (
                       <FormItem>
                         <FormLabel>Altura (cm)</FormLabel>
-                        <FormControl><Input type="number" placeholder="Ex: 180" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl>
+                        <FormControl><Input type="number" placeholder="Ex: 180" {...field} value={field.value ?? ''} /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -476,7 +483,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
                   <FormField control={form.control} name="weightKg" render={({ field }) => (
                       <FormItem>
                         <FormLabel>Peso (kg)</FormLabel>
-                        <FormControl><Input type="number" placeholder="Ex: 75" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl>
+                        <FormControl><Input type="number" placeholder="Ex: 75" {...field} value={field.value ?? ''} /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -484,7 +491,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
                   <FormField control={form.control} name="age" render={({ field }) => (
                       <FormItem>
                         <FormLabel>Idade</FormLabel>
-                        <FormControl><Input type="number" placeholder="Ex: 25" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} /></FormControl>
+                        <FormControl><Input type="number" placeholder="Ex: 25" {...field} value={field.value ?? ''} /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
