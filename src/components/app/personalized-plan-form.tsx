@@ -435,7 +435,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
                       <FormItem>
                         <FormLabel>Dias de Treino por Semana</FormLabel>
                         <FormControl>
-                          <Input type="number" placeholder="Ex: 3 (2-6 dias)" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : parseInt(e.target.value, 10))} value={field.value} />
+                          <Input type="number" placeholder="Ex: 3 (2-6 dias)" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : parseInt(e.target.value, 10))} value={field.value || ''} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
