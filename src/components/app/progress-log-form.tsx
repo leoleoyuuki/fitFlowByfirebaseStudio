@@ -48,7 +48,7 @@ type ProgressLogSubmissionData = Omit<ProgressLogFormValues, 'exerciseName'>;
 
 interface ProgressLogFormProps {
   onLogAdded: (data: ProgressLogSubmissionData) => void;
-  existingLog?: Omit<ProgressLog, "userId" | "exerciseName"> &amp; {date: Date};
+  existingLog?: Omit<ProgressLog, "userId" | "exerciseName"> & {date: Date};
 }
 
 export function ProgressLogForm({ onLogAdded, existingLog }: ProgressLogFormProps) {
@@ -243,5 +243,3 @@ export function ProgressLogForm({ onLogAdded, existingLog }: ProgressLogFormProp
     </Form>
   );
 }
-
-    
