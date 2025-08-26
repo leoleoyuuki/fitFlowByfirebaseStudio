@@ -88,7 +88,7 @@ export default function DashboardPage() {
         </CardHeader>
         <CardContent className="flex flex-col md:flex-row items-center gap-6">
           <Image 
-            src="https://placehold.co/300x200.png" 
+            src="/images/treinador-e-aluno.jpg"
             alt="Dica para Profissionais" 
             width={300} 
             height={200} 
