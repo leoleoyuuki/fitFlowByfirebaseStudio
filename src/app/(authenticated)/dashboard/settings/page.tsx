@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { User as UserIcon, Mail, ShieldCheck, CreditCard, Bell, Loader2, KeyRound, Briefcase, Award } from "lucide-react";
+import { User as UserIcon, Mail, ShieldCheck, CreditCard, Bell, Loader2, KeyRound, Briefcase, Award, Phone } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
@@ -283,6 +283,21 @@ export default function SettingsPage() {
                   </Button>
               </form>
              </Form>
+            </CardContent>
+          </Card>
+
+           <Card>
+            <CardHeader>
+              <CardTitle>Suporte</CardTitle>
+              <CardDescription>Precisa de ajuda com sua conta, pagamentos ou com o uso da ferramenta?</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <a href="https://wa.me/5511957211546" target="_blank" rel="noopener noreferrer">
+                    <Button variant="outline">
+                        <Phone className="mr-2 h-4 w-4" /> Contatar Suporte (Leonardo Yuuki)
+                    </Button>
+                </a>
+                 <p className="text-sm text-muted-foreground mt-2">Clique no botão para abrir uma conversa no WhatsApp.</p>
             </CardContent>
           </Card>
         </div>

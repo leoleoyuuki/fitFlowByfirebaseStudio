@@ -87,6 +87,21 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
 
   const form = useForm<ClientPersonalizedPlanInputValues>({
     resolver: zodResolver(ClientPersonalizedPlanInputSchema),
+    defaultValues: {
+        professionalRole: undefined,
+        professionalRegistration: "",
+        clientName: "",
+        goalPhase: undefined,
+        trainingExperience: undefined,
+        trainingFrequency: 3,
+        trainingVolumePreference: "medium",
+        availableEquipment: "",
+        heightCm: "",
+        weightKg: "",
+        age: "",
+        sex: "prefer_not_to_say",
+        dietaryPreferences: "",
+    }
   });
 
   const watchedProfessionalRole = useWatch({
@@ -167,7 +182,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
       setEditablePlanDetails(JSON.parse(JSON.stringify(result)));
     } catch (e: any) {
       console.error("Erro ao gerar plano pela IA:", e);
-      let errorMessage = "Falha ao gerar o plano base. O modelo de IA pode estar ocupado ou a solicitação muito complexa.";
+      let errorMessage = "Falha ao gerar o plano base. O modelo de IA pode estar ocupado ou a solicitação muito complexa. Se o erro persistir, contate o suporte: (11) 95721-1546.";
       if (typeof e.message === 'string') {
         if (e.message.includes("503") || e.message.toLowerCase().includes("service unavailable") || e.message.toLowerCase().includes("overloaded")) {
           errorMessage = "O modelo de IA está temporariamente sobrecarregado. Por favor, tente novamente em alguns minutos.";
@@ -376,7 +391,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
                   <FormField control={form.control} name="professionalRegistration" render={({ field }) => (
                       <FormItem>
                         <FormLabel>{registrationInfo.label}</FormLabel>
-                        <FormControl><Input placeholder={registrationInfo.placeholder} {...field} value={field.value || ""} /></FormControl>
+                        <FormControl><Input placeholder={registrationInfo.placeholder} {...field} /></FormControl>
                         <FormDescription>Obrigatório. Será exibido no plano final.</FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -386,7 +401,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
                 <FormField control={form.control} name="clientName" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Nome do Cliente</FormLabel>
-                      <FormControl><Input placeholder="Nome completo do cliente" {...field} value={field.value || ""} /></FormControl>
+                      <FormControl><Input placeholder="Nome completo do cliente" {...field} /></FormControl>
                       <FormDescription>Obrigatório. Para identificar o plano.</FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -435,7 +450,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
                       <FormItem>
                         <FormLabel>Dias de Treino por Semana</FormLabel>
                         <FormControl>
-                          <Input type="number" placeholder="Ex: 3 (2-6 dias)" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : parseInt(e.target.value, 10))} value={field.value || ''} />
+                          <Input type="number" placeholder="Ex: 3 (2-6 dias)" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : parseInt(e.target.value, 10))} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -464,7 +479,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
                     <FormItem>
                       <FormLabel>Equipamentos disponiveis + Preferencias de treino</FormLabel>
                       <FormControl>
-                        <Textarea placeholder="Ex: Equipamentos: Academia completa com halteres, barras e máquinas.&#10;Preferências: Gosta de treinar peito, mas não gosta de agachamento livre. Focar em exercícios para glúteos." {...field} value={field.value || ""} rows={4} />
+                        <Textarea placeholder="Ex: Equipamentos: Academia completa com halteres, barras e máquinas.&#10;Preferências: Gosta de treinar peito, mas não gosta de agachamento livre. Focar em exercícios para glúteos." {...field} rows={4} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -475,7 +490,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
                   <FormField control={form.control} name="heightCm" render={({ field }) => (
                       <FormItem>
                         <FormLabel>Altura (cm)</FormLabel>
-                        <FormControl><Input type="number" placeholder="Ex: 180" {...field} value={field.value ?? ''} /></FormControl>
+                        <FormControl><Input type="number" placeholder="Ex: 180" {...field} /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -483,7 +498,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
                   <FormField control={form.control} name="weightKg" render={({ field }) => (
                       <FormItem>
                         <FormLabel>Peso (kg)</FormLabel>
-                        <FormControl><Input type="number" placeholder="Ex: 75" {...field} value={field.value ?? ''} /></FormControl>
+                        <FormControl><Input type="number" placeholder="Ex: 75" {...field} /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -491,7 +506,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
                   <FormField control={form.control} name="age" render={({ field }) => (
                       <FormItem>
                         <FormLabel>Idade</FormLabel>
-                        <FormControl><Input type="number" placeholder="Ex: 25" {...field} value={field.value ?? ''} /></FormControl>
+                        <FormControl><Input type="number" placeholder="Ex: 25" {...field} /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -518,7 +533,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
                     <FormItem>
                       <FormLabel>Preferências/Restrições Alimentares</FormLabel>
                       <FormControl>
-                        <Textarea placeholder="Ex: Vegetariano, sem lactose, alergias..." {...field} value={field.value ?? ""} rows={3} />
+                        <Textarea placeholder="Ex: Vegetariano, sem lactose, alergias..." {...field} rows={3} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -759,5 +774,3 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
     </div>
   );
 }
-
-    

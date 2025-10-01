@@ -7,7 +7,7 @@ import 'aos/dist/aos.css';
 
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardFooter, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardFooter, CardTitle, CardDescription } from "@/components/ui/card";
 import { Brain, UserCheck, Clock, CheckCircle, TrendingUp, Target, Zap, FileText, XCircle, Flame, Star, Crown } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -159,19 +159,20 @@ export default function HomePage() {
                       {plan.icon && <plan.icon className="h-10 w-10 text-primary mb-3" />}
                       <CardTitle className="text-2xl font-semibold">{plan.name}</CardTitle>
                       <p className="text-4xl font-extrabold text-foreground">{plan.price.replace('/mês', '')}<span className="text-lg font-normal text-muted-foreground">/mês</span></p>
-                      <p className="text-sm text-muted-foreground font-medium">{plan.description}</p>
+                      <CardDescription className="text-sm text-muted-foreground font-medium h-10">{plan.description}</CardDescription>
                     </CardHeader>
                     <CardContent className="flex-grow">
-                      <ul className="space-y-3 text-sm text-muted-foreground">
-                        <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Geração de planos de Dieta + Treino</li>
-                        <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Suporte Incluso</li>
-                        <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Sem Contrato de Fidelidade</li>
-                        
-                        {plan.id === 'elite' ? (
-                          <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2 shrink-0" /> Treinamento de equipe incluso</li>
-                        ) : (
-                          <li className="flex items-center opacity-70"><XCircle className="h-5 w-5 text-red-500 mr-2 shrink-0" /> Treinamento de equipe incluso</li>
-                        )}
+                      <ul className="space-y-3">
+                        {plan.features.map((feature, index) => (
+                          <li key={index} className="flex items-start">
+                            {feature.included ? (
+                                <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5 shrink-0" />
+                            ) : (
+                                <XCircle className="h-5 w-5 text-red-500 mr-2 mt-0.5 shrink-0 opacity-70" />
+                            )}
+                            <span className={cn("text-muted-foreground", !feature.included && "opacity-70 line-through")}>{feature.text}</span>
+                          </li>
+                        ))}
                       </ul>
                     </CardContent>
                     <CardFooter className="flex-col space-y-4 p-6 pt-0">
@@ -199,8 +200,14 @@ export default function HomePage() {
       </main>
 
       <footer className="py-8 bg-background border-t">
-        <div className="container mx-auto px-4 text-center text-muted-foreground">
+        <div className="container mx-auto px-4 text-center text-muted-foreground text-sm">
           <p>&copy; {new Date().getFullYear()} {APP_NAME}. Menos espera, mais resultados para sua academia.</p>
+          <p className="mt-2">
+            Precisa de ajuda ou tem alguma dúvida? 
+            <a href="https://wa.me/5511957211546" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary ml-1">
+              Contate o suporte (Leonardo Yuuki)
+            </a>
+          </p>
         </div>
       </footer>
     </div>

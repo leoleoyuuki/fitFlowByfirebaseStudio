@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type Stripe as StripeType, loadStripe } from '@stripe/stripe-js';
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 let stripePromiseInstance: Promise<StripeType | null> | null = null;
 
@@ -38,7 +39,7 @@ function SubscribePageContent() {
     if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
          toast({
             title: "Erro de Configuração do Stripe",
-            description: "A chave publicável do Stripe não está definida. Pagamentos para planos não funcionarão.",
+            description: "A chave publicável do Stripe não está definida. Pagamentos para planos não funcionarão. Contate o suporte se precisar de ajuda.",
             variant: "destructive",
         });
     }
@@ -115,7 +116,7 @@ function SubscribePageContent() {
     if (!plan.stripePriceId || plan.stripePriceId.includes('_REPLACE_ME')) {
       toast({
         title: "Erro de Configuração do Plano",
-        description: "Este plano não está configurado corretamente para pagamento (Stripe Price ID ausente ou placeholder). Contate o suporte ou verifique as configurações.",
+        description: "Este plano não está configurado para pagamento. Por favor, contate o suporte: (11) 95721-1546.",
         variant: "destructive",
       });
       return;
@@ -140,7 +141,7 @@ function SubscribePageContent() {
       if (!stripe) {
         toast({
           title: "Erro de Configuração do Stripe",
-          description: "A chave publicável do Stripe não está configurada ou o Stripe.js falhou ao carregar.",
+          description: "A chave publicável do Stripe não está configurada ou o Stripe.js falhou ao carregar. Contate o suporte.",
           variant: "destructive",
         });
         setIsSubscribing(null);
@@ -153,7 +154,7 @@ function SubscribePageContent() {
         console.error("Erro de redirecionamento do Stripe:", stripeError);
         toast({
           title: "Erro de Pagamento",
-          description: stripeError.message || "Não foi possível redirecionar para o Stripe. Tente novamente.",
+          description: stripeError.message || "Não foi possível redirecionar para o Stripe. Tente novamente ou contate o suporte.",
           variant: "destructive",
         });
       }
@@ -161,7 +162,7 @@ function SubscribePageContent() {
       console.error("Erro na assinatura:", error);
       toast({
         title: "Falha na Assinatura",
-        description: error.message || "Ocorreu um erro inesperado.",
+        description: error.message || "Ocorreu um erro inesperado. Contate o suporte.",
         variant: "destructive",
       });
     } finally {
@@ -173,7 +174,7 @@ function SubscribePageContent() {
     if (!user || !user.stripeCustomerId) {
       toast({
         title: "Erro",
-        description: "Seu ID de cliente Stripe não foi encontrado. Isso pode acontecer se você assinou no modo de teste e agora está tentando gerenciar no modo de produção. Tente assinar novamente ou contate o suporte.",
+        description: "Seu ID de cliente Stripe não foi encontrado. Isso pode ocorrer por um conflito de ambiente (Teste vs. Produção). Tente assinar novamente ou contate o suporte.",
         variant: "destructive",
       });
       return;
@@ -191,7 +192,7 @@ function SubscribePageContent() {
         let errorMessage = data.error || "Falha ao criar sessão do portal.";
         if (typeof data.error === 'string') {
             if (data.error.includes("Cliente Stripe não encontrado") || data.error.includes("No such customer")) {
-                errorMessage = "Seu ID de cliente Stripe não foi encontrado no ambiente atual. Se você assinou no modo de Teste, esse ID não é válido no modo de Produção. Para gerenciar sua assinatura, você pode precisar assinar novamente no ambiente de Produção ou contatar o suporte.";
+                errorMessage = "Seu ID de cliente Stripe não foi encontrado no ambiente atual (Teste vs. Produção). Para gerenciar sua assinatura, você pode precisar assinar novamente no ambiente de Produção ou contatar o suporte.";
             } else if (data.error.includes("Conflito de ambiente de chaves Stripe")) {
                  errorMessage = "Detectamos um conflito entre o ambiente do seu ID de cliente (Teste/Produção) e as chaves de API atuais. Por favor, verifique suas configurações ou contate o suporte.";
             }
@@ -335,8 +336,14 @@ function SubscribePageContent() {
         )}
       </main>
       <footer className="py-8 bg-background border-t">
-        <div className="container mx-auto px-4 text-center text-muted-foreground">
+        <div className="container mx-auto px-4 text-center text-muted-foreground text-sm">
           <p>&copy; {new Date().getFullYear()} {APP_NAME}. Ferramenta para Profissionais.</p>
+           <p className="mt-2">
+            Precisa de ajuda ou tem alguma dúvida sobre os planos? 
+            <a href="https://wa.me/5511957211546" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary ml-1">
+              Contate o suporte (Leonardo Yuuki)
+            </a>
+          </p>
         </div>
       </footer>
     </div>
@@ -355,3 +362,5 @@ export default function SubscribePage() {
     </Suspense>
   );
 }
+
+    
