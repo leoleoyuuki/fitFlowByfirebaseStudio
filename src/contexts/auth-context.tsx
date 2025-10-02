@@ -2,7 +2,7 @@
 "use client";
 
 import type { UserProfile } from '@/types';
-import React, { createContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useState, useEffect, ReactNode, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -16,7 +16,7 @@ import {
   type User as FirebaseUser
 } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { doc, getDoc, setDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, updateDoc, Timestamp } from 'firebase/firestore';
 import { APP_NAME } from '@/lib/constants';
 
 interface AuthContextType {
@@ -27,6 +27,9 @@ interface AuthContextType {
   logout: () => Promise<void>;
   updateUserProfileField: (userId: string, field: keyof UserProfile, value: any) => Promise<void>;
   sendPasswordReset: (email: string) => Promise<void>;
+  isPro: boolean;
+  isTrialing: boolean;
+  daysLeftInTrial: number | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -57,9 +60,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             professionalType: userProfileData.professionalType || null,
             professionalRegistration: userProfileData.professionalRegistration || null,
             subscriptionTier: userProfileData.subscriptionTier || 'free',
+            subscriptionStatus: userProfileData.subscriptionStatus || null,
             stripeCustomerId: userProfileData.stripeCustomerId || null,
             stripeSubscriptionId: userProfileData.stripeSubscriptionId || null,
-            subscriptionStatus: userProfileData.subscriptionStatus || null,
+            trialEndsAt: userProfileData.trialEndsAt || null,
             createdAt: userProfileData.createdAt || null,
             updatedAt: userProfileData.updatedAt || null,
           };
@@ -75,9 +79,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 professionalType: null,
                 professionalRegistration: null,
                 subscriptionTier: 'free',
-                stripeCustomerId: null,
-                stripeSubscriptionId: null,
                 subscriptionStatus: null,
+                trialEndsAt: null,
             };
             setUser(userProfile);
         }
@@ -117,7 +120,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await updateProfile(userCredential.user, { displayName: name });
         
         const userDocRef = doc(db, "users", userCredential.user.uid);
-        const initialUserProfile: Omit<UserProfile, 'createdAt' | 'updatedAt'> & { createdAt: any, updatedAt: any } = {
+        
+        const trialEndDate = new Date();
+        trialEndDate.setDate(trialEndDate.getDate() + 14);
+        const trialEndsAtTimestamp = Timestamp.fromDate(trialEndDate);
+        
+        const initialUserProfile: Omit<UserProfile, 'createdAt' | 'updatedAt'> & { createdAt: any, updatedAt: any, trialEndsAt: any } = {
           id: userCredential.user.uid,
           email: userCredential.user.email || "",
           displayName: name,
@@ -127,7 +135,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           subscriptionTier: 'free',
           stripeCustomerId: null,
           stripeSubscriptionId: null,
-          subscriptionStatus: null,
+          subscriptionStatus: 'trialing',
+          trialEndsAt: trialEndsAtTimestamp,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         };
@@ -135,7 +144,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         setUser(initialUserProfile as UserProfile);
       }
-      toast({ title: "Cadastro Realizado", description: `Bem-vindo(a) ao ${APP_NAME}! Sua conta profissional foi criada.` });
+      toast({ title: "Cadastro Realizado e Teste Iniciado!", description: `Bem-vindo(a) ao ${APP_NAME}! Você tem 14 dias para testar todos os recursos Pro.` });
       router.push('/dashboard');
     } catch (error: any) {
       console.error("Erro no cadastro:", error);
@@ -200,8 +209,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const isPro = user?.subscriptionStatus === 'active' && user?.subscriptionTier !== 'free';
+  const isTrialing = user?.subscriptionStatus === 'trialing' && user?.trialEndsAt && user.trialEndsAt.toDate() > new Date();
+
+  const daysLeftInTrial = useMemo(() => {
+    if (isTrialing && user?.trialEndsAt) {
+      const endDate = user.trialEndsAt.toDate();
+      const now = new Date();
+      const diffTime = endDate.getTime() - now.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays > 0 ? diffDays : 0;
+    }
+    return null;
+  }, [user, isTrialing]);
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout, updateUserProfileField, sendPasswordReset }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, updateUserProfileField, sendPasswordReset, isPro, isTrialing, daysLeftInTrial }}>
       {children}
     </AuthContext.Provider>
   );

@@ -30,7 +30,7 @@ import type { ClientPlan } from "@/types";
 
 
 function MyAiPlanPageContent() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, isPro, isTrialing } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const planIdFromQuery = searchParams.get("planId");
@@ -42,6 +42,8 @@ function MyAiPlanPageContent() {
   const [error, setError] = useState<string | null>(null);
   const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null);
 
+  const canAccessFeatures = isPro || isTrialing;
+
   useEffect(() => {
     if (authLoading) return;
 
@@ -51,7 +53,7 @@ function MyAiPlanPageContent() {
       return;
     }
     
-    if (user.subscriptionTier === 'free' || user.subscriptionStatus !== 'active') {
+    if (!canAccessFeatures) {
       setIsLoading(false);
       return; 
     }
@@ -96,7 +98,7 @@ function MyAiPlanPageContent() {
     };
 
     fetchPlansAndSelected();
-  }, [user, authLoading, planIdFromQuery, router]);
+  }, [user, authLoading, planIdFromQuery, router, canAccessFeatures]);
 
   const handleDeletePlan = async (planIdToDelete: string) => {
     if (!user?.id || !planIdToDelete) return;
@@ -134,7 +136,7 @@ function MyAiPlanPageContent() {
     );
   }
   
-  if (user && (user.subscriptionTier === 'free' || user.subscriptionStatus !== 'active')) {
+  if (!canAccessFeatures && !authLoading) {
     return <SubscriptionRequiredBlock featureName="seus Planos Salvos de Clientes" />;
   }
 

@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/auth-context";
 import { AuthFormWrapper } from "@/components/auth/auth-form-wrapper";
-import { Loader2 } from "lucide-react";
+import { Loader2, Star } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
 
 const signupSchema = z.object({
@@ -45,8 +45,8 @@ export default function SignupPage() {
 
   return (
     <AuthFormWrapper
-      title={`Crie sua Conta Profissional no ${APP_NAME}`}
-      description={`Cadastre-se para usar IA na criação de planos de treino e nutrição para seus clientes.`}
+      title={`Teste o ${APP_NAME} por 14 Dias`}
+      description={`Crie sua conta e ganhe acesso imediato a todos os recursos Pro. Não é necessário cartão de crédito.`}
       footerText="Já possui uma conta?"
       footerLinkText="Faça login"
       footerLinkHref="/login"
@@ -96,10 +96,13 @@ export default function SignupPage() {
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Cadastrando...
+                Criando sua conta...
               </>
             ) : (
-              "Cadastrar e Otimizar Atendimentos"
+               <>
+                <Star className="mr-2 h-4 w-4" />
+                Iniciar meu Teste Gratuito
+               </>
             )}
           </Button>
         </form>
@@ -107,5 +110,3 @@ export default function SignupPage() {
     </AuthFormWrapper>
   );
 }
-
-    

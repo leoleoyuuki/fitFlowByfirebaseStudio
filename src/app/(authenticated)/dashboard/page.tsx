@@ -2,28 +2,47 @@
 "use client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Brain, Dumbbell, Activity, LineChart, Utensils, Gift, Users, FileText } from "lucide-react"; 
+import { Brain, Dumbbell, Activity, LineChart, Utensils, Gift, Users, FileText, Badge } from "lucide-react"; 
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import Image from "next/image";
 import { APP_NAME } from "@/lib/constants";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function DashboardPage() {
-  const { user } = useAuth();
-  const isSubscribed = user && user.subscriptionTier !== 'free' && user.subscriptionStatus === 'active';
+  const { user, isPro, isTrialing, daysLeftInTrial } = useAuth();
+  
+  const canAccessFeatures = isPro || isTrialing;
+
+  const WelcomeMessage = () => {
+    if (isTrialing) {
+        return `Você está em um teste Pro! Restam ${daysLeftInTrial} dias.`;
+    }
+    if (isPro) {
+        return `Você está no plano ${user?.subscriptionTier}. Pronto para otimizar a criação de planos?`;
+    }
+    return `Desbloqueie todo o potencial do ${APP_NAME} com uma de nossas assinaturas.`;
+  }
 
   return (
     <div className="space-y-8">
+       {isTrialing && (
+        <Alert className="border-primary/50 text-primary">
+          <Badge className="mr-2 h-5 w-5"/>
+          <AlertTitle>Período de Teste Ativo!</AlertTitle>
+          <AlertDescription>
+            Você tem {daysLeftInTrial} dias restantes para usar todos os recursos Pro. <Link href="/subscribe" className="font-bold underline">Faça um upgrade agora</Link> para não perder o acesso.
+          </AlertDescription>
+        </Alert>
+      )}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Bem-vindo(a) ao {APP_NAME}, {user?.displayName || "Profissional"}!</h1>
           <p className="text-muted-foreground">
-            {isSubscribed 
-              ? `Você está no plano ${user.subscriptionTier}. Pronto para otimizar a criação de planos?` 
-              : `Desbloqueie todo o potencial do ${APP_NAME} com uma de nossas assinaturas.`}
+            <WelcomeMessage />
           </p>
         </div>
-        {isSubscribed ? (
+        {canAccessFeatures ? (
           <Button asChild>
             <Link href="/dashboard/personalized-plan">
               <Brain className="mr-2 h-4 w-4" /> Gerar Plano Base para Cliente
@@ -46,14 +65,14 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {isSubscribed ? "Gerencie Aqui" : "Funcionalidade Pro"}
+              {canAccessFeatures ? "Gerencie Aqui" : "Funcionalidade Pro"}
             </div>
             <p className="text-xs text-muted-foreground">
-              {isSubscribed ? "Acesse e edite os planos dos seus clientes" : "Assine para salvar e gerenciar planos"}
+              {canAccessFeatures ? "Acesse e edite os planos dos seus clientes" : "Assine para salvar e gerenciar planos"}
             </p>
-            <Button variant="outline" size="sm" className="mt-4" asChild disabled={!isSubscribed}>
-              <Link href={isSubscribed ? "/dashboard/my-ai-plan" : "/subscribe"}>
-                {isSubscribed ? "Ver Planos Salvos" : "Ver Planos (Bloqueado)"}
+            <Button variant="outline" size="sm" className="mt-4" asChild disabled={!canAccessFeatures}>
+              <Link href={canAccessFeatures ? "/dashboard/my-ai-plan" : "/subscribe"}>
+                {canAccessFeatures ? "Ver Planos Salvos" : "Ver Planos (Bloqueado)"}
               </Link>
             </Button>
           </CardContent>
@@ -66,14 +85,14 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-                {isSubscribed ? "Disponível" : "Funcionalidade Pro"}
+                {canAccessFeatures ? "Disponível" : "Funcionalidade Pro"}
             </div>
             <p className="text-xs text-muted-foreground">
-                {isSubscribed ? "Crie planos base em segundos" : "Assine para usar a IA"}
+                {canAccessFeatures ? "Crie planos base em segundos" : "Assine para usar a IA"}
             </p>
-             <Button variant="outline" size="sm" className="mt-4" asChild disabled={!isSubscribed}>
-              <Link href={isSubscribed ? "/dashboard/personalized-plan" : "/subscribe"}>
-                {isSubscribed ? "Gerar Plano Cliente" : "Gerar Plano (Bloqueado)"}
+             <Button variant="outline" size="sm" className="mt-4" asChild disabled={!canAccessFeatures}>
+              <Link href={canAccessFeatures ? "/dashboard/personalized-plan" : "/subscribe"}>
+                {canAccessFeatures ? "Gerar Plano Cliente" : "Gerar Plano (Bloqueado)"}
               </Link>
             </Button>
           </CardContent>
@@ -100,9 +119,9 @@ export default function DashboardPage() {
             <p className="text-muted-foreground">
               Use os planos gerados pela IA como um ponto de partida robusto. Em seguida, personalize cada detalhe – desde a seleção de exercícios até as opções de refeições – para alinhar perfeitamente com as preferências, restrições e o dia a dia do seu cliente. Um plano verdadeiramente individualizado aumenta drasticamente a adesão e os resultados.
             </p>
-            {!isSubscribed && (
+            {!canAccessFeatures && (
                 <p className="text-sm text-primary mt-3">
-                    <Link href="/subscribe" className="underline hover:text-primary/80">Assine um dos nossos planos</Link> para ter acesso completo às ferramentas de personalização e IA.
+                    <Link href="/subscribe" className="underline hover:text-primary/80">Assine um dos nossos planos</Link> ou inicie seu teste gratuito para ter acesso completo.
                 </p>
             )}
           </div>

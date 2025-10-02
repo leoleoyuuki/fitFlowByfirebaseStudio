@@ -16,7 +16,7 @@ type ClientPersonalizedPlanInputValues = ClientPlan['originalInputs'];
 
 
 function PersonalizedPlanPageContent() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, isPro, isTrialing } = useAuth();
   const searchParams = useSearchParams();
   const planIdToEdit = searchParams.get("planIdToEdit");
 
@@ -24,6 +24,8 @@ function PersonalizedPlanPageContent() {
   const [initialClientInputs, setInitialClientInputs] = useState<ClientPersonalizedPlanInputValues | null>(null);
   const [initialPlanData, setInitialPlanData] = useState<PersonalizedPlanOutput | null>(null);
   const [errorLoadingPlan, setErrorLoadingPlan] = useState<string | null>(null);
+
+  const canAccessFeatures = isPro || isTrialing;
 
   useEffect(() => {
     const fetchPlanToEdit = async () => {
@@ -56,10 +58,10 @@ function PersonalizedPlanPageContent() {
       }
     };
 
-    if (!authLoading) { 
+    if (!authLoading && canAccessFeatures) { 
         fetchPlanToEdit();
     }
-  }, [planIdToEdit, user, authLoading]);
+  }, [planIdToEdit, user, authLoading, canAccessFeatures]);
 
   if (authLoading || (isLoadingPlan && planIdToEdit)) {
     return (
@@ -70,7 +72,7 @@ function PersonalizedPlanPageContent() {
     );
   }
 
-  if (!user || user.subscriptionTier === 'free' || user.subscriptionStatus !== 'active') {
+  if (!canAccessFeatures && !authLoading) {
     return <SubscriptionRequiredBlock featureName="o Gerador de Planos com IA" />;
   }
   

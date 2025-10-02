@@ -31,7 +31,7 @@ const chartConfigBase = {
 };
 
 export default function ProgressPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, isPro, isTrialing } = useAuth();
   const [logs, setLogs] = useState<ProgressLog[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(true);
   const [errorLogs, setErrorLogs] = useState<string | null>(null);
@@ -40,6 +40,7 @@ export default function ProgressPage() {
   const [editingLog, setEditingLog] = useState<ProgressLog | undefined>(undefined);
   const [logToDeleteId, setLogToDeleteId] = useState<string | null>(null);
 
+  const canAccessFeatures = isPro || isTrialing;
 
   const fetchUserLogs = async () => {
     if (!user?.id) return;
@@ -75,16 +76,16 @@ export default function ProgressPage() {
   useEffect(() => {
     if (authLoading) return;
 
-    if (user && user.subscriptionTier !== 'free' && user.subscriptionStatus === 'active') {
+    if (user && canAccessFeatures) {
       fetchUserLogs();
-    } else if (user && (user.subscriptionTier === 'free' || user.subscriptionStatus !== 'active')) {
+    } else if (user && !canAccessFeatures) {
       setLogs([]);
       setIsLoadingLogs(false);
     } else if (!user) {
         setLogs([]);
         setIsLoadingLogs(false);
     }
-  }, [user, authLoading]);
+  }, [user, authLoading, canAccessFeatures]);
 
   const handleLogSubmit = async (logData: Omit<ProgressLog, "id" | "userId" | "exerciseName"> & {exerciseId: string}) => {
     if (!user?.id) {
@@ -198,7 +199,7 @@ export default function ProgressPage() {
     );
   }
 
-  if (!user || user.subscriptionTier === 'free' || user.subscriptionStatus !== 'active') {
+  if (!canAccessFeatures && !authLoading) {
     return <SubscriptionRequiredBlock featureName="o Log de Progresso" />;
   }
 

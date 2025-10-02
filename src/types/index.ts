@@ -1,4 +1,5 @@
 
+
 import type { LucideIcon } from 'lucide-react';
 import type { PersonalizedPlanOutput, PersonalizedPlanInput } from '@/ai/flows/generate-personalized-plan';
 
@@ -21,7 +22,8 @@ export interface UserProfile {
   subscriptionTier?: 'free' | 'light' | 'pro' | 'elite'; 
   stripeCustomerId?: string | null;
   stripeSubscriptionId?: string | null;
-  subscriptionStatus?: 'active' | 'canceled' | 'past_due' | 'incomplete' | null;
+  subscriptionStatus?: 'active' | 'canceled' | 'past_due' | 'incomplete' | 'trialing' | null;
+  trialEndsAt?: any | null; // Firebase Timestamp for trial end
   createdAt?: any; 
   updatedAt?: any; 
 }

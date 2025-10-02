@@ -8,7 +8,7 @@ import 'aos/dist/aos.css';
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardFooter, CardTitle, CardDescription } from "@/components/ui/card";
-import { Brain, UserCheck, Clock, CheckCircle, TrendingUp, Target, Zap, FileText, XCircle, Flame, Star, Crown } from "lucide-react";
+import { Brain, UserCheck, Clock, CheckCircle, TrendingUp, Target, Zap, FileText, XCircle, Flame, Star, Crown, Gift } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { APP_NAME } from '@/lib/constants';
@@ -68,7 +68,7 @@ export default function HomePage() {
             </p>
             <div className="mt-10 flex flex-col items-center space-y-4 sm:flex-row sm:justify-center sm:space-y-0 sm:space-x-4" data-aos="fade-up" data-aos-delay="400" data-aos-anchor-placement="top-bottom">
               <Button asChild size="lg" className="text-lg px-8 py-6 w-full sm:w-auto">
-                <Link href="/signup">Otimize sua Academia Agora</Link>
+                <Link href="/signup"><Gift className="mr-2 h-5 w-5"/> Iniciar Teste Gratuito de 14 Dias</Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="text-lg px-8 py-6 w-full sm:w-auto">
                 <Link href="/#features">Veja como Funciona</Link>
@@ -139,7 +139,7 @@ export default function HomePage() {
               Um Investimento Inteligente na Sua Academia
             </h2>
             <p className="text-lg text-muted-foreground text-center mb-12 max-w-2xl mx-auto" data-aos="fade-down" data-aos-delay="200">
-              Aumente a retenção de alunos e a eficiência da sua equipe com planos transparentes.
+              Comece com um teste gratuito de 14 dias. Cancele quando quiser.
             </p>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-5xl mx-auto items-stretch">
                 {MOCK_SUBSCRIPTION_PLANS.map((plan) => (
@@ -177,7 +177,7 @@ export default function HomePage() {
                     </CardContent>
                     <CardFooter className="flex-col space-y-4 p-6 pt-0">
                       <Button asChild size="lg" className="w-full text-lg px-8 py-6" variant={plan.isPopular ? 'default' : 'outline'}>
-                        <Link href="/subscribe">Assinar Plano {plan.name}</Link>
+                        <Link href="/signup">Iniciar Teste Gratuito</Link>
                       </Button>
                     </CardFooter>
                   </Card>
@@ -213,5 +213,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-    
