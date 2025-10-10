@@ -1,10 +1,11 @@
 import type { NavItem, Workout, Exercise, SubscriptionPlan, ProgressLog } from '@/types';
-import { Dumbbell, Zap, Heart, Target, Brain, User, Settings, LayoutDashboard, BookOpen, Activity, Gift, Flame, Pizza, Utensils, FileText, Users, Crown, Star } from 'lucide-react';
+import { Dumbbell, Zap, Heart, Target, Brain, User, Settings, LayoutDashboard, BookOpen, Activity, Gift, Flame, Pizza, Utensils, FileText, Users, Crown, Star, Newspaper } from 'lucide-react';
 
 export const APP_NAME = "FitFlow Pro"; // Nome alterado para B2B
 
 export const mainNavItems: NavItem[] = [
   { title: "Para Academias", href: "/#features" },
+  { title: "Blog", href: "/blog" },
   { title: "Assinatura", href: "/subscribe" },
 ];
 
@@ -12,6 +13,7 @@ export const dashboardNavItems: NavItem[] = [
   { title: "Painel Principal", href: "/dashboard", icon: LayoutDashboard },
   { title: "Gerar Plano Cliente", href: "/dashboard/personalized-plan", icon: Brain },
   { title: "Planos Salvos", href: "/dashboard/my-ai-plan", icon: FileText },
+  { title: "Blog", href: "/blog", icon: Newspaper },
   // { title: "Registrar Progresso Cliente", href: "/dashboard/progress", icon: Activity }, // Talvez reavaliar para B2B
   { title: "Assinatura Pro", href: "/subscribe", icon: Gift },
   { title: "Configurações da Conta", href: "/dashboard/settings", icon: Settings },
