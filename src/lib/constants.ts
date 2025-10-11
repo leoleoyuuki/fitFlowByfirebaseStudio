@@ -71,7 +71,7 @@ export const MOCK_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       { text: "Sem Contrato de Fidelidade", included: true },
       { text: "Treinamento de equipe incluso", included: false },
     ], 
-    stripePriceId: "price_1RnOnZKOlX31rMUJYKonjRp2",
+    stripePriceId: "price_1RfZpmKOlX31rMUJWypRXgee",
     icon: Flame,
     planLimit: 200,
   },
