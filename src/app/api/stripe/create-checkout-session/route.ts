@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid plan or plan does not have a Stripe Price ID.' }, { status: 400 });
     }
     
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fitflowpro.com.br';
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],

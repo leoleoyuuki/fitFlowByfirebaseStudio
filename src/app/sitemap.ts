@@ -3,7 +3,7 @@ import { getAllPosts } from '@/lib/blog';
 import { APP_NAME } from '@/lib/constants';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fitflowpro.com.br';
 
   // Get all posts
   const posts = await getAllPosts();

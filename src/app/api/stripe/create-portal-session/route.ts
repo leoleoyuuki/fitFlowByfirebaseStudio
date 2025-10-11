@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Stripe Customer ID é obrigatório.' }, { status: 400 });
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fitflowpro.com.br';
 
     console.log(`Tentando criar sessão do portal para o customerId: ${customerId}`);
 
