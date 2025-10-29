@@ -244,7 +244,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
         const planDetails = MOCK_SUBSCRIPTION_PLANS.find(p => p.id === currentPlanTier);
         const planLimit = planDetails?.planLimit ?? 0;
 
-        if (currentPlanTier !== 'free' && planLimit !== Infinity) {
+        if (currentPlanTier !== 'free' && planLimit < Infinity) {
             const plansCollectionRef = collection(db, "userGeneratedPlans", user.id, "plans");
             const snapshot = await getCountFromServer(plansCollectionRef);
             const currentPlanCount = snapshot.data().count;
