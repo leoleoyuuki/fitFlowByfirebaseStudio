@@ -2,17 +2,40 @@
 "use client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Brain, Dumbbell, Activity, LineChart, Utensils, Gift, Users, FileText, Badge } from "lucide-react"; 
+import { Brain, FileText, Gift, History, Loader2 } from "lucide-react"; 
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import Image from "next/image";
 import { APP_NAME } from "@/lib/constants";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { useEffect, useState } from "react";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { ClientPlan } from "@/types";
 
 export default function DashboardPage() {
   const { user, isPro, isTrialing, daysLeftInTrial } = useAuth();
   
   const canAccessFeatures = isPro || isTrialing;
+  const [plansToReviewCount, setPlansToReviewCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (user && canAccessFeatures) {
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+      const plansCollectionRef = collection(db, "userGeneratedPlans", user.id, "plans");
+      const q = query(plansCollectionRef, where("updatedAt", "<", threeMonthsAgo));
+      
+      getDocs(q).then(snapshot => {
+        setPlansToReviewCount(snapshot.size);
+      }).catch(error => {
+        console.error("Error fetching plans to review count:", error);
+        setPlansToReviewCount(0);
+      });
+    }
+  }, [user, canAccessFeatures]);
 
   const WelcomeMessage = () => {
     if (isTrialing) {
@@ -57,27 +80,7 @@ export default function DashboardPage() {
         )}
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
-        <Card className="shadow-lg">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Planos de Clientes Salvos</CardTitle>
-            <FileText className="h-5 w-5 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {canAccessFeatures ? "Gerencie Aqui" : "Funcionalidade Pro"}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {canAccessFeatures ? "Acesse e edite os planos dos seus clientes" : "Assine para salvar e gerenciar planos"}
-            </p>
-            <Button variant="outline" size="sm" className="mt-4" asChild disabled={!canAccessFeatures}>
-              <Link href={canAccessFeatures ? "/dashboard/my-ai-plan" : "/subscribe"}>
-                {canAccessFeatures ? "Ver Planos Salvos" : "Ver Planos (Bloqueado)"}
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card className="shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Ferramenta de Geração IA</CardTitle>
@@ -97,12 +100,60 @@ export default function DashboardPage() {
             </Button>
           </CardContent>
         </Card>
+
+        <Card className="shadow-lg">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Planos de Clientes Salvos</CardTitle>
+            <FileText className="h-5 w-5 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {canAccessFeatures ? "Gerencie Aqui" : "Funcionalidade Pro"}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {canAccessFeatures ? "Acesse e edite os planos dos seus clientes" : "Assine para salvar e gerenciar planos"}
+            </p>
+            <Button variant="outline" size="sm" className="mt-4" asChild disabled={!canAccessFeatures}>
+              <Link href={canAccessFeatures ? "/dashboard/my-ai-plan" : "/subscribe"}>
+                {canAccessFeatures ? "Ver Planos Salvos" : "Ver Planos (Bloqueado)"}
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+        
+        <Card className="shadow-lg">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Planos para Revisar</CardTitle>
+            <History className="h-5 w-5 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {canAccessFeatures ? (
+                plansToReviewCount === null ? (
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                ) : (
+                  <span className={plansToReviewCount > 0 ? "text-amber-500" : ""}>{plansToReviewCount}</span>
+                )
+              ) : (
+                "Funcionalidade Pro"
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {canAccessFeatures ? "Planos com mais de 3 meses sem atualização" : "Assine para ver os planos a serem revisados"}
+            </p>
+            <Button variant="outline" size="sm" className="mt-4" asChild disabled={!canAccessFeatures}>
+              <Link href={canAccessFeatures ? "/dashboard/review-plans" : "/subscribe"}>
+                {canAccessFeatures ? "Revisar Planos" : "Revisar Planos (Bloqueado)"}
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
       
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center">
-            <Utensils className="mr-2 h-5 w-5 text-primary" /> Dica {APP_NAME} para Profissionais
+             Dica {APP_NAME} para Profissionais
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col md:flex-row items-center gap-6">
@@ -115,9 +166,9 @@ export default function DashboardPage() {
             data-ai-hint="professional fitness nutrition tip" 
           />
           <div>
-            <p className="text-lg font-semibold mb-2">Maximize a Adesão do Cliente com Planos Editáveis!</p>
+            <p className="text-lg font-semibold mb-2">Aumente a Retenção Mantendo os Planos Atualizados!</p>
             <p className="text-muted-foreground">
-              Use os planos gerados pela IA como um ponto de partida robusto. Em seguida, personalize cada detalhe – desde a seleção de exercícios até as opções de refeições – para alinhar perfeitamente com as preferências, restrições e o dia a dia do seu cliente. Um plano verdadeiramente individualizado aumenta drasticamente a adesão e os resultados.
+              Use a nova funcionalidade "Revisar Planos" para identificar clientes com treinos desatualizados há mais de 3 meses. Um novo plano é um poderoso ponto de contato, mostra que você está atento à evolução do aluno e mantém a motivação em alta, diminuindo drasticamente as chances de evasão.
             </p>
             {!canAccessFeatures && (
                 <p className="text-sm text-primary mt-3">
