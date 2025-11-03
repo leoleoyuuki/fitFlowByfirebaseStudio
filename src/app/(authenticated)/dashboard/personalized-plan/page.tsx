@@ -39,8 +39,13 @@ function PersonalizedPlanPageContent() {
           if (planSnap.exists()) {
             const planDataFromDb = planSnap.data() as ClientPlan;
             const clientInputs = planDataFromDb.originalInputs as ClientPersonalizedPlanInputValues | undefined;
+            
+            // Set the inputs to pre-fill the form
             setInitialClientInputs(clientInputs || null);
+            
+            // Set the plan data to show the editable details immediately
             setInitialPlanData(planDataFromDb.planData);
+
           } else {
             setErrorLoadingPlan("Plano para edição não encontrado.");
             setInitialClientInputs(null);
@@ -53,7 +58,7 @@ function PersonalizedPlanPageContent() {
           setIsLoadingPlan(false);
         }
       } else {
-        // Reset if no ID is provided
+        // Reset if no ID is provided, ensuring a fresh form
         setInitialClientInputs(null);
         setInitialPlanData(null);
       }
@@ -62,7 +67,8 @@ function PersonalizedPlanPageContent() {
     if (!authLoading && canAccessFeatures) { 
         fetchPlanData();
     }
-  }, [planIdToEdit, user, authLoading, canAccessFeatures]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [planIdToEdit, user?.id, authLoading, canAccessFeatures]);
 
   if (authLoading || (isLoadingPlan && planIdToEdit)) {
     return (
