@@ -19,6 +19,7 @@ function PersonalizedPlanPageContent() {
   const { user, loading: authLoading, isPro, isTrialing } = useAuth();
   const searchParams = useSearchParams();
   const planIdToEdit = searchParams.get("planIdToEdit");
+  const planIdToClone = searchParams.get("planIdToClone");
 
   const [isLoadingPlan, setIsLoadingPlan] = useState(false);
   const [initialClientInputs, setInitialClientInputs] = useState<ClientPersonalizedPlanInputValues | null>(null);
@@ -28,46 +29,54 @@ function PersonalizedPlanPageContent() {
   const canAccessFeatures = isPro || isTrialing;
 
   useEffect(() => {
-    const fetchPlanToEdit = async () => {
-      if (planIdToEdit && user?.id) {
+    const fetchPlanData = async () => {
+      const idToFetch = planIdToEdit || planIdToClone;
+      if (idToFetch && user?.id) {
         setIsLoadingPlan(true);
         setErrorLoadingPlan(null);
         try {
-          const planRef = doc(db, "userGeneratedPlans", user.id, "plans", planIdToEdit);
+          const planRef = doc(db, "userGeneratedPlans", user.id, "plans", idToFetch);
           const planSnap = await getDoc(planRef);
           if (planSnap.exists()) {
-            const planDataFromDb = planSnap.data() as ClientPlan; 
-            
+            const planDataFromDb = planSnap.data() as ClientPlan;
             const clientInputs = planDataFromDb.originalInputs as ClientPersonalizedPlanInputValues | undefined;
-            setInitialClientInputs(clientInputs || null); 
-            setInitialPlanData(planDataFromDb.planData);
+            setInitialClientInputs(clientInputs || null);
+            
+            // If we are editing, we load the plan data to be edited.
+            // If we are cloning, we DON'T load the plan data, so the user has to generate a new one.
+            if (planIdToEdit) {
+              setInitialPlanData(planDataFromDb.planData);
+            } else {
+              setInitialPlanData(null); // Clear previous plan data when cloning
+            }
           } else {
-            setErrorLoadingPlan("Plano para edição não encontrado.");
+            setErrorLoadingPlan("Plano para edição ou clonagem não encontrado.");
             setInitialClientInputs(null);
             setInitialPlanData(null);
           }
         } catch (err) {
-          console.error("Erro ao buscar plano para edição:", err);
-          setErrorLoadingPlan("Falha ao carregar o plano para edição.");
+          console.error("Erro ao buscar plano:", err);
+          setErrorLoadingPlan("Falha ao carregar o plano.");
         } finally {
           setIsLoadingPlan(false);
         }
       } else {
+        // Reset if no ID is provided
         setInitialClientInputs(null);
         setInitialPlanData(null);
       }
     };
 
     if (!authLoading && canAccessFeatures) { 
-        fetchPlanToEdit();
+        fetchPlanData();
     }
-  }, [planIdToEdit, user, authLoading, canAccessFeatures]);
+  }, [planIdToEdit, planIdToClone, user, authLoading, canAccessFeatures]);
 
-  if (authLoading || (isLoadingPlan && planIdToEdit)) {
+  if (authLoading || (isLoadingPlan && (planIdToEdit || planIdToClone))) {
     return (
       <div className="flex flex-col items-center justify-center space-y-4 py-12 min-h-[calc(100vh-200px)] print:hidden">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="text-muted-foreground">{isLoadingPlan ? "Carregando plano para edição..." : "Carregando..."}</p>
+        <p className="text-muted-foreground">{isLoadingPlan ? "Carregando dados do plano..." : "Carregando..."}</p>
       </div>
     );
   }
@@ -87,9 +96,10 @@ function PersonalizedPlanPageContent() {
   return (
     <div className="printable-plan-area">
       <PersonalizedPlanForm 
-        planIdToEdit={planIdToEdit || undefined} 
+        planIdToEdit={planIdToClone ? undefined : planIdToEdit || undefined} // Only pass edit ID if not cloning
         initialClientInputs={initialClientInputs} 
-        initialPlanDataToEdit={initialPlanData} 
+        initialPlanDataToEdit={initialPlanData}
+        isCloning={!!planIdToClone}
       />
     </div>
   );

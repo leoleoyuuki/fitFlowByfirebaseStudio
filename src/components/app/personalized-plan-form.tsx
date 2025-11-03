@@ -62,9 +62,10 @@ interface PersonalizedPlanFormProps {
   planIdToEdit?: string;
   initialClientInputs?: ClientPersonalizedPlanInputValues | null;
   initialPlanDataToEdit?: PersonalizedPlanOutput | null;
+  isCloning?: boolean;
 }
 
-export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initialPlanDataToEdit }: PersonalizedPlanFormProps) {
+export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initialPlanDataToEdit, isCloning }: PersonalizedPlanFormProps) {
   const [isLoadingAi, setIsLoadingAi] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [generatedPlanOutput, setGeneratedPlanOutput] = useState<PersonalizedPlanOutput | null>(null);
@@ -124,40 +125,46 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
 
 
   useEffect(() => {
-    if (isEditingExistingPlan && initialClientInputs) {
+    if (initialClientInputs) {
+      // Pre-fill form for both cloning and editing
+      const formValues: Partial<ClientPersonalizedPlanInputValues> = { ...initialClientInputs };
+      form.reset(formValues);
+
+      if (isEditingExistingPlan) {
         setEditableProfessionalRole(initialClientInputs.professionalRole || undefined);
         setEditableProfessionalRegistration(initialClientInputs.professionalRegistration || "");
         setEditableClientName(initialClientInputs.clientName || "");
         setProfRoleError(null); setProfRegError(null); setClientNameError(null);
         
         if (initialPlanDataToEdit) {
-            setGeneratedPlanOutput(initialPlanDataToEdit);
-            setEditablePlanDetails(JSON.parse(JSON.stringify(initialPlanDataToEdit)));
-        } else {
-            setGeneratedPlanOutput(null);
-            setEditablePlanDetails(null);
+          setGeneratedPlanOutput(initialPlanDataToEdit);
+          setEditablePlanDetails(JSON.parse(JSON.stringify(initialPlanDataToEdit)));
         }
-    } else if (!isEditingExistingPlan) {
-        const defaultNewPlanInputs: Partial<ClientPersonalizedPlanInputValues> = {
-            professionalRole: user?.professionalType || undefined,
-            professionalRegistration: user?.professionalRegistration || "",
-            clientName: "",
-            goalPhase: undefined,
-            trainingExperience: undefined,
-            trainingFrequency: 3,
-            trainingVolumePreference: "medium",
-            availableEquipment: "",
-            heightCm: "",
-            weightKg: "",
-            age: "",
-            sex: "prefer_not_to_say",
-            dietaryPreferences: "",
-        };
-        form.reset(defaultNewPlanInputs);
+      } else { // Handles cloning or starting fresh after an edit
         setEditablePlanDetails(null);
         setGeneratedPlanOutput(null);
+      }
+    } else if (!isEditingExistingPlan && !isCloning) { // Fresh form
+      const defaultNewPlanInputs: Partial<ClientPersonalizedPlanInputValues> = {
+          professionalRole: user?.professionalType || undefined,
+          professionalRegistration: user?.professionalRegistration || "",
+          clientName: "",
+          goalPhase: undefined,
+          trainingExperience: undefined,
+          trainingFrequency: 3,
+          trainingVolumePreference: "medium",
+          availableEquipment: "",
+          heightCm: "",
+          weightKg: "",
+          age: "",
+          sex: "prefer_not_to_say",
+          dietaryPreferences: "",
+      };
+      form.reset(defaultNewPlanInputs);
+      setEditablePlanDetails(null);
+      setGeneratedPlanOutput(null);
     }
-  }, [planIdToEdit, initialClientInputs, initialPlanDataToEdit, user, isEditingExistingPlan, form]);
+  }, [planIdToEdit, initialClientInputs, initialPlanDataToEdit, isCloning, user, form]);
 
 
   async function onGenerateSubmit(values: ClientPersonalizedPlanInputValues) {
@@ -351,7 +358,11 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
     <Input type="number" value={value === null || value === undefined ? "" : String(value)} onChange={(e: ChangeEvent<HTMLInputElement>) => handlePlanDetailChange(path, e.target.value === "" ? null : Number(e.target.value))} placeholder={placeholder} className="w-full text-sm" />
   );
 
-  const clientInfoSectionTitle = isEditingExistingPlan ? `Editando Plano de ${editableClientName || initialClientInputs?.clientName || 'Cliente'}` : "Gerar Plano Base para Cliente";
+  const clientInfoSectionTitle = isEditingExistingPlan 
+    ? `Editando Plano de ${editableClientName || initialClientInputs?.clientName || 'Cliente'}` 
+    : isCloning
+    ? `Criando Novo Plano para ${form.getValues('clientName') || 'Cliente'}`
+    : "Gerar Plano Base para Cliente";
 
   return (
     <div className="space-y-8">
@@ -362,7 +373,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
             {clientInfoSectionTitle}
           </CardTitle>
            <ShadCnCardDescription className="print:hidden">
-             {isEditingExistingPlan ? `Ajuste os detalhes do plano abaixo.` : `Profissional, preencha os dados do seu cliente abaixo. A IA criará um rascunho inicial que você poderá editar antes de salvar.`}
+             {isEditingExistingPlan ? `Ajuste os detalhes do plano abaixo.` : isCloning ? `Os dados do cliente foram pré-preenchidos. Gere um novo plano para substituir o antigo.` : `Profissional, preencha os dados do seu cliente abaixo. A IA criará um rascunho inicial que você poderá editar antes de salvar.`}
           </ShadCnCardDescription>
         </CardHeader>
         <CardContent>

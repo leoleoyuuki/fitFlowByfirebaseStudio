@@ -136,7 +136,7 @@ export default function ReviewPlansPage() {
                             </Link>
                         </Button>
                         <Button asChild className="w-full sm:w-auto">
-                            <Link href={`/dashboard/personalized-plan?planIdToEdit=${plan.id}`}>
+                            <Link href={`/dashboard/personalized-plan?planIdToClone=${plan.id}`}>
                                 <Wand2 className="mr-2 h-4 w-4" /> Criar Novo Plano
                             </Link>
                         </Button>
