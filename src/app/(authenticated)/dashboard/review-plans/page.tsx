@@ -6,10 +6,10 @@ import { useAuth } from "@/contexts/auth-context";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
 import type { ClientPlan } from "@/types";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Loader2, History, Eye, Wand2, AlertCircle } from "lucide-react";
+import { Loader2, History, Eye, Wand2, AlertCircle, Edit } from "lucide-react";
 import { SubscriptionRequiredBlock } from "@/components/app/subscription-required-block";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -136,8 +136,8 @@ export default function ReviewPlansPage() {
                             </Link>
                         </Button>
                         <Button asChild className="w-full sm:w-auto">
-                            <Link href={`/dashboard/personalized-plan?planIdToClone=${plan.id}`}>
-                                <Wand2 className="mr-2 h-4 w-4" /> Criar Novo Plano
+                            <Link href={`/dashboard/personalized-plan?planIdToEdit=${plan.id}`}>
+                                <Edit className="mr-2 h-4 w-4" /> Editar / Substituir Plano
                             </Link>
                         </Button>
                     </CardContent>

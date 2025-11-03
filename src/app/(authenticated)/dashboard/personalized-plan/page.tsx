@@ -19,8 +19,7 @@ function PersonalizedPlanPageContent() {
   const { user, loading: authLoading, isPro, isTrialing } = useAuth();
   const searchParams = useSearchParams();
   const planIdToEdit = searchParams.get("planIdToEdit");
-  const planIdToClone = searchParams.get("planIdToClone");
-
+  
   const [isLoadingPlan, setIsLoadingPlan] = useState(false);
   const [initialClientInputs, setInitialClientInputs] = useState<ClientPersonalizedPlanInputValues | null>(null);
   const [initialPlanData, setInitialPlanData] = useState<PersonalizedPlanOutput | null>(null);
@@ -30,7 +29,7 @@ function PersonalizedPlanPageContent() {
 
   useEffect(() => {
     const fetchPlanData = async () => {
-      const idToFetch = planIdToEdit || planIdToClone;
+      const idToFetch = planIdToEdit;
       if (idToFetch && user?.id) {
         setIsLoadingPlan(true);
         setErrorLoadingPlan(null);
@@ -41,16 +40,9 @@ function PersonalizedPlanPageContent() {
             const planDataFromDb = planSnap.data() as ClientPlan;
             const clientInputs = planDataFromDb.originalInputs as ClientPersonalizedPlanInputValues | undefined;
             setInitialClientInputs(clientInputs || null);
-            
-            // If we are editing, we load the plan data to be edited.
-            // If we are cloning, we DON'T load the plan data, so the user has to generate a new one.
-            if (planIdToEdit) {
-              setInitialPlanData(planDataFromDb.planData);
-            } else {
-              setInitialPlanData(null); // Clear previous plan data when cloning
-            }
+            setInitialPlanData(planDataFromDb.planData);
           } else {
-            setErrorLoadingPlan("Plano para edição ou clonagem não encontrado.");
+            setErrorLoadingPlan("Plano para edição não encontrado.");
             setInitialClientInputs(null);
             setInitialPlanData(null);
           }
@@ -70,9 +62,9 @@ function PersonalizedPlanPageContent() {
     if (!authLoading && canAccessFeatures) { 
         fetchPlanData();
     }
-  }, [planIdToEdit, planIdToClone, user, authLoading, canAccessFeatures]);
+  }, [planIdToEdit, user, authLoading, canAccessFeatures]);
 
-  if (authLoading || (isLoadingPlan && (planIdToEdit || planIdToClone))) {
+  if (authLoading || (isLoadingPlan && planIdToEdit)) {
     return (
       <div className="flex flex-col items-center justify-center space-y-4 py-12 min-h-[calc(100vh-200px)] print:hidden">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -96,10 +88,9 @@ function PersonalizedPlanPageContent() {
   return (
     <div className="printable-plan-area">
       <PersonalizedPlanForm 
-        planIdToEdit={planIdToClone ? undefined : planIdToEdit || undefined} // Only pass edit ID if not cloning
+        planIdToEdit={planIdToEdit || undefined}
         initialClientInputs={initialClientInputs} 
         initialPlanDataToEdit={initialPlanData}
-        isCloning={!!planIdToClone}
       />
     </div>
   );
