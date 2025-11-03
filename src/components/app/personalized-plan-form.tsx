@@ -84,7 +84,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
   const { user } = useAuth();
   const router = useRouter();
 
-  const isEditingExistingPlan = !!planIdToEdit;
+  const isEditingExistingPlan = !!planIdToEdit && !isCloning;
 
   const form = useForm<ClientPersonalizedPlanInputValues>({
     resolver: zodResolver(ClientPersonalizedPlanInputSchema),
@@ -144,7 +144,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
         setEditablePlanDetails(null);
         setGeneratedPlanOutput(null);
       }
-    } else if (!isEditingExistingPlan && !isCloning) { // Fresh form
+    } else if (!planIdToEdit && !isCloning) { // Fresh form
       const defaultNewPlanInputs: Partial<ClientPersonalizedPlanInputValues> = {
           professionalRole: user?.professionalType || undefined,
           professionalRegistration: user?.professionalRegistration || "",
@@ -164,7 +164,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
       setEditablePlanDetails(null);
       setGeneratedPlanOutput(null);
     }
-  }, [planIdToEdit, initialClientInputs, initialPlanDataToEdit, isCloning, user, form]);
+  }, [planIdToEdit, initialClientInputs, initialPlanDataToEdit, isCloning, user, form, isEditingExistingPlan]);
 
 
   async function onGenerateSubmit(values: ClientPersonalizedPlanInputValues) {
@@ -246,12 +246,12 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
     let finalOriginalInputs: ClientPersonalizedPlanInputValues;
 
     // Plan limit check
-    if (!isEditingExistingPlan) {
+    if (!planIdToEdit) { // Only check limit when creating a new plan, not editing/replacing
         const currentPlanTier = user.subscriptionTier || 'free';
         const planDetails = MOCK_SUBSCRIPTION_PLANS.find(p => p.id === currentPlanTier);
         const planLimit = planDetails?.planLimit ?? 0;
 
-        if (currentPlanTier !== 'free' && planLimit < Infinity) {
+        if (currentPlanTier !== 'free' && planLimit !== Infinity) {
             const plansCollectionRef = collection(db, "userGeneratedPlans", user.id, "plans");
             const snapshot = await getCountFromServer(plansCollectionRef);
             const currentPlanCount = snapshot.data().count;
@@ -361,7 +361,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
   const clientInfoSectionTitle = isEditingExistingPlan 
     ? `Editando Plano de ${editableClientName || initialClientInputs?.clientName || 'Cliente'}` 
     : isCloning
-    ? `Criando Novo Plano para ${form.getValues('clientName') || 'Cliente'}`
+    ? `Substituindo Plano de ${form.getValues('clientName') || 'Cliente'}`
     : "Gerar Plano Base para Cliente";
 
   return (
@@ -373,7 +373,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
             {clientInfoSectionTitle}
           </CardTitle>
            <ShadCnCardDescription className="print:hidden">
-             {isEditingExistingPlan ? `Ajuste os detalhes do plano abaixo.` : isCloning ? `Os dados do cliente foram pré-preenchidos. Gere um novo plano para substituir o antigo.` : `Profissional, preencha os dados do seu cliente abaixo. A IA criará um rascunho inicial que você poderá editar antes de salvar.`}
+             {isEditingExistingPlan ? `Ajuste os detalhes do plano abaixo.` : isCloning ? `Os dados do cliente foram pré-preenchidos. Gere um novo plano com a IA para substituir o antigo.` : `Profissional, preencha os dados do seu cliente abaixo. A IA criará um rascunho inicial que você poderá editar antes de salvar.`}
           </ShadCnCardDescription>
         </CardHeader>
         <CardContent>
@@ -624,7 +624,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
                 <CardFooter className="flex flex-col sm:flex-row gap-4 print:hidden">
                     <Button onClick={handleSavePlan} disabled={isSaving || !user || isLoadingAi} className="w-full sm:w-auto">
                         {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                        {user ? (isEditingExistingPlan ? "Salvar Alterações no Plano" : "Salvar Plano para Cliente") : "Faça login para Salvar"}
+                        {user ? (planIdToEdit ? "Salvar Alterações no Plano" : "Salvar Plano para Cliente") : "Faça login para Salvar"}
                     </Button>
                      <Button variant="outline" onClick={() => window.print()} className="w-full sm:w-auto">
                         <Download className="mr-2 h-4 w-4" /> Exportar para PDF
