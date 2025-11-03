@@ -9,7 +9,7 @@ import type { ClientPlan } from "@/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Loader2, History, Eye, Wand2, AlertCircle, Edit } from "lucide-react";
+import { Loader2, History, Eye, Wand2, AlertCircle, Edit, Replace } from "lucide-react";
 import { SubscriptionRequiredBlock } from "@/components/app/subscription-required-block";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -130,14 +130,19 @@ export default function ReviewPlansPage() {
                         <AlertCircle className="h-8 w-8 text-amber-500 hidden sm:block" />
                     </CardHeader>
                     <CardContent className="flex flex-col sm:flex-row gap-2">
-                         <Button asChild variant="outline" className="w-full sm:w-auto">
+                         <Button asChild variant="secondary" className="w-full sm:w-auto">
                             <Link href={`/dashboard/my-ai-plan?planId=${plan.id}`}>
-                                <Eye className="mr-2 h-4 w-4" /> Ver Plano Atual
+                                <Eye className="mr-2 h-4 w-4" /> Ver Plano
                             </Link>
                         </Button>
-                        <Button asChild className="w-full sm:w-auto">
+                        <Button asChild variant="outline" className="w-full sm:w-auto">
                             <Link href={`/dashboard/personalized-plan?planIdToEdit=${plan.id}`}>
-                                <Edit className="mr-2 h-4 w-4" /> Editar / Substituir Plano
+                                <Edit className="mr-2 h-4 w-4" /> Editar
+                            </Link>
+                        </Button>
+                         <Button asChild className="w-full sm:w-auto">
+                            <Link href={`/dashboard/personalized-plan?planIdToClone=${plan.id}`}>
+                                <Replace className="mr-2 h-4 w-4" /> Criar Novo (Substituir)
                             </Link>
                         </Button>
                     </CardContent>

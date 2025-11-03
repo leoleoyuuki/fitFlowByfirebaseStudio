@@ -19,48 +19,56 @@ function PersonalizedPlanPageContent() {
   const { user, loading: authLoading, isPro, isTrialing } = useAuth();
   const searchParams = useSearchParams();
   const planIdToEdit = searchParams.get("planIdToEdit");
+  const planIdToClone = searchParams.get("planIdToClone");
   
   const [isLoadingPlan, setIsLoadingPlan] = useState(false);
   const [initialClientInputs, setInitialClientInputs] = useState<ClientPersonalizedPlanInputValues | null>(null);
   const [initialPlanData, setInitialPlanData] = useState<PersonalizedPlanOutput | null>(null);
   const [errorLoadingPlan, setErrorLoadingPlan] = useState<string | null>(null);
+  const [isCloning, setIsCloning] = useState(false);
 
   const canAccessFeatures = isPro || isTrialing;
 
   useEffect(() => {
     const fetchPlanData = async () => {
-      const idToFetch = planIdToEdit;
-      if (idToFetch && user?.id) {
-        setIsLoadingPlan(true);
-        setErrorLoadingPlan(null);
-        try {
-          const planRef = doc(db, "userGeneratedPlans", user.id, "plans", idToFetch);
-          const planSnap = await getDoc(planRef);
-          if (planSnap.exists()) {
-            const planDataFromDb = planSnap.data() as ClientPlan;
-            const clientInputs = planDataFromDb.originalInputs as ClientPersonalizedPlanInputValues | undefined;
-            
-            // Set the inputs to pre-fill the form
-            setInitialClientInputs(clientInputs || null);
-            
-            // Set the plan data to show the editable details immediately
-            setInitialPlanData(planDataFromDb.planData);
-
-          } else {
-            setErrorLoadingPlan("Plano para edição não encontrado.");
-            setInitialClientInputs(null);
-            setInitialPlanData(null);
-          }
-        } catch (err) {
-          console.error("Erro ao buscar plano:", err);
-          setErrorLoadingPlan("Falha ao carregar o plano.");
-        } finally {
-          setIsLoadingPlan(false);
-        }
-      } else {
-        // Reset if no ID is provided, ensuring a fresh form
+      const idToFetch = planIdToEdit || planIdToClone;
+      if (!idToFetch || !user?.id) {
+        // Reset for a completely new plan
         setInitialClientInputs(null);
         setInitialPlanData(null);
+        setIsCloning(false);
+        return;
+      }
+
+      setIsLoadingPlan(true);
+      setErrorLoadingPlan(null);
+      setIsCloning(!!planIdToClone);
+
+      try {
+        const planRef = doc(db, "userGeneratedPlans", user.id, "plans", idToFetch);
+        const planSnap = await getDoc(planRef);
+        if (planSnap.exists()) {
+          const planDataFromDb = planSnap.data() as ClientPlan;
+          const clientInputs = planDataFromDb.originalInputs as ClientPersonalizedPlanInputValues | undefined;
+          
+          setInitialClientInputs(clientInputs || null);
+          
+          // If editing, load the plan data. If cloning/replacing, start with a clean slate for results.
+          if (planIdToEdit) {
+            setInitialPlanData(planDataFromDb.planData);
+          } else {
+            setInitialPlanData(null);
+          }
+        } else {
+          setErrorLoadingPlan("Plano para edição/substituição não encontrado.");
+          setInitialClientInputs(null);
+          setInitialPlanData(null);
+        }
+      } catch (err) {
+        console.error("Erro ao buscar plano:", err);
+        setErrorLoadingPlan("Falha ao carregar o plano.");
+      } finally {
+        setIsLoadingPlan(false);
       }
     };
 
@@ -68,9 +76,9 @@ function PersonalizedPlanPageContent() {
         fetchPlanData();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [planIdToEdit, user?.id, authLoading, canAccessFeatures]);
+  }, [planIdToEdit, planIdToClone, user?.id, authLoading, canAccessFeatures]);
 
-  if (authLoading || (isLoadingPlan && planIdToEdit)) {
+  if (authLoading || (isLoadingPlan && (planIdToEdit || planIdToClone))) {
     return (
       <div className="flex flex-col items-center justify-center space-y-4 py-12 min-h-[calc(100vh-200px)] print:hidden">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -94,9 +102,10 @@ function PersonalizedPlanPageContent() {
   return (
     <div className="printable-plan-area">
       <PersonalizedPlanForm 
-        planIdToEdit={planIdToEdit || undefined}
+        planIdToEdit={planIdToEdit || planIdToClone || undefined}
         initialClientInputs={initialClientInputs} 
         initialPlanDataToEdit={initialPlanData}
+        isCloning={isCloning}
       />
     </div>
   );

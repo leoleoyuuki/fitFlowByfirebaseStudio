@@ -1,5 +1,6 @@
+
 import type { NavItem, Workout, Exercise, SubscriptionPlan, ProgressLog } from '@/types';
-import { Dumbbell, Zap, Heart, Target, Brain, User, Settings, LayoutDashboard, BookOpen, Activity, Gift, Flame, Pizza, Utensils, FileText, Users, Crown, Star, Newspaper, History } from 'lucide-react';
+import { Dumbbell, Zap, Heart, Target, Brain, User, Settings, LayoutDashboard, BookOpen, Activity, Gift, Flame, Pizza, Utensils, FileText, Users, Crown, Star, Newspaper, History, Replace } from 'lucide-react';
 
 export const APP_NAME = "FitFlow Pro"; // Nome alterado para B2B
 
