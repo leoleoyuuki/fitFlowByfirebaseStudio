@@ -385,31 +385,55 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
               <form onSubmit={form.handleSubmit(onGenerateSubmit)} className="space-y-6">
                 <h3 className="text-lg font-semibold border-b pb-2">Dados do Profissional e Cliente</h3>
                 <div className="grid md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                        <Label htmlFor="editProfessionalRole">Sua Principal Área de Atuação</Label>
-                        <Select onValueChange={(value) => { setEditableProfessionalRole(value as any); if (value) setProfRoleError(null); }} value={editableProfessionalRole || undefined} name="editProfessionalRole" id="editProfessionalRole" >
-                            <SelectTrigger className={profRoleError ? "border-destructive" : ""}> <SelectValue placeholder="Selecione sua área" /> </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="physical_educator">Educador Físico</SelectItem>
-                                <SelectItem value="nutritionist">Nutricionista</SelectItem>
-                                <SelectItem value="both">Ambos (Ed. Físico e Nutricionista)</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        {profRoleError && <p className="text-sm text-destructive mt-1">{profRoleError}</p>}
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="editProfessionalRegistration">{registrationInfo.label}</Label>
-                        <Input id="editProfessionalRegistration" placeholder={registrationInfo.placeholder} value={editableProfessionalRegistration || ""} onChange={(e) => { setEditableProfessionalRegistration(e.target.value); if (e.target.value.trim().length >= 3) setProfRegError(null); }} className={profRegError ? "border-destructive" : ""} />
-                        <p className="text-sm text-muted-foreground">Obrigatório. Será exibido no plano final.</p>
-                        {profRegError && <p className="text-sm text-destructive mt-1">{profRegError}</p>}
-                    </div>
+                    <FormField
+                        control={form.control}
+                        name="professionalRole"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Sua Principal Área de Atuação</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value || undefined}>
+                                <FormControl>
+                                    <SelectTrigger><SelectValue placeholder="Selecione sua área" /></SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="physical_educator">Educador Físico</SelectItem>
+                                    <SelectItem value="nutritionist">Nutricionista</SelectItem>
+                                    <SelectItem value="both">Ambos (Ed. Físico e Nutricionista)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="professionalRegistration"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>{registrationInfo.label}</FormLabel>
+                            <FormControl>
+                                <Input placeholder={registrationInfo.placeholder} {...field} />
+                            </FormControl>
+                            <FormDescription>Obrigatório. Será exibido no plano final.</FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="editClientName">Nome do Cliente</Label>
-                  <Input id="editClientName" placeholder="Nome completo do cliente" value={editableClientName || ""} onChange={(e) => { setEditableClientName(e.target.value); if (e.target.value.trim().length >=2) setClientNameError(null); }} className={clientNameError ? "border-destructive" : ""} />
-                   <p className="text-sm text-muted-foreground">Obrigatório. Para identificar o plano.</p>
-                  {clientNameError && <p className="text-sm text-destructive mt-1">{clientNameError}</p>}
-                </div>
+                <FormField
+                    control={form.control}
+                    name="clientName"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Nome do Cliente</FormLabel>
+                        <FormControl>
+                            <Input placeholder="Nome completo do cliente" {...field} />
+                        </FormControl>
+                        <FormDescription>Obrigatório. Para identificar o plano.</FormDescription>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
                 
                 <h3 className="text-lg font-semibold border-t pt-4 mt-6">Informações do Cliente para Geração IA</h3>
                  <div className="grid md:grid-cols-2 gap-6">
@@ -543,7 +567,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
                     </FormItem>
                   )}
                 />
-                <Button type="button" onClick={form.handleSubmit(onGenerateSubmit)} className="w-full md:w-auto print:hidden" disabled={isLoadingAi || isSaving}>
+                <Button type="submit" className="w-full md:w-auto print:hidden" disabled={isLoadingAi || isSaving}>
                   {isLoadingAi ? ( <> <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando... </> ) : ( <> <Wand2 className="mr-2 h-4 w-4" /> {(editablePlanDetails || generatedPlanOutput) ? "Gerar Novo Rascunho" : "Gerar Rascunho com IA"} </> )}
                 </Button>
               </form>
@@ -778,3 +802,5 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
     </div>
   );
 }
+
+    
