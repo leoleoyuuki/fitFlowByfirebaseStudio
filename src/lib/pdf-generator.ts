@@ -18,10 +18,10 @@ export async function generatePlanPdf(plan: ClientPlan, exportType: 'training' |
         });
     };
 
-    const generateHeader = () => {
+    const generateHeader = (pageTitle: string) => {
         doc.setFontSize(22);
         doc.setTextColor('#3F51B5'); // Primary color
-        doc.text(`Plano para: ${clientName}`, 14, 22);
+        doc.text(pageTitle, 14, 22);
 
         doc.setFontSize(10);
         doc.setTextColor(100);
@@ -39,7 +39,7 @@ export async function generatePlanPdf(plan: ClientPlan, exportType: 'training' |
             doc.addPage();
         }
 
-        generateHeader();
+        generateHeader(`Dieta: ${clientName}`);
         currentY = 40;
 
         doc.setFontSize(14);
@@ -60,7 +60,7 @@ export async function generatePlanPdf(plan: ClientPlan, exportType: 'training' |
                 
                 const body = option.items.map(item => [item.foodName, item.quantity]);
 
-                autoTable(doc, {
+                doc.autoTable({
                     startY: currentY,
                     head: [[{ content: mealTitle, colSpan: 2, styles: { fillColor: '#F0F2F5', textColor: '#3F51B5' } }]],
                     body: body,
@@ -76,7 +76,7 @@ export async function generatePlanPdf(plan: ClientPlan, exportType: 'training' |
 
         if (planData.dietGuidance.notes) {
             currentY += 4;
-            if (currentY > 260) { doc.addPage(); currentY = 22; generateHeader(); currentY=40; }
+            if (currentY > 260) { doc.addPage(); generateHeader(`Dieta: ${clientName}`); currentY=40; }
             doc.setFontSize(10);
             doc.setTextColor('#3F51B5');
             doc.text('Notas da Dieta:', 14, currentY);
@@ -100,7 +100,7 @@ export async function generatePlanPdf(plan: ClientPlan, exportType: 'training' |
                 doc.addPage();
             }
             
-            generateHeader();
+            generateHeader(`Treino: ${clientName}`);
             currentY = 40;
 
             // Page Header for training
@@ -124,7 +124,7 @@ export async function generatePlanPdf(plan: ClientPlan, exportType: 'training' |
                 ex.notes || '-'
             ]);
 
-            autoTable(doc, {
+            doc.autoTable({
                 startY: currentY,
                 head: head,
                 body: body,
@@ -138,12 +138,13 @@ export async function generatePlanPdf(plan: ClientPlan, exportType: 'training' |
                     4: { cellWidth: 'auto' }, // Notes
                 }
             });
+             currentY = (doc as any).lastAutoTable.finalY;
         });
 
         if (planData.trainingPlan.notes) {
-            let finalY = (doc as any).lastAutoTable.finalY + 10;
-            if (finalY > 260) { doc.addPage(); finalY = 22; generateHeader(); }
-             doc.setFontSize(10);
+            let finalY = currentY + 10;
+            if (finalY > 260) { doc.addPage(); generateHeader(`Treino: ${clientName}`); finalY=40; }
+            doc.setFontSize(10);
             doc.setTextColor('#3F51B5');
             doc.text('Notas Gerais do Treino:', 14, finalY);
             finalY += 5;
@@ -164,5 +165,119 @@ export async function generatePlanPdf(plan: ClientPlan, exportType: 'training' |
     }
 
     const safeFilename = `Plano - ${clientName.replace(/[^a-z0-9]/gi, '_')} - ${exportType}.pdf`;
+    doc.save(safeFilename);
+}
+
+
+export async function generateThermalPlanPdf(plan: ClientPlan): Promise<void> {
+    const { planData, clientName, professionalRegistration, createdAt } = plan;
+    // 58mm width in points is approx 164.4. We'll use 164.
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: [164, 841] }) as jsPDFWithAutoTable;
+    let y = 15;
+
+    const formatDate = (timestamp: any) => {
+        if (!timestamp || !timestamp.toDate) return 'Data indisponível';
+        return new Date(timestamp.toDate()).toLocaleDateString('pt-BR');
+    };
+
+    // Header
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Plano de Treino', doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
+    y += 15;
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Cliente: ${clientName}`, doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
+    y += 10;
+    doc.text(`Data: ${formatDate(createdAt)}`, doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
+    y += 10;
+    if (professionalRegistration) {
+        doc.text(`Prof: ${professionalRegistration}`, doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
+        y += 10;
+    }
+    y += 5;
+    doc.setLineWidth(0.5);
+    doc.line(10, y, 154, y);
+    y += 15;
+
+    // Training Plan
+    if (planData.trainingPlan) {
+        const workoutsWithExercises = planData.trainingPlan.workouts.filter(w => w.exercises && w.exercises.length > 0);
+        
+        workoutsWithExercises.forEach(workoutDay => {
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            doc.text(workoutDay.day.toUpperCase(), 10, y);
+            y += 5;
+            doc.setLineWidth(0.2);
+            doc.line(10, y, 154, y);
+            y += 10;
+
+            workoutDay.exercises.forEach(ex => {
+                doc.setFontSize(8);
+                doc.setFont('helvetica', 'bold');
+                doc.text(ex.name, 10, y);
+                y += 10;
+
+                doc.setFont('helvetica', 'normal');
+                let details = `- Séries: ${ex.sets} | Reps: ${ex.reps}`;
+                if (ex.restSeconds) {
+                    details += ` | Desc: ${ex.restSeconds}s`;
+                }
+                doc.text(details, 12, y);
+                y += 10;
+
+                if (ex.notes) {
+                    const notesLines = doc.splitTextToSize(`Nota: ${ex.notes}`, 140);
+                    doc.text(notesLines, 12, y);
+                    y += notesLines.length * 10;
+                }
+                y += 5;
+            });
+            y += 5;
+        });
+    }
+
+    // Diet Plan
+    if (planData.dietGuidance) {
+        y += 5;
+        doc.setLineWidth(0.5);
+        doc.line(10, y, 154, y);
+        y += 15;
+
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Diretrizes de Dieta', doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
+        y += 15;
+
+        planData.dietGuidance.dailyMealPlans.forEach(meal => {
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            doc.text(meal.mealName.toUpperCase(), 10, y);
+            y += 12;
+
+            meal.mealOptions.forEach((option, index) => {
+                doc.setFontSize(8);
+                doc.setFont('helvetica', 'bold');
+                doc.text(`Opção ${index + 1}${option.optionDescription ? ` (${option.optionDescription})` : ''}`, 12, y);
+                y += 10;
+                
+                doc.setFont('helvetica', 'normal');
+                option.items.forEach(item => {
+                    const itemLine = `- ${item.foodName}: ${item.quantity}`;
+                    const lines = doc.splitTextToSize(itemLine, 140);
+                    doc.text(lines, 14, y);
+                    y += lines.length * 10;
+                });
+                y += 5;
+            });
+        });
+    }
+    
+    y += 10;
+    doc.setFont('helvetica', 'italic');
+    doc.text('Bom treino!', doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
+
+    const safeFilename = `Plano_Termico - ${clientName.replace(/[^a-z0-9]/gi, '_')}.pdf`;
     doc.save(safeFilename);
 }

@@ -9,7 +9,7 @@ import { doc, getDoc, getDocs, collection, query, orderBy, limit, deleteDoc, Doc
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowLeft, Loader2, Dumbbell, Utensils, Wand2, Info, Edit, Trash2, FileText, Eye, Download, ChevronDown } from "lucide-react";
+import { ArrowLeft, Loader2, Dumbbell, Utensils, Wand2, Info, Edit, Trash2, FileText, Eye, Download, ChevronDown, Printer } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SubscriptionRequiredBlock } from "@/components/app/subscription-required-block";
@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import type { ClientPlan } from "@/types";
-import { generatePlanPdf } from "@/lib/pdf-generator";
+import { generatePlanPdf, generateThermalPlanPdf } from "@/lib/pdf-generator";
 
 
 function MyAiPlanPageContent() {
@@ -49,6 +49,7 @@ function MyAiPlanPageContent() {
   const [error, setError] = useState<string | null>(null);
   const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState<null | 'training' | 'diet' | 'both'>(null);
+  const [isExportingThermal, setIsExportingThermal] = useState(false);
 
   const canAccessFeatures = isPro || isTrialing;
 
@@ -111,7 +112,7 @@ function MyAiPlanPageContent() {
   const handleExportPdf = async (plan: ClientPlan | null, exportType: 'training' | 'diet' | 'both') => {
     if (!plan) return;
     setIsExporting(exportType);
-    toast({ title: "Gerando PDF...", description: "Criando o PDF para você enviar ao aluno. Isso pode levar alguns segundos." });
+    toast({ title: "Gerando PDF...", description: "Criando o PDF A4 para você. Isso pode levar alguns segundos." });
     
     try {
         await generatePlanPdf(plan, exportType);
@@ -125,6 +126,26 @@ function MyAiPlanPageContent() {
         });
     } finally {
         setIsExporting(null);
+    }
+  };
+
+  const handleExportThermalPdf = async (plan: ClientPlan | null) => {
+    if (!plan) return;
+    setIsExportingThermal(true);
+    toast({ title: "Gerando Impressão Térmica...", description: "Preparando o PDF para impressora de 58mm." });
+    
+    try {
+        await generateThermalPlanPdf(plan);
+        toast({ title: "PDF Térmico Gerado!", description: "O download do PDF para impressão térmica foi iniciado." });
+    } catch (error: any) {
+        console.error("Erro ao exportar PDF térmico:", error);
+        toast({
+            title: "Erro na Impressão Térmica",
+            description: error.message || "Não foi possível gerar o PDF térmico. Tente novamente.",
+            variant: "destructive",
+        });
+    } finally {
+        setIsExportingThermal(false);
     }
   };
 
@@ -220,11 +241,15 @@ function MyAiPlanPageContent() {
             </div>
              <div className="flex gap-2 print:hidden">
                 <Button variant="outline" onClick={() => router.push(`/dashboard/personalized-plan?planIdToEdit=${selectedPlan.id}`)}>
-                    <Edit className="mr-2 h-4 w-4" /> Editar Plano
+                    <Edit className="mr-2 h-4 w-4" /> Editar
+                </Button>
+                <Button variant="outline" onClick={() => handleExportThermalPdf(selectedPlan)} disabled={isExportingThermal}>
+                    {isExportingThermal ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
+                    Impr. Térmica
                 </Button>
                  <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="outline" disabled={!!isExporting}>
+                        <Button variant="default" disabled={!!isExporting}>
                             {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                             {isExporting ? `Gerando ${isExporting}...` : "Exportar PDF"}
                             <ChevronDown className="ml-2 h-4 w-4" />
@@ -258,7 +283,7 @@ function MyAiPlanPageContent() {
                       </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
-                      {planData.trainingPlan.workouts?.map((workoutDay, dayIndex) => (
+                      {planData.trainingPlan.workouts?.filter(w => w.exercises && w.exercises.length > 0).map((workoutDay, dayIndex) => (
                           <div key={dayIndex} className="border-t pt-4 first:border-t-0 first:pt-0 print:border-muted">
                               <h3 className="text-lg font-semibold mb-2 text-foreground">{workoutDay.day} {workoutDay.focus ? `(${workoutDay.focus})` : ''}</h3>
                               <ul className="space-y-2 list-disc list-inside pl-2 text-sm">
