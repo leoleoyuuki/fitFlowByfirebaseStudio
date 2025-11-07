@@ -1,3 +1,4 @@
+
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { ClientPlan } from '@/types';
@@ -170,126 +171,102 @@ export async function generatePlanPdf(plan: ClientPlan, exportType: 'training' |
 
 export async function generateThermalPlanPdf(plan: ClientPlan): Promise<void> {
     const { planData, clientName, professionalRegistration, createdAt } = plan;
-    // 58mm de largura (aprox 164.4pt) e 100mm de altura (aprox 283.5pt)
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: [164, 283.5] }) as jsPDFWithAutoTable;
+    // 48mm de largura (aprox 136pt) e 200mm de altura (aprox 567pt)
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: [136, 567] }) as jsPDFWithAutoTable;
     
     const formatDate = (timestamp: any) => {
         if (!timestamp || !timestamp.toDate) return 'Data indisponível';
         return new Date(timestamp.toDate()).toLocaleDateString('pt-BR');
     };
 
-    if (planData.trainingPlan) {
-        const workoutsWithExercises = planData.trainingPlan.workouts.filter(w => w.exercises && w.exercises.length > 0);
+    if (!planData.trainingPlan) {
+        throw new Error("Plano de treino não encontrado para impressão térmica.");
+    }
         
-        workoutsWithExercises.forEach((workoutDay, index) => {
-            if (index > 0) {
-                doc.addPage();
-            }
-            let y = 15;
+    const workoutsWithExercises = planData.trainingPlan.workouts.filter(w => w.exercises && w.exercises.length > 0);
+    
+    if (workoutsWithExercises.length === 0) {
+        throw new Error("Nenhum exercício encontrado no plano de treino para impressão.");
+    }
+    
+    workoutsWithExercises.forEach((workoutDay, index) => {
+        if (index > 0) {
+            doc.addPage();
+        }
+        let y = 15;
 
-            // Header por página de treino
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'bold');
-            doc.text('Plano de Treino', doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
-            y += 15;
+        // Header por página de treino
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Plano de Treino', doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
+        y += 12;
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Cliente: ${clientName}`, doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
+        y += 10;
+        doc.text(`Data: ${formatDate(createdAt)}`, doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
+        y += 10;
+        if (professionalRegistration) {
+            doc.text(`Prof: ${professionalRegistration}`, doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
+            y += 10;
+        }
+        y += 3;
+        doc.setLineWidth(0.5);
+        doc.line(10, y, 126, y);
+        y += 12;
+
+        // Conteúdo do treino
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text(workoutDay.day.toUpperCase(), 10, y);
+        y += 5;
+        doc.setLineWidth(0.2);
+        doc.line(10, y, 126, y);
+        y += 10;
+
+        workoutDay.exercises.forEach(ex => {
+            const pageHeight = doc.internal.pageSize.getHeight();
+            const marginBottom = 20;
+
             doc.setFontSize(8);
-            doc.setFont('helvetica', 'normal');
-            doc.text(`Cliente: ${clientName}`, doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
-            y += 10;
-            doc.text(`Data: ${formatDate(createdAt)}`, doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
-            y += 10;
-            if (professionalRegistration) {
-                doc.text(`Prof: ${professionalRegistration}`, doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
-                y += 10;
-            }
-            y += 5;
-            doc.setLineWidth(0.5);
-            doc.line(10, y, 154, y);
-            y += 15;
-
-            // Conteúdo do treino
-            doc.setFontSize(10);
             doc.setFont('helvetica', 'bold');
-            doc.text(workoutDay.day.toUpperCase(), 10, y);
-            y += 5;
-            doc.setLineWidth(0.2);
-            doc.line(10, y, 154, y);
-            y += 10;
+            const exNameLines = doc.splitTextToSize(ex.name, 116);
+            
+            if (y + (exNameLines.length * 10) > pageHeight - marginBottom) {
+                doc.addPage();
+                y = 15;
+            }
+            doc.text(exNameLines, 10, y);
+            y += exNameLines.length * 8;
 
-            workoutDay.exercises.forEach(ex => {
-                if (y > 250) { // Verifica se precisa de nova página para o exercício
+            doc.setFont('helvetica', 'normal');
+            
+            let details = `- ${ex.sets} séries de ${ex.reps} reps`;
+            if (ex.restSeconds) {
+                details += ` c/ ${ex.restSeconds}s desc.`;
+            }
+            const detailLines = doc.splitTextToSize(details, 116);
+             if (y + (detailLines.length * 10) > pageHeight - marginBottom) {
+                doc.addPage();
+                y = 15;
+            }
+            doc.text(detailLines, 12, y);
+            y += detailLines.length * 8;
+
+
+            if (ex.notes) {
+                const notesLines = doc.splitTextToSize(`Nota: ${ex.notes}`, 116);
+                if (y + (notesLines.length * 8) > pageHeight - marginBottom) {
                     doc.addPage();
                     y = 15;
                 }
-                doc.setFontSize(8);
-                doc.setFont('helvetica', 'bold');
-                const exNameLines = doc.splitTextToSize(ex.name, 140);
-                doc.text(exNameLines, 10, y);
-                y += exNameLines.length * 10;
-
-
-                doc.setFont('helvetica', 'normal');
-                let details = `- Séries: ${ex.sets} | Reps: ${ex.reps}`;
-                if (ex.restSeconds) {
-                    details += ` | Desc: ${ex.restSeconds}s`;
-                }
-                doc.text(details, 12, y);
-                y += 10;
-
-                if (ex.notes) {
-                    const notesLines = doc.splitTextToSize(`Nota: ${ex.notes}`, 140);
-                    if (y + (notesLines.length * 10) > 270) {
-                        doc.addPage();
-                        y = 15;
-                    }
-                    doc.text(notesLines, 12, y);
-                    y += notesLines.length * 10;
-                }
-                y += 5;
-            });
+                doc.text(notesLines, 12, y);
+                y += notesLines.length * 8;
+            }
+            y += 8; // Espaço extra entre exercícios
         });
-    }
+    });
 
-    if (planData.dietGuidance) {
-        doc.addPage();
-        let y = 15;
-
-        // Cabeçalho da Dieta
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Diretrizes de Dieta', doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
-        y += 15;
-        
-        planData.dietGuidance.dailyMealPlans.forEach(meal => {
-            if (y > 250) { doc.addPage(); y = 15; }
-            doc.setFontSize(10);
-            doc.setFont('helvetica', 'bold');
-            doc.text(meal.mealName.toUpperCase(), 10, y);
-            y += 12;
-
-            meal.mealOptions.forEach((option, index) => {
-                if (y > 260) { doc.addPage(); y = 15; }
-                doc.setFontSize(8);
-                doc.setFont('helvetica', 'bold');
-                doc.text(`Opção ${index + 1}${option.optionDescription ? ` (${option.optionDescription})` : ''}`, 12, y);
-                y += 10;
-                
-                doc.setFont('helvetica', 'normal');
-                option.items.forEach(item => {
-                    const itemLine = `- ${item.foodName}: ${item.quantity}`;
-                    const lines = doc.splitTextToSize(itemLine, 140);
-                     if (y + (lines.length * 10) > 270) {
-                        doc.addPage();
-                        y = 15;
-                    }
-                    doc.text(lines, 14, y);
-                    y += lines.length * 10;
-                });
-                y += 5;
-            });
-        });
-    }
-    
     const safeFilename = `Plano_Termico - ${clientName.replace(/[^a-z0-9]/gi, '_')}.pdf`;
     doc.save(safeFilename);
 }
