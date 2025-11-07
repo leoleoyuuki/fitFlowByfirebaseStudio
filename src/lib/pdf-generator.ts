@@ -96,7 +96,6 @@ export async function generatePlanPdf(plan: ClientPlan, exportType: 'training' |
         );
         
         workoutsWithExercises.forEach((workoutDay, index) => {
-            // Adiciona uma nova página para cada dia de treino, exceto para o primeiro
             if (!isFirstPage || index > 0) {
                 doc.addPage();
             }
@@ -104,7 +103,6 @@ export async function generatePlanPdf(plan: ClientPlan, exportType: 'training' |
             generateHeader(`Treino: ${clientName}`);
             currentY = 40;
 
-            // Page Header for training
             doc.setFontSize(18);
             doc.setTextColor('#3F51B5');
             doc.text(workoutDay.day, 14, currentY);
@@ -132,11 +130,11 @@ export async function generatePlanPdf(plan: ClientPlan, exportType: 'training' |
                 theme: 'striped',
                 headStyles: { fillColor: '#3F51B5', textColor: '#FFFFFF' },
                 columnStyles: {
-                    0: { cellWidth: 50 }, // Exercise
-                    1: { cellWidth: 20 }, // Sets
-                    2: { cellWidth: 20 }, // Reps
-                    3: { cellWidth: 25 }, // Rest
-                    4: { cellWidth: 'auto' }, // Notes
+                    0: { cellWidth: 50 },
+                    1: { cellWidth: 20 },
+                    2: { cellWidth: 20 },
+                    3: { cellWidth: 25 },
+                    4: { cellWidth: 'auto' },
                 }
             });
              currentY = (doc as any).lastAutoTable.finalY;
@@ -172,40 +170,44 @@ export async function generatePlanPdf(plan: ClientPlan, exportType: 'training' |
 
 export async function generateThermalPlanPdf(plan: ClientPlan): Promise<void> {
     const { planData, clientName, professionalRegistration, createdAt } = plan;
-    // 58mm width in points is approx 164.4. We'll use 164.
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: [164, 841] }) as jsPDFWithAutoTable;
-    let y = 15;
-
+    // 58mm de largura (aprox 164.4pt) e 100mm de altura (aprox 283.5pt)
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: [164, 283.5] }) as jsPDFWithAutoTable;
+    
     const formatDate = (timestamp: any) => {
         if (!timestamp || !timestamp.toDate) return 'Data indisponível';
         return new Date(timestamp.toDate()).toLocaleDateString('pt-BR');
     };
 
-    // Header
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Plano de Treino', doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
-    y += 15;
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Cliente: ${clientName}`, doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
-    y += 10;
-    doc.text(`Data: ${formatDate(createdAt)}`, doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
-    y += 10;
-    if (professionalRegistration) {
-        doc.text(`Prof: ${professionalRegistration}`, doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
-        y += 10;
-    }
-    y += 5;
-    doc.setLineWidth(0.5);
-    doc.line(10, y, 154, y);
-    y += 15;
-
-    // Training Plan
     if (planData.trainingPlan) {
         const workoutsWithExercises = planData.trainingPlan.workouts.filter(w => w.exercises && w.exercises.length > 0);
         
-        workoutsWithExercises.forEach(workoutDay => {
+        workoutsWithExercises.forEach((workoutDay, index) => {
+            if (index > 0) {
+                doc.addPage();
+            }
+            let y = 15;
+
+            // Header por página de treino
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Plano de Treino', doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
+            y += 15;
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Cliente: ${clientName}`, doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
+            y += 10;
+            doc.text(`Data: ${formatDate(createdAt)}`, doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
+            y += 10;
+            if (professionalRegistration) {
+                doc.text(`Prof: ${professionalRegistration}`, doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
+                y += 10;
+            }
+            y += 5;
+            doc.setLineWidth(0.5);
+            doc.line(10, y, 154, y);
+            y += 15;
+
+            // Conteúdo do treino
             doc.setFontSize(10);
             doc.setFont('helvetica', 'bold');
             doc.text(workoutDay.day.toUpperCase(), 10, y);
@@ -215,10 +217,16 @@ export async function generateThermalPlanPdf(plan: ClientPlan): Promise<void> {
             y += 10;
 
             workoutDay.exercises.forEach(ex => {
+                if (y > 250) { // Verifica se precisa de nova página para o exercício
+                    doc.addPage();
+                    y = 15;
+                }
                 doc.setFontSize(8);
                 doc.setFont('helvetica', 'bold');
-                doc.text(ex.name, 10, y);
-                y += 10;
+                const exNameLines = doc.splitTextToSize(ex.name, 140);
+                doc.text(exNameLines, 10, y);
+                y += exNameLines.length * 10;
+
 
                 doc.setFont('helvetica', 'normal');
                 let details = `- Séries: ${ex.sets} | Reps: ${ex.reps}`;
@@ -230,34 +238,37 @@ export async function generateThermalPlanPdf(plan: ClientPlan): Promise<void> {
 
                 if (ex.notes) {
                     const notesLines = doc.splitTextToSize(`Nota: ${ex.notes}`, 140);
+                    if (y + (notesLines.length * 10) > 270) {
+                        doc.addPage();
+                        y = 15;
+                    }
                     doc.text(notesLines, 12, y);
                     y += notesLines.length * 10;
                 }
                 y += 5;
             });
-            y += 5;
         });
     }
 
-    // Diet Plan
     if (planData.dietGuidance) {
-        y += 5;
-        doc.setLineWidth(0.5);
-        doc.line(10, y, 154, y);
-        y += 15;
+        doc.addPage();
+        let y = 15;
 
+        // Cabeçalho da Dieta
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
         doc.text('Diretrizes de Dieta', doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
         y += 15;
-
+        
         planData.dietGuidance.dailyMealPlans.forEach(meal => {
+            if (y > 250) { doc.addPage(); y = 15; }
             doc.setFontSize(10);
             doc.setFont('helvetica', 'bold');
             doc.text(meal.mealName.toUpperCase(), 10, y);
             y += 12;
 
             meal.mealOptions.forEach((option, index) => {
+                if (y > 260) { doc.addPage(); y = 15; }
                 doc.setFontSize(8);
                 doc.setFont('helvetica', 'bold');
                 doc.text(`Opção ${index + 1}${option.optionDescription ? ` (${option.optionDescription})` : ''}`, 12, y);
@@ -267,6 +278,10 @@ export async function generateThermalPlanPdf(plan: ClientPlan): Promise<void> {
                 option.items.forEach(item => {
                     const itemLine = `- ${item.foodName}: ${item.quantity}`;
                     const lines = doc.splitTextToSize(itemLine, 140);
+                     if (y + (lines.length * 10) > 270) {
+                        doc.addPage();
+                        y = 15;
+                    }
                     doc.text(lines, 14, y);
                     y += lines.length * 10;
                 });
@@ -275,10 +290,6 @@ export async function generateThermalPlanPdf(plan: ClientPlan): Promise<void> {
         });
     }
     
-    y += 10;
-    doc.setFont('helvetica', 'italic');
-    doc.text('Bom treino!', doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
-
     const safeFilename = `Plano_Termico - ${clientName.replace(/[^a-z0-9]/gi, '_')}.pdf`;
     doc.save(safeFilename);
 }
