@@ -1,7 +1,5 @@
-
-
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import type { ClientPlan } from '@/types';
 
 // Estende a interface jsPDF para incluir o método autoTable para o TypeScript
@@ -9,7 +7,7 @@ interface jsPDFWithAutoTable extends jsPDF {
   autoTable: (options: any) => jsPDF;
 }
 
-export async function generatePlanPdf(plan: ClientPlan): Promise<void> {
+export async function generatePlanPdf(plan: ClientPlan, exportType: 'training' | 'diet' | 'both'): Promise<void> {
     const doc = new jsPDF() as jsPDFWithAutoTable;
     const { planData, clientName, professionalRegistration, createdAt } = plan;
 
@@ -19,38 +17,41 @@ export async function generatePlanPdf(plan: ClientPlan): Promise<void> {
             year: 'numeric', month: 'long', day: 'numeric'
         });
     };
-    
-    // --- Page 1: Header, Summary, and Diet ---
 
-    // Main Header
-    doc.setFontSize(22);
-    doc.setTextColor('#3F51B5'); // Primary color
-    doc.text(`Plano para: ${clientName}`, 14, 22);
+    const generateHeader = () => {
+        doc.setFontSize(22);
+        doc.setTextColor('#3F51B5'); // Primary color
+        doc.text(`Plano para: ${clientName}`, 14, 22);
 
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    const professionalInfo = professionalRegistration ? `Profissional Responsável: ${professionalRegistration}` : '';
-    const generatedDate = `Gerado em: ${formatDate(createdAt)}`;
-    doc.text(`${professionalInfo}${professionalInfo ? ' | ' : ''}${generatedDate}`, 14, 29);
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        const professionalInfo = professionalRegistration ? `Profissional Responsável: ${professionalRegistration}` : '';
+        const generatedDate = `Gerado em: ${formatDate(createdAt)}`;
+        doc.text(`${professionalInfo}${professionalInfo ? ' | ' : ''}${generatedDate}`, 14, 29);
+    };
     
     let currentY = 40;
 
-    // Overall Summary
-    if (planData.overallSummary) {
-        doc.setFontSize(14);
-        doc.setTextColor('#3F51B5');
-        doc.text("Resumo Geral", 14, currentY);
-        currentY += 7;
+    const generateDietPdf = () => {
+        if (!planData.dietGuidance) return;
+        
+        if (exportType !== 'training') {
+             generateHeader();
+        }
 
-        doc.setFontSize(10);
-        doc.setTextColor(50);
-        const summaryLines = doc.splitTextToSize(planData.overallSummary, 180);
-        doc.text(summaryLines, 14, currentY);
-        currentY += (summaryLines.length * 5) + 10;
-    }
-    
-    // Diet Guidance
-    if (planData.dietGuidance) {
+        if (exportType === 'both' && planData.overallSummary) {
+            doc.setFontSize(14);
+            doc.setTextColor('#3F51B5');
+            doc.text("Resumo Geral", 14, currentY);
+            currentY += 7;
+
+            doc.setFontSize(10);
+            doc.setTextColor(50);
+            const summaryLines = doc.splitTextToSize(planData.overallSummary, 180);
+            doc.text(summaryLines, 14, currentY);
+            currentY += (summaryLines.length * 5) + 10;
+        }
+
         doc.setFontSize(14);
         doc.setTextColor('#3F51B5');
         doc.text("Diretrizes de Dieta", 14, currentY);
@@ -69,7 +70,7 @@ export async function generatePlanPdf(plan: ClientPlan): Promise<void> {
                 
                 const body = option.items.map(item => [item.foodName, item.quantity]);
 
-                doc.autoTable({
+                autoTable(doc, {
                     startY: currentY,
                     head: [[{ content: mealTitle, colSpan: 2, styles: { fillColor: '#F0F2F5', textColor: '#3F51B5' } }]],
                     body: body,
@@ -85,6 +86,7 @@ export async function generatePlanPdf(plan: ClientPlan): Promise<void> {
 
         if (planData.dietGuidance.notes) {
             currentY += 4;
+            if (currentY > 260) { doc.addPage(); currentY = 22; }
             doc.setFontSize(10);
             doc.setTextColor('#3F51B5');
             doc.text('Notas da Dieta:', 14, currentY);
@@ -94,17 +96,26 @@ export async function generatePlanPdf(plan: ClientPlan): Promise<void> {
             const dietNotesLines = doc.splitTextToSize(planData.dietGuidance.notes, 180);
             doc.text(dietNotesLines, 14, currentY);
         }
-    }
+    };
 
+    const generateTrainingPdf = () => {
+        if (!planData.trainingPlan || !planData.trainingPlan.workouts) return;
 
-    // --- Subsequent Pages: Training Plan (one day per page) ---
-
-    if (planData.trainingPlan && planData.trainingPlan.workouts) {
         planData.trainingPlan.workouts.forEach((workoutDay, index) => {
-            doc.addPage();
+            if (index > 0 || exportType === 'training') {
+                doc.addPage();
+            } else if (exportType === 'both') {
+                doc.addPage();
+            }
+            
             currentY = 22;
+            
+            if(exportType === 'training'){
+                generateHeader();
+                currentY = 40;
+            }
 
-            // Page Header
+            // Page Header for training
             doc.setFontSize(18);
             doc.setTextColor('#3F51B5');
             doc.text(workoutDay.day, 14, currentY);
@@ -125,7 +136,7 @@ export async function generatePlanPdf(plan: ClientPlan): Promise<void> {
                 ex.notes || '-'
             ]);
 
-            doc.autoTable({
+            autoTable(doc, {
                 startY: currentY,
                 head: head,
                 body: body,
@@ -140,8 +151,30 @@ export async function generatePlanPdf(plan: ClientPlan): Promise<void> {
                 }
             });
         });
+
+        if (planData.trainingPlan.notes) {
+            let finalY = (doc as any).lastAutoTable.finalY + 10;
+            if (finalY > 260) { doc.addPage(); finalY = 22; }
+             doc.setFontSize(10);
+            doc.setTextColor('#3F51B5');
+            doc.text('Notas Gerais do Treino:', 14, finalY);
+            finalY += 5;
+            doc.setFontSize(9);
+            doc.setTextColor(80);
+            const trainingNotesLines = doc.splitTextToSize(planData.trainingPlan.notes, 180);
+            doc.text(trainingNotesLines, 14, finalY);
+        }
+    };
+    
+    if (exportType === 'diet') {
+        generateDietPdf();
+    } else if (exportType === 'training') {
+        generateTrainingPdf();
+    } else { // 'both'
+        generateDietPdf();
+        generateTrainingPdf();
     }
 
-    const safeFilename = `Plano - ${clientName.replace(/[^a-z0-9]/gi, '_')}.pdf`;
+    const safeFilename = `Plano - ${clientName.replace(/[^a-z0-9]/gi, '_')} - ${exportType}.pdf`;
     doc.save(safeFilename);
 }

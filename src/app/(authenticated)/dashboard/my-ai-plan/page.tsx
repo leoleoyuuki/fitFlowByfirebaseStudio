@@ -9,7 +9,7 @@ import { doc, getDoc, getDocs, collection, query, orderBy, limit, deleteDoc, Doc
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowLeft, Loader2, Dumbbell, Utensils, Wand2, Info, Edit, Trash2, FileText, Eye, Download } from "lucide-react";
+import { ArrowLeft, Loader2, Dumbbell, Utensils, Wand2, Info, Edit, Trash2, FileText, Eye, Download, ChevronDown } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SubscriptionRequiredBlock } from "@/components/app/subscription-required-block";
@@ -25,6 +25,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import type { ClientPlan } from "@/types";
 import { generatePlanPdf } from "@/lib/pdf-generator";
@@ -42,7 +48,7 @@ function MyAiPlanPageContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null);
-  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [isExporting, setIsExporting] = useState<null | 'training' | 'diet' | 'both'>(null);
 
   const canAccessFeatures = isPro || isTrialing;
 
@@ -102,13 +108,13 @@ function MyAiPlanPageContent() {
     fetchPlansAndSelected();
   }, [user, authLoading, planIdFromQuery, router, canAccessFeatures]);
 
-  const handleExportPdf = async (plan: ClientPlan | null) => {
+  const handleExportPdf = async (plan: ClientPlan | null, exportType: 'training' | 'diet' | 'both') => {
     if (!plan) return;
-    setIsExportingPdf(true);
+    setIsExporting(exportType);
     toast({ title: "Gerando PDF...", description: "Criando o PDF para você enviar ao aluno. Isso pode levar alguns segundos." });
     
     try {
-        await generatePlanPdf(plan);
+        await generatePlanPdf(plan, exportType);
         toast({ title: "PDF Gerado!", description: "O download do seu PDF foi iniciado." });
     } catch (error: any) {
         console.error("Erro ao exportar PDF com jsPDF:", error);
@@ -118,7 +124,7 @@ function MyAiPlanPageContent() {
             variant: "destructive",
         });
     } finally {
-        setIsExportingPdf(false);
+        setIsExporting(null);
     }
   };
 
@@ -212,14 +218,30 @@ function MyAiPlanPageContent() {
                 {professionalRegistration && ` | Resp. Técnico: ${professionalRegistration}`}
                 </p>
             </div>
-            <div className="flex gap-2 print:hidden">
+             <div className="flex gap-2 print:hidden">
                 <Button variant="outline" onClick={() => router.push(`/dashboard/personalized-plan?planIdToEdit=${selectedPlan.id}`)}>
                     <Edit className="mr-2 h-4 w-4" /> Editar Plano
                 </Button>
-                 <Button variant="outline" onClick={() => handleExportPdf(selectedPlan)} disabled={isExportingPdf}>
-                    {isExportingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                    {isExportingPdf ? "Gerando PDF..." : "Exportar PDF"}
-                </Button>
+                 <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="outline" disabled={!!isExporting}>
+                            {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                            {isExporting ? `Gerando ${isExporting}...` : "Exportar PDF"}
+                            <ChevronDown className="ml-2 h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                        <DropdownMenuItem onClick={() => handleExportPdf(selectedPlan, 'training')} disabled={!planData.trainingPlan}>
+                            <Dumbbell className="mr-2 h-4 w-4" /> Exportar Treino
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleExportPdf(selectedPlan, 'diet')} disabled={!planData.dietGuidance}>
+                            <Utensils className="mr-2 h-4 w-4" /> Exportar Dieta
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleExportPdf(selectedPlan, 'both')}>
+                            <FileText className="mr-2 h-4 w-4" /> Exportar Ambos
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
           </div>
 
