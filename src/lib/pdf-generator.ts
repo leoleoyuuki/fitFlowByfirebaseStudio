@@ -61,7 +61,7 @@ export async function generatePlanPdf(plan: ClientPlan, exportType: 'training' |
                 
                 const body = option.items.map(item => [item.foodName, item.quantity]);
 
-                doc.autoTable({
+                autoTable(doc, {
                     startY: currentY,
                     head: [[{ content: mealTitle, colSpan: 2, styles: { fillColor: '#F0F2F5', textColor: '#3F51B5' } }]],
                     body: body,
@@ -97,6 +97,7 @@ export async function generatePlanPdf(plan: ClientPlan, exportType: 'training' |
         );
         
         workoutsWithExercises.forEach((workoutDay, index) => {
+            // Adiciona uma nova página para cada dia de treino, exceto o primeiro na exportação combinada/única
             if (!isFirstPage || index > 0) {
                 doc.addPage();
             }
@@ -124,7 +125,7 @@ export async function generatePlanPdf(plan: ClientPlan, exportType: 'training' |
                 ex.notes || '-'
             ]);
 
-            doc.autoTable({
+            autoTable(doc, {
                 startY: currentY,
                 head: head,
                 body: body,
@@ -173,8 +174,8 @@ export async function generatePlanPdf(plan: ClientPlan, exportType: 'training' |
 
 export async function generateThermalPlanPdf(plan: ClientPlan): Promise<void> {
     const { planData, clientName, professionalRegistration, createdAt } = plan;
-    // Largura de 48mm, Altura de 230mm
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [48, 230] }) as jsPDFWithAutoTable;
+    // Largura de 48mm, Altura de 270mm
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [48, 270] }) as jsPDFWithAutoTable;
     
     const formatDate = (timestamp: any) => {
         if (!timestamp || !timestamp.toDate) return 'Data indisponível';
@@ -243,7 +244,7 @@ export async function generateThermalPlanPdf(plan: ClientPlan): Promise<void> {
             doc.setFontSize(8);
             doc.setFont('helvetica', 'bold');
             const exNameLines = doc.splitTextToSize(ex.name, 38);
-            checkAndAddPage(exNameLines.length * 3);
+            checkAndAddPage(exNameLines.length * lineSpacing);
             doc.text(exNameLines, 5, y);
             y += exNameLines.length * lineSpacing;
 
@@ -252,21 +253,21 @@ export async function generateThermalPlanPdf(plan: ClientPlan): Promise<void> {
             
             let details = `- ${ex.sets} séries x ${ex.reps} reps`;
             const detailLines = doc.splitTextToSize(details, 38);
-            checkAndAddPage(detailLines.length * 3);
+            checkAndAddPage(detailLines.length * lineSpacing);
             doc.text(detailLines, 7, y);
             y += detailLines.length * lineSpacing;
 
             if (ex.restSeconds) {
                 let restDetails = `- Descanso: ${ex.restSeconds} seg`;
                 const restLines = doc.splitTextToSize(restDetails, 38);
-                checkAndAddPage(restLines.length * 3);
+                checkAndAddPage(restLines.length * lineSpacing);
                 doc.text(restLines, 7, y);
                 y += restLines.length * lineSpacing;
             }
 
             if (ex.notes) {
                 const notesLines = doc.splitTextToSize(`Nota: ${ex.notes}`, 38);
-                checkAndAddPage(notesLines.length * 3);
+                checkAndAddPage(notesLines.length * lineSpacing);
                 doc.text(notesLines, 7, y);
                 y += notesLines.length * lineSpacing;
             }
