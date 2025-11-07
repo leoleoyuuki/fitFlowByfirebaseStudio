@@ -60,7 +60,7 @@ export async function generatePlanPdf(plan: ClientPlan, exportType: 'training' |
                 
                 const body = option.items.map(item => [item.foodName, item.quantity]);
 
-                doc.autoTable({
+                autoTable(doc, {
                     startY: currentY,
                     head: [[{ content: mealTitle, colSpan: 2, styles: { fillColor: '#F0F2F5', textColor: '#3F51B5' } }]],
                     body: body,
@@ -96,6 +96,7 @@ export async function generatePlanPdf(plan: ClientPlan, exportType: 'training' |
         );
         
         workoutsWithExercises.forEach((workoutDay, index) => {
+            // Adiciona uma nova página para cada dia de treino, exceto para o primeiro
             if (!isFirstPage || index > 0) {
                 doc.addPage();
             }
@@ -124,7 +125,7 @@ export async function generatePlanPdf(plan: ClientPlan, exportType: 'training' |
                 ex.notes || '-'
             ]);
 
-            doc.autoTable({
+            autoTable(doc, {
                 startY: currentY,
                 head: head,
                 body: body,
