@@ -161,7 +161,9 @@ export async function generatePlanPdf(plan: ClientPlan, exportType: 'training' |
         generateTrainingPdf(true);
     } else { // 'both'
         generateTrainingPdf(true);
-        generateDietPdf(false);
+        if (planData.dietGuidance) {
+            generateDietPdf(false);
+        }
     }
 
     const safeFilename = `Plano - ${clientName.replace(/[^a-z0-9]/gi, '_')} - ${exportType}.pdf`;
@@ -171,8 +173,8 @@ export async function generatePlanPdf(plan: ClientPlan, exportType: 'training' |
 
 export async function generateThermalPlanPdf(plan: ClientPlan): Promise<void> {
     const { planData, clientName, professionalRegistration, createdAt } = plan;
-    // 48mm de largura (aprox 136pt) e 200mm de altura (aprox 567pt)
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: [136, 567] }) as jsPDFWithAutoTable;
+    // 48mm de largura (aprox 136pt) e 300mm de altura (aprox 850pt)
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: [136, 850] }) as jsPDFWithAutoTable;
     
     const formatDate = (timestamp: any) => {
         if (!timestamp || !timestamp.toDate) return 'Data indisponível';
