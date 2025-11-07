@@ -3,14 +3,6 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { ClientPlan } from '@/types';
 
-// O autoTable não se anexa automaticamente em todos os ambientes de módulo,
-// então aplicamos manualmente se necessário.
-if (typeof (jsPDF.prototype as any).autoTable !== 'function') {
-    // Isso estende o protótipo do jsPDF para incluir a função autoTable
-    // e garante que 'doc.autoTable' funcionará.
-    autoTable(jsPDF.prototype);
-}
-
 // Estende a interface jsPDF para incluir o método autoTable para o TypeScript
 interface jsPDFWithAutoTable extends jsPDF {
   autoTable: (options: any) => jsPDF;
@@ -19,6 +11,10 @@ interface jsPDFWithAutoTable extends jsPDF {
 export async function generatePlanPdf(plan: ClientPlan): Promise<void> {
     const doc = new jsPDF() as jsPDFWithAutoTable;
     const { planData, clientName, professionalRegistration, createdAt } = plan;
+
+    // Aplica o plugin autoTable à instância do documento.
+    // Isso garante que ele só seja executado no ambiente do cliente.
+    autoTable(doc);
 
     const formatDate = (timestamp: any) => {
         if (!timestamp || !timestamp.toDate) return 'Data indisponível';
