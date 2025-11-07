@@ -61,7 +61,7 @@ export async function generatePlanPdf(plan: ClientPlan, exportType: 'training' |
                 
                 const body = option.items.map(item => [item.foodName, item.quantity]);
 
-                autoTable(doc, {
+                doc.autoTable({
                     startY: currentY,
                     head: [[{ content: mealTitle, colSpan: 2, styles: { fillColor: '#F0F2F5', textColor: '#3F51B5' } }]],
                     body: body,
@@ -124,7 +124,7 @@ export async function generatePlanPdf(plan: ClientPlan, exportType: 'training' |
                 ex.notes || '-'
             ]);
 
-            autoTable(doc, {
+            doc.autoTable({
                 startY: currentY,
                 head: head,
                 body: body,
@@ -173,8 +173,8 @@ export async function generatePlanPdf(plan: ClientPlan, exportType: 'training' |
 
 export async function generateThermalPlanPdf(plan: ClientPlan): Promise<void> {
     const { planData, clientName, professionalRegistration, createdAt } = plan;
-    // Largura de 48mm, Altura de 210mm
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [48, 210] }) as jsPDFWithAutoTable;
+    // Largura de 48mm, Altura de 230mm
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [48, 230] }) as jsPDFWithAutoTable;
     
     const formatDate = (timestamp: any) => {
         if (!timestamp || !timestamp.toDate) return 'Data indisponível';
