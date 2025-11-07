@@ -51,9 +51,9 @@ const ExerciseDetailSchema = z.object({
 });
 
 const DailyWorkoutSchema = z.object({
-  day: z.string().describe("Dia da semana ou do treino (ex: 'Segunda-feira', 'Treino A', 'Dia de Peito')."),
-  focus: z.string().optional().describe("Principais grupos musculares ou foco do dia (ex: 'Peito, Ombros & Tríceps', 'Corpo Inteiro')."),
-  exercises: z.array(ExerciseDetailSchema).describe("Lista de exercícios para o dia.")
+  day: z.string().describe("Dia da semana ou do treino (ex: 'Treino 1', 'Descanso')."),
+  focus: z.string().optional().describe("Principais grupos musculares ou foco do dia (ex: 'Peito, Ombros & Tríceps', 'Corpo Inteiro'). Um dia de 'Descanso' não deve ter foco."),
+  exercises: z.array(ExerciseDetailSchema).describe("Lista de exercícios para o dia. Para um dia de 'Descanso', este array deve estar vazio.")
 });
 
 const TrainingPlanSchema = z.object({
@@ -136,10 +136,10 @@ Instruções para Geração do Rascunho do Plano (TODO O TEXTO DE SAÍDA DEVE ES
 
 1.  **Rascunho do Plano de Treino:**
     *   **PRIORIDADE MÁXIMA:** Siga a metodologia de treino do profissional, se fornecida.
-    *   Baseie-se em todos os dados do cliente para criar um plano de treino detalhado e científico. Se a função do profissional for 'nutritionist', o plano de treino ainda deve ser completo, mas é entendido como uma sugestão para o cliente ou para colaboração com um educador físico.
+    *   **NOMEAÇÃO DOS DIAS (REGRA OBRIGATÓRIA):** Nomeie os dias de treino sequencialmente como "Treino 1", "Treino 2", e assim por diante. Para dias de descanso, o campo 'day' deve ser exatamente "Descanso". Os dias de descanso não devem ser numerados como treinos. Use o campo 'focus' para descrever os músculos trabalhados no dia de treino (ex: day: "Treino 1", focus: "Peito, Ombros e Tríceps"). Para dias de "Descanso", o campo 'focus' deve ficar vazio e o array 'exercises' deve ser vazio.
     *   **ATENÇÃO ÀS PREFERÊNCIAS:** Analise o campo 'availableEquipment' cuidadosamente para identificar quaisquer preferências ou aversões a exercícios ou grupos musculares (ex: 'não gosta de agachamento', 'focar em glúteos'). Adapte o plano para respeitar isso.
-    *   **NOMEAÇÃO DA DIVISÃO DE TREINO:** Se a divisão de treino resultante das preferências do cliente não for um padrão conhecido (ex: ABC, Upper/Lower), nomeie os dias de forma genérica, como "Treino A", "Treino B", "Treino C", etc., e use o campo 'focus' para descrever os músculos trabalhados (ex: day: "Treino A", focus: "Peito, Ombros e Tríceps").
-
+    *   Baseie-se em todos os dados do cliente para criar um plano de treino detalhado e científico. Se a função do profissional for 'nutritionist', o plano de treino ainda deve ser completo, mas é entendido como uma sugestão para o cliente ou para colaboração com um educador físico.
+    
 2.  **Rascunho das Diretrizes de Dieta:**
     *   **MUITO IMPORTANTE:** Se o papel do profissional ('professionalRole') for 'physical_educator', a orientação dietética é estritamente SUGESTIVA e EDUCACIONAL. Neste caso, você DEVE obrigatoriamente adicionar o seguinte texto no início do campo 'notes' de 'dietGuidance': "AVISO IMPORTANTE: Estas são sugestões alimentares com fins educacionais, baseadas em diretrizes gerais. Um plano alimentar individualizado e com caráter de prescrição dietética deve ser elaborado por um Nutricionista licenciado. Este material não substitui a consulta com um Nutricionista."
     *   Se o papel for 'nutritionist' ou 'both', gere as diretrizes de dieta normalmente para revisão profissional.
@@ -169,3 +169,5 @@ const generatePersonalizedPlanFlow = ai.defineFlow(
     return output;
   }
 );
+
+    
