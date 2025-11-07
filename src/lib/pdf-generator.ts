@@ -32,25 +32,15 @@ export async function generatePlanPdf(plan: ClientPlan, exportType: 'training' |
     
     let currentY = 40;
 
-    const generateDietPdf = () => {
+    const generateDietPdf = (isFirstPage: boolean) => {
         if (!planData.dietGuidance) return;
         
-        if (exportType !== 'training') {
-             generateHeader();
+        if (!isFirstPage) {
+            doc.addPage();
         }
 
-        if (exportType === 'both' && planData.overallSummary) {
-            doc.setFontSize(14);
-            doc.setTextColor('#3F51B5');
-            doc.text("Resumo Geral", 14, currentY);
-            currentY += 7;
-
-            doc.setFontSize(10);
-            doc.setTextColor(50);
-            const summaryLines = doc.splitTextToSize(planData.overallSummary, 180);
-            doc.text(summaryLines, 14, currentY);
-            currentY += (summaryLines.length * 5) + 10;
-        }
+        generateHeader();
+        currentY = 40;
 
         doc.setFontSize(14);
         doc.setTextColor('#3F51B5');
@@ -86,7 +76,7 @@ export async function generatePlanPdf(plan: ClientPlan, exportType: 'training' |
 
         if (planData.dietGuidance.notes) {
             currentY += 4;
-            if (currentY > 260) { doc.addPage(); currentY = 22; }
+            if (currentY > 260) { doc.addPage(); currentY = 22; generateHeader(); currentY=40; }
             doc.setFontSize(10);
             doc.setTextColor('#3F51B5');
             doc.text('Notas da Dieta:', 14, currentY);
@@ -98,22 +88,20 @@ export async function generatePlanPdf(plan: ClientPlan, exportType: 'training' |
         }
     };
 
-    const generateTrainingPdf = () => {
+    const generateTrainingPdf = (isFirstPage: boolean) => {
         if (!planData.trainingPlan || !planData.trainingPlan.workouts) return;
 
-        planData.trainingPlan.workouts.forEach((workoutDay, index) => {
-            if (index > 0 || exportType === 'training') {
-                doc.addPage();
-            } else if (exportType === 'both') {
+        const workoutsWithExercises = planData.trainingPlan.workouts.filter(
+            (workout) => workout.exercises && workout.exercises.length > 0
+        );
+        
+        workoutsWithExercises.forEach((workoutDay, index) => {
+            if (!isFirstPage || index > 0) {
                 doc.addPage();
             }
             
-            currentY = 22;
-            
-            if(exportType === 'training'){
-                generateHeader();
-                currentY = 40;
-            }
+            generateHeader();
+            currentY = 40;
 
             // Page Header for training
             doc.setFontSize(18);
@@ -154,7 +142,7 @@ export async function generatePlanPdf(plan: ClientPlan, exportType: 'training' |
 
         if (planData.trainingPlan.notes) {
             let finalY = (doc as any).lastAutoTable.finalY + 10;
-            if (finalY > 260) { doc.addPage(); finalY = 22; }
+            if (finalY > 260) { doc.addPage(); finalY = 22; generateHeader(); }
              doc.setFontSize(10);
             doc.setTextColor('#3F51B5');
             doc.text('Notas Gerais do Treino:', 14, finalY);
@@ -167,12 +155,12 @@ export async function generatePlanPdf(plan: ClientPlan, exportType: 'training' |
     };
     
     if (exportType === 'diet') {
-        generateDietPdf();
+        generateDietPdf(true);
     } else if (exportType === 'training') {
-        generateTrainingPdf();
+        generateTrainingPdf(true);
     } else { // 'both'
-        generateDietPdf();
-        generateTrainingPdf();
+        generateTrainingPdf(true);
+        generateDietPdf(false);
     }
 
     const safeFilename = `Plano - ${clientName.replace(/[^a-z0-9]/gi, '_')} - ${exportType}.pdf`;
