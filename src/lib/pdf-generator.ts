@@ -173,8 +173,8 @@ export async function generatePlanPdf(plan: ClientPlan, exportType: 'training' |
 
 export async function generateThermalPlanPdf(plan: ClientPlan): Promise<void> {
     const { planData, clientName, professionalRegistration, createdAt } = plan;
-    // 48mm de largura (aprox 136pt) e 300mm de altura (aprox 850pt)
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: [136, 850] }) as jsPDFWithAutoTable;
+    // Largura de 48mm, Altura de 210mm
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [48, 210] }) as jsPDFWithAutoTable;
     
     const formatDate = (timestamp: any) => {
         if (!timestamp || !timestamp.toDate) return 'Data indisponível';
@@ -195,77 +195,82 @@ export async function generateThermalPlanPdf(plan: ClientPlan): Promise<void> {
         if (index > 0) {
             doc.addPage();
         }
-        let y = 15;
+        let y = 10;
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const marginBottom = 10;
+        const lineSpacing = 3.5;
+        const sectionSpacing = 5;
 
-        // Header por página de treino
-        doc.setFontSize(11);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Plano de Treino', doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
-        y += 12;
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'normal');
-        doc.text(`Cliente: ${clientName}`, doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
-        y += 10;
-        doc.text(`Data: ${formatDate(createdAt)}`, doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
-        y += 10;
-        if (professionalRegistration) {
-            doc.text(`Prof: ${professionalRegistration}`, doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
-            y += 10;
-        }
-        y += 3;
-        doc.setLineWidth(0.5);
-        doc.line(10, y, 126, y);
-        y += 12;
-
-        // Conteúdo do treino
+        // Header
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
-        doc.text(workoutDay.day.toUpperCase(), 10, y);
-        y += 5;
-        doc.setLineWidth(0.2);
-        doc.line(10, y, 126, y);
-        y += 10;
+        doc.text('Plano de Treino', doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
+        y += sectionSpacing;
 
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Cliente: ${clientName}`, doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
+        y += lineSpacing;
+        doc.text(`Data: ${formatDate(createdAt)}`, doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
+        y += lineSpacing;
+        if (professionalRegistration) {
+            doc.text(`Prof: ${professionalRegistration}`, doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
+            y += lineSpacing;
+        }
+        y += 2;
+        doc.setLineWidth(0.2);
+        doc.line(5, y, 43, y);
+        y += sectionSpacing;
+
+        // Workout Day Title
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.text(workoutDay.day.toUpperCase(), 5, y);
+        y += lineSpacing;
+        doc.setLineWidth(0.1);
+        doc.line(5, y, 43, y);
+        y += sectionSpacing;
+
+        // Exercises
         workoutDay.exercises.forEach(ex => {
-            const pageHeight = doc.internal.pageSize.getHeight();
-            const marginBottom = 20;
+            const checkAndAddPage = (requiredHeight: number) => {
+                 if (y + requiredHeight > pageHeight - marginBottom) {
+                    doc.addPage();
+                    y = 10; // Reset Y for new page
+                }
+            }
 
             doc.setFontSize(8);
             doc.setFont('helvetica', 'bold');
-            const exNameLines = doc.splitTextToSize(ex.name, 116);
-            
-            if (y + (exNameLines.length * 10) > pageHeight - marginBottom) {
-                doc.addPage();
-                y = 15;
-            }
-            doc.text(exNameLines, 10, y);
-            y += exNameLines.length * 8;
+            const exNameLines = doc.splitTextToSize(ex.name, 38);
+            checkAndAddPage(exNameLines.length * 3);
+            doc.text(exNameLines, 5, y);
+            y += exNameLines.length * lineSpacing;
 
             doc.setFont('helvetica', 'normal');
+            doc.setFontSize(7);
             
-            let details = `- ${ex.sets} séries de ${ex.reps} reps`;
-            if (ex.restSeconds) {
-                details += ` c/ ${ex.restSeconds}s desc.`;
-            }
-            const detailLines = doc.splitTextToSize(details, 116);
-             if (y + (detailLines.length * 10) > pageHeight - marginBottom) {
-                doc.addPage();
-                y = 15;
-            }
-            doc.text(detailLines, 12, y);
-            y += detailLines.length * 8;
+            let details = `- ${ex.sets} séries x ${ex.reps} reps`;
+            const detailLines = doc.splitTextToSize(details, 38);
+            checkAndAddPage(detailLines.length * 3);
+            doc.text(detailLines, 7, y);
+            y += detailLines.length * lineSpacing;
 
+            if (ex.restSeconds) {
+                let restDetails = `- Descanso: ${ex.restSeconds} seg`;
+                const restLines = doc.splitTextToSize(restDetails, 38);
+                checkAndAddPage(restLines.length * 3);
+                doc.text(restLines, 7, y);
+                y += restLines.length * lineSpacing;
+            }
 
             if (ex.notes) {
-                const notesLines = doc.splitTextToSize(`Nota: ${ex.notes}`, 116);
-                if (y + (notesLines.length * 8) > pageHeight - marginBottom) {
-                    doc.addPage();
-                    y = 15;
-                }
-                doc.text(notesLines, 12, y);
-                y += notesLines.length * 8;
+                const notesLines = doc.splitTextToSize(`Nota: ${ex.notes}`, 38);
+                checkAndAddPage(notesLines.length * 3);
+                doc.text(notesLines, 7, y);
+                y += notesLines.length * lineSpacing;
             }
-            y += 8; // Espaço extra entre exercícios
+            y += sectionSpacing - 1; // Extra space between exercises
         });
     });
 
