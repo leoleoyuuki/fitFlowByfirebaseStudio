@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import type { ClientPlan } from "@/types";
+import { generatePlanPdf } from "@/lib/pdf-generator";
 
 
 function MyAiPlanPageContent() {
@@ -101,47 +102,16 @@ function MyAiPlanPageContent() {
     fetchPlansAndSelected();
   }, [user, authLoading, planIdFromQuery, router, canAccessFeatures]);
 
-  const handleExportPdf = async (planId: string) => {
-    if (!planId) return;
+  const handleExportPdf = async (plan: ClientPlan | null) => {
+    if (!plan) return;
     setIsExportingPdf(true);
     toast({ title: "Gerando PDF...", description: "Criando o PDF para você enviar ao aluno. Isso pode levar alguns segundos." });
-
+    
     try {
-        const response = await fetch('/api/generate-pdf', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ planId, userId: user?.id }),
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Falha ao gerar o PDF no servidor.');
-        }
-
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        
-        const contentDisposition = response.headers.get('content-disposition');
-        let filename = `Plano - ${selectedPlan?.clientName || 'Cliente'}.pdf`;
-        if (contentDisposition) {
-            const filenameMatch = contentDisposition.match(/filename="(.+)"/);
-            if (filenameMatch && filenameMatch.length > 1) {
-                filename = filenameMatch[1];
-            }
-        }
-        
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
-
-        toast({ title: "PDF Gerado com Sucesso!", description: "O download do seu PDF foi iniciado." });
-
+        await generatePlanPdf(plan);
+        toast({ title: "PDF Gerado!", description: "O download do seu PDF foi iniciado." });
     } catch (error: any) {
-        console.error("Erro ao exportar PDF:", error);
+        console.error("Erro ao exportar PDF com jsPDF:", error);
         toast({
             title: "Erro ao Gerar PDF",
             description: error.message || "Não foi possível gerar o PDF. Tente novamente ou contate o suporte.",
@@ -246,7 +216,7 @@ function MyAiPlanPageContent() {
                 <Button variant="outline" onClick={() => router.push(`/dashboard/personalized-plan?planIdToEdit=${selectedPlan.id}`)}>
                     <Edit className="mr-2 h-4 w-4" /> Editar Plano
                 </Button>
-                 <Button variant="outline" onClick={() => handleExportPdf(selectedPlan.id)} disabled={isExportingPdf}>
+                 <Button variant="outline" onClick={() => handleExportPdf(selectedPlan)} disabled={isExportingPdf}>
                     {isExportingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                     {isExportingPdf ? "Gerando PDF..." : "Exportar PDF"}
                 </Button>

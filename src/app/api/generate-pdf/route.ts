@@ -2,7 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import type { ClientPlan } from '@/types';
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
+import chrome from 'chrome-aws-lambda';
 
 // Helper function to generate the HTML for the PDF
 function generatePlanHtml(plan: ClientPlan): string {
@@ -139,6 +140,7 @@ function generatePlanHtml(plan: ClientPlan): string {
 }
 
 export async function POST(req: NextRequest) {
+    let browser = null;
     try {
         const body = await req.json();
         const { planId, userId } = body;
@@ -158,9 +160,12 @@ export async function POST(req: NextRequest) {
         
         const htmlContent = generatePlanHtml(planData);
 
-        const browser = await puppeteer.launch({ 
+        const executablePath = await chrome.executablePath;
+
+        browser = await puppeteer.launch({
+            args: chrome.args,
+            executablePath,
             headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
         });
         const page = await browser.newPage();
 
@@ -170,16 +175,8 @@ export async function POST(req: NextRequest) {
             format: 'A4',
             printBackground: true,
             displayHeaderFooter: true,
-            headerTemplate: `
-                <div style="font-size: 9px; color: #555; text-align: left; width: 100%; padding: 0 40px;">
-                    Plano de: ${planData.clientName}
-                </div>
-            `,
-            footerTemplate: `
-                <div style="font-size: 9px; color: #555; text-align: right; width: 100%; padding: 0 40px;">
-                    Página <span class="pageNumber"></span> de <span class="totalPages"></span>
-                </div>
-            `,
+            headerTemplate: `<div style="font-size: 9px; color: #555; text-align: left; width: 100%; padding: 0 40px;">Plano de: ${planData.clientName}</div>`,
+            footerTemplate: `<div style="font-size: 9px; color: #555; text-align: right; width: 100%; padding: 0 40px;">Página <span class="pageNumber"></span> de <span class="totalPages"></span></div>`,
             margin: {
                 top: '50px',
                 right: '40px',
@@ -187,8 +184,6 @@ export async function POST(req: NextRequest) {
                 left: '40px'
             }
         });
-
-        await browser.close();
         
         const safeFilename = `Plano - ${planData.clientName.replace(/[^a-z0-9]/gi, '_')}.pdf`;
 
@@ -203,5 +198,9 @@ export async function POST(req: NextRequest) {
     } catch (error: any) {
         console.error('Erro ao gerar PDF com Puppeteer:', error);
         return NextResponse.json({ error: `Falha ao gerar o PDF: ${error.message}` }, { status: 500 });
+    } finally {
+        if (browser) {
+            await browser.close();
+        }
     }
 }
