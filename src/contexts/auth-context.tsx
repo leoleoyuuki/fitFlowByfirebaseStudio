@@ -59,6 +59,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             photoURL: firebaseUser.photoURL || userProfileData.photoURL || null,
             professionalType: userProfileData.professionalType || null,
             professionalRegistration: userProfileData.professionalRegistration || null,
+            trainingStylePreference: userProfileData.trainingStylePreference || null,
             subscriptionTier: userProfileData.subscriptionTier || 'free',
             subscriptionStatus: userProfileData.subscriptionStatus || null,
             stripeCustomerId: userProfileData.stripeCustomerId || null,
@@ -78,6 +79,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 photoURL: firebaseUser.photoURL || null,
                 professionalType: null,
                 professionalRegistration: null,
+                trainingStylePreference: null,
                 subscriptionTier: 'free',
                 subscriptionStatus: null,
                 trialEndsAt: null,
@@ -132,6 +134,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           photoURL: userCredential.user.photoURL || null,
           professionalType: null,
           professionalRegistration: null, 
+          trainingStylePreference: null,
           subscriptionTier: 'free',
           stripeCustomerId: null,
           stripeSubscriptionId: null,
@@ -181,10 +184,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         updatedAt: serverTimestamp()
       });
       setUser(prevUser => prevUser ? ({ ...prevUser, [field]: value, updatedAt: new Date() }) : null);
-      toast({ title: "Perfil Atualizado", description: "Suas informações foram atualizadas." });
     } catch (error: any) {
       console.error(`Erro ao atualizar campo ${field} do perfil:`, error);
       toast({ title: "Erro ao Atualizar", description: `Não foi possível atualizar suas informações. Tente novamente.`, variant: "destructive" });
+      throw error; // Re-throw para que o chamador saiba que falhou
     }
   };
 

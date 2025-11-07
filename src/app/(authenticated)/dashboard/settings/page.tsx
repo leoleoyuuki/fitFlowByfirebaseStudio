@@ -136,18 +136,19 @@ export default function SettingsPage() {
   };
 
   const handleAiPreferencesUpdate = async (values: AiPreferencesFormValues) => {
-    if (!user) return;
-    setIsUpdatingAiPrefs(true);
-    try {
-      await updateUserProfileField(user.id, 'trainingStylePreference', values.trainingStylePreference || null);
-      toast({ title: "Preferências Salvas!", description: "Suas preferências de IA foram salvas e serão usadas na próxima geração de plano." });
-    } catch (error: any) {
-      console.error("Erro ao atualizar preferências de IA:", error);
-      toast({ title: "Erro ao Salvar", description: error.message || "Não foi possível salvar suas preferências.", variant: "destructive" });
-    } finally {
-      setIsUpdatingAiPrefs(false);
-    }
+      if (!user) return;
+      setIsUpdatingAiPrefs(true);
+      try {
+        await updateUserProfileField(user.id, 'trainingStylePreference', values.trainingStylePreference || '');
+        toast({ title: "Preferências Salvas!", description: "Suas preferências de IA foram salvas e serão usadas na próxima geração de plano." });
+      } catch (error: any) {
+        console.error("Erro ao atualizar preferências de IA:", error);
+        toast({ title: "Erro ao Salvar", description: error.message || "Não foi possível salvar suas preferências.", variant: "destructive" });
+      } finally {
+        setIsUpdatingAiPrefs(false);
+      }
   };
+
 
   if (authLoading) {
     return (
