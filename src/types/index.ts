@@ -19,6 +19,7 @@ export interface UserProfile {
   photoURL?: string | null; 
   professionalType?: 'physical_educator' | 'nutritionist' | 'both' | null; 
   professionalRegistration?: string | null; 
+  trainingStylePreference?: string | null;
   subscriptionTier?: 'free' | 'light' | 'pro' | 'elite'; 
   stripeCustomerId?: string | null;
   stripeSubscriptionId?: string | null;

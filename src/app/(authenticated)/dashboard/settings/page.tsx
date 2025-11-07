@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { User as UserIcon, Mail, ShieldCheck, CreditCard, Bell, Loader2, KeyRound, Briefcase, Award, Phone } from "lucide-react";
+import { User as UserIcon, Mail, ShieldCheck, CreditCard, Bell, Loader2, KeyRound, Briefcase, Award, Phone, BrainCircuit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
@@ -36,11 +37,18 @@ const passwordFormSchema = z.object({
 
 type PasswordFormValues = z.infer<typeof passwordFormSchema>;
 
+const aiPreferencesFormSchema = z.object({
+  trainingStylePreference: z.string().max(1000, { message: "A descrição não pode exceder 1000 caracteres." }).optional(),
+});
+
+type AiPreferencesFormValues = z.infer<typeof aiPreferencesFormSchema>;
+
 export default function SettingsPage() {
   const { user, loading: authLoading, updateUserProfileField } = useAuth();
   const { toast } = useToast();
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [isUpdatingAiPrefs, setIsUpdatingAiPrefs] = useState(false);
 
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -58,58 +66,36 @@ export default function SettingsPage() {
     },
   });
 
+  const aiPreferencesForm = useForm<AiPreferencesFormValues>({
+    resolver: zodResolver(aiPreferencesFormSchema),
+    defaultValues: {
+      trainingStylePreference: user?.trainingStylePreference || "",
+    },
+  });
+
   useEffect(() => {
     if (user) {
       profileForm.reset({ 
         displayName: user.displayName || "",
       });
+      aiPreferencesForm.reset({
+        trainingStylePreference: user.trainingStylePreference || "",
+      });
     }
-  }, [user, profileForm]);
+  }, [user, profileForm, aiPreferencesForm]);
 
   const handleProfileUpdate = async (values: ProfileFormValues) => {
-    if (!user || !auth.currentUser) {
-      toast({
-        title: "Erro",
-        description: "Usuário não autenticado. Por favor, faça login novamente.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+    if (!user) return;
     setIsUpdatingProfile(true);
     try {
-      // Atualizar displayName no Firebase Auth (se mudou)
-      if (auth.currentUser.displayName !== values.displayName) {
+      if (auth.currentUser && auth.currentUser.displayName !== values.displayName) {
         await updateProfile(auth.currentUser, { displayName: values.displayName });
       }
-
-      // Atualizar dados no Firestore
-      const userDocRef = doc(db, "users", user.id);
-      const firestoreUpdates: Partial<ProfileFormValues> = {
-        displayName: values.displayName,
-      };
-      await updateDoc(userDocRef, {
-        ...firestoreUpdates,
-        updatedAt: new Date(),
-      });
-      
-      // Atualiza o contexto local
-      if (user) {
-        await updateUserProfileField(user.id, 'displayName', values.displayName);
-      }
-
-
-      toast({
-        title: "Perfil Atualizado!",
-        description: "Suas informações foram atualizadas com sucesso.",
-      });
+      await updateUserProfileField(user.id, 'displayName', values.displayName);
+      toast({ title: "Perfil Atualizado!", description: "Seu nome foi atualizado com sucesso." });
     } catch (error: any) {
       console.error("Erro ao atualizar perfil:", error);
-      toast({
-        title: "Erro ao Atualizar Perfil",
-        description: error.message || "Não foi possível atualizar suas informações. Tente novamente.",
-        variant: "destructive",
-      });
+      toast({ title: "Erro ao Atualizar", description: error.message || "Não foi possível atualizar suas informações.", variant: "destructive" });
     } finally {
       setIsUpdatingProfile(false);
     }
@@ -149,6 +135,20 @@ export default function SettingsPage() {
     }
   };
 
+  const handleAiPreferencesUpdate = async (values: AiPreferencesFormValues) => {
+    if (!user) return;
+    setIsUpdatingAiPrefs(true);
+    try {
+      await updateUserProfileField(user.id, 'trainingStylePreference', values.trainingStylePreference || null);
+      toast({ title: "Preferências Salvas!", description: "Suas preferências de IA foram salvas e serão usadas na próxima geração de plano." });
+    } catch (error: any) {
+      console.error("Erro ao atualizar preferências de IA:", error);
+      toast({ title: "Erro ao Salvar", description: error.message || "Não foi possível salvar suas preferências.", variant: "destructive" });
+    } finally {
+      setIsUpdatingAiPrefs(false);
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
@@ -172,9 +172,9 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent className="space-y-2">
                     <Button variant="ghost" className="w-full justify-start"><UserIcon className="mr-2 h-4 w-4"/> Perfil da Conta</Button>
-                    <Button variant="ghost" className="w-full justify-start"><ShieldCheck className="mr-2 h-4 w-4"/> Segurança da Conta</Button>
+                    <Button variant="ghost" className="w-full justify-start"><BrainCircuit className="mr-2 h-4 w-4"/> Preferências da IA</Button>
+                    <Button variant="ghost" className="w-full justify-start"><ShieldCheck className="mr-2 h-4 w-4"/> Segurança</Button>
                     <Button variant="ghost" className="w-full justify-start" asChild><Link href="/subscribe"><CreditCard className="mr-2 h-4 w-4"/> Assinatura Pro</Link></Button>
-                    <Button variant="ghost" className="w-full justify-start"><Bell className="mr-2 h-4 w-4"/> Notificações (Em Breve)</Button>
                 </CardContent>
             </Card>
         </div>
@@ -215,6 +215,42 @@ export default function SettingsPage() {
                   <Button type="submit" disabled={isUpdatingProfile || authLoading}>
                     {isUpdatingProfile ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                     Salvar Alterações no Perfil
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center"><BrainCircuit className="mr-2 h-5 w-5" /> Preferências de Geração IA</CardTitle>
+              <CardDescription>Instrua a IA sobre seu estilo de treino preferido para que os planos gerados fiquem ainda mais alinhados à sua metodologia.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Form {...aiPreferencesForm}>
+                <form onSubmit={aiPreferencesForm.handleSubmit(handleAiPreferencesUpdate)} className="space-y-6">
+                  <FormField
+                    control={aiPreferencesForm.control}
+                    name="trainingStylePreference"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Descreva seu Estilo de Treinamento</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            {...field}
+                            rows={6}
+                            className="pl-10" 
+                            placeholder="Exemplo: 'Prefiro focar em exercícios compostos no início do treino, usando progressão de carga. Gosto de usar bi-sets para músculos menores no final. Priorize o uso de máquinas e halteres em vez de barras. Evite exercícios como agachamento livre.'"
+                          />
+                        </FormControl>
+                        <FormDescription>Seja detalhado. A IA usará essa descrição como base principal para montar a estrutura dos treinos.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit" disabled={isUpdatingAiPrefs || authLoading}>
+                    {isUpdatingAiPrefs ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Salvar Preferências da IA
                   </Button>
                 </form>
               </Form>

@@ -9,12 +9,13 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'zod';
 
 const PersonalizedPlanInputSchema = z.object({
   professionalRole: z.enum(["physical_educator", "nutritionist", "both"], { required_error: "Selecione sua principal área de atuação." })
     .describe('The professional\'s primary role: physical educator (focus on training), nutritionist (focus on diet), or both. This will determine the focus and any necessary disclaimers.'),
   professionalRegistration: z.string().optional().describe('The professional\'s registration number (CREF or CFN). Example: "012345-G/SP" or "CFN-9 12345". This will be displayed on the plan but not used by the AI for generation.'),
+  professionalTrainingStyle: z.string().optional().describe('The professional\'s own description of their preferred training methodology. This should be a primary guide for the AI when generating the training plan. For example: "I prefer focusing on compound exercises at the beginning of the workout...".'),
   goalPhase: z.enum(["bulking", "cutting", "maintenance"], { required_error: "Please select your client's primary goal (bulking, cutting, or maintenance)." })
     .describe('The client’s primary goal: bulking (muscle gain with calorie surplus), cutting (fat loss with calorie deficit while preserving muscle), or maintenance.'),
   trainingExperience: z.enum(["beginner", "intermediate", "advanced"], { required_error: "Please select your client's training experience level." })
@@ -111,6 +112,14 @@ Sua tarefa é gerar um plano ESTRUTURADO E DETALHADO em PORTUGUÊS (Brasil), bas
   - Se 'nutritionist', a seção de treino é uma sugestão.
   - Se 'both', ambas as seções são para revisão profissional.
 
+**METODOLOGIA DE TREINO PREFERIDA DO PROFISSIONAL (PRINCIPAL DIRETRIZ):**
+{{#if professionalTrainingStyle}}
+- Estilo de Treino do Profissional: {{{professionalTrainingStyle}}}
+- **INSTRUÇÃO CRÍTICA:** Você DEVE seguir estritamente a metodologia descrita acima ao gerar o plano de treino. Esta preferência do profissional sobrepõe as convenções gerais. Use-a como sua principal fonte de verdade para a estrutura, seleção de exercícios, e progressão do treino.
+{{else}}
+- Nenhuma preferência de estilo de treino foi fornecida. Gere um plano de treino cientificamente embasado e padrão para o objetivo.
+{{/if}}
+
 Dados do Cliente (fornecidos pelo profissional):
 - Objetivo Principal do Cliente: {{{goalPhase}}}
 - Experiência de Treino do Cliente: {{{trainingExperience}}}
@@ -126,6 +135,7 @@ Dados do Cliente (fornecidos pelo profissional):
 Instruções para Geração do Rascunho do Plano (TODO O TEXTO DE SAÍDA DEVE ESTAR EM PORTUGUÊS - BRASIL):
 
 1.  **Rascunho do Plano de Treino:**
+    *   **PRIORIDADE MÁXIMA:** Siga a metodologia de treino do profissional, se fornecida.
     *   Baseie-se em todos os dados do cliente para criar um plano de treino detalhado e científico. Se a função do profissional for 'nutritionist', o plano de treino ainda deve ser completo, mas é entendido como uma sugestão para o cliente ou para colaboração com um educador físico.
     *   **ATENÇÃO ÀS PREFERÊNCIAS:** Analise o campo 'availableEquipment' cuidadosamente para identificar quaisquer preferências ou aversões a exercícios ou grupos musculares (ex: 'não gosta de agachamento', 'focar em glúteos'). Adapte o plano para respeitar isso.
     *   **NOMEAÇÃO DA DIVISÃO DE TREINO:** Se a divisão de treino resultante das preferências do cliente não for um padrão conhecido (ex: ABC, Upper/Lower), nomeie os dias de forma genérica, como "Treino A", "Treino B", "Treino C", etc., e use o campo 'focus' para descrever os músculos trabalhados (ex: day: "Treino A", focus: "Peito, Ombros e Tríceps").
