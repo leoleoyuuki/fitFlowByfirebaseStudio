@@ -68,6 +68,7 @@ interface PersonalizedPlanFormProps {
 export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initialPlanDataToEdit, isCloning }: PersonalizedPlanFormProps) {
   const [isLoadingAi, setIsLoadingAi] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [generatedPlanOutput, setGeneratedPlanOutput] = useState<PersonalizedPlanOutput | null>(null);
   const [editablePlanDetails, setEditablePlanDetails] = useState<PersonalizedPlanOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -131,7 +132,12 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
 
       setEditableProfessionalRole(initialClientInputs.professionalRole || undefined);
       setEditableProfessionalRegistration(initialClientInputs.professionalRegistration || "");
-      setEditableClientName(initialClientInputs.clientName || "");
+      
+      if (isCloning) {
+        setEditableClientName(initialClientInputs.clientName || ""); // Keep name on clone
+      } else {
+        setEditableClientName(initialClientInputs.clientName || "");
+      }
       setProfRoleError(null); setProfRegError(null); setClientNameError(null);
 
       if (isEditingExistingPlan && initialPlanDataToEdit) {
@@ -228,6 +234,68 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
     });
   };
 
+  const handleExportPdf = async () => {
+    if (!planIdToEdit) {
+        toast({ title: "Salve o plano primeiro", description: "Você precisa salvar o plano antes de exportar como PDF.", variant: "destructive" });
+        return;
+    }
+    setIsExportingPdf(true);
+    toast({ title: "Gerando PDF...", description: "Criando o PDF para você enviar ao aluno. Isso pode levar alguns segundos." });
+
+    try {
+        const response = await fetch('/api/generate-pdf', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ planId: planIdToEdit, userId: user?.id }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Falha ao gerar o PDF no servidor.');
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        
+        let clientNameForFile = "Cliente";
+        if (isEditingExistingPlan) {
+            clientNameForFile = editableClientName || "Cliente";
+        } else {
+            clientNameForFile = form.getValues("clientName") || "Cliente";
+        }
+        
+        const contentDisposition = response.headers.get('content-disposition');
+        let filename = `Plano - ${clientNameForFile}.pdf`;
+        if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+            if (filenameMatch && filenameMatch.length > 1) {
+                filename = filenameMatch[1];
+            }
+        }
+        
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+
+        toast({ title: "PDF Gerado com Sucesso!", description: "O download do seu PDF foi iniciado." });
+
+    } catch (error: any) {
+        console.error("Erro ao exportar PDF:", error);
+        toast({
+            title: "Erro ao Gerar PDF",
+            description: error.message || "Não foi possível gerar o PDF. Tente novamente ou contate o suporte.",
+            variant: "destructive",
+        });
+    } finally {
+        setIsExportingPdf(false);
+    }
+  };
+
+
   const handleSavePlan = async () => {
     if (!user) {
         toast({ title: "Usuário não autenticado", description: "Faça login para salvar o plano do cliente.", variant: "destructive" });
@@ -243,8 +311,10 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
     setIsSaving(true);
     let finalOriginalInputs: ClientPersonalizedPlanInputValues;
 
+    const isCreatingNewPlan = !planIdToEdit || isCloning;
+
     // Plan limit check
-    if (!planIdToEdit) { // Only check limit when creating a new plan, not editing/replacing
+    if (isCreatingNewPlan) {
         const currentPlanTier = user.subscriptionTier || 'free';
         const planDetails = MOCK_SUBSCRIPTION_PLANS.find(p => p.id === currentPlanTier);
         const planLimit = planDetails?.planLimit ?? 0;
@@ -268,7 +338,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
     }
 
 
-    if ((isEditingExistingPlan || isCloning) && initialClientInputs) {
+    if (isEditingExistingPlan) {
         let manualValidationOk = true;
         setProfRoleError(null); setProfRegError(null); setClientNameError(null);
 
@@ -283,7 +353,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
         }
         
         finalOriginalInputs = {
-            ...(form.getValues()), // Get the latest values from form (important for cloning)
+            ...(initialClientInputs!), // Use original inputs as base
             professionalRole: editableProfessionalRole!,
             professionalRegistration: editableProfessionalRegistration.trim(),
             clientName: editableClientName.trim(),
@@ -313,18 +383,16 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
     };
 
     try {
-      if (planIdToEdit) {
+      if (planIdToEdit) { // This handles both edit and replace/clone
         const planRef = doc(db, "userGeneratedPlans", user.id, "plans", planIdToEdit);
         await updateDoc(planRef, dataToSave);
         toast({
-          title: "Plano Atualizado!",
-          description: `O plano para ${finalOriginalInputs.clientName} foi atualizado com sucesso.`,
+          title: "Plano Salvo com Sucesso!",
+          description: `O plano para ${finalOriginalInputs.clientName} foi ${isCloning ? 'substituído' : 'atualizado'}.`,
           action: ( <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/my-ai-plan?planId=${planIdToEdit}`)}> Ver Plano Salvo </Button> ),
         });
-        if (isCloning) {
-          router.push(`/dashboard/my-ai-plan?planId=${planIdToEdit}`);
-        }
-      } else {
+        router.push(`/dashboard/my-ai-plan?planId=${planIdToEdit}`);
+      } else { // Creating a brand new plan
         const plansCollectionRef = collection(db, "userGeneratedPlans", user.id, "plans");
         const newPlanRef = await addDoc(plansCollectionRef, { ...dataToSave, createdAt: serverTimestamp() });
         toast({
@@ -332,9 +400,11 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
           description: `O plano base para ${finalOriginalInputs.clientName} foi salvo. Você pode gerenciá-lo em "Planos Salvos".`,
           action: ( <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/my-ai-plan?planId=${newPlanRef.id}`)}> Ver Plano Salvo </Button> ),
         });
+        // Reset form for the next new plan
         form.reset({
             professionalRole: user?.professionalType || undefined, professionalRegistration: user?.professionalRegistration || "", clientName: "",
-            trainingFrequency: 3, trainingVolumePreference: "medium", sex: "prefer_not_to_say",
+            trainingFrequency: 3, trainingVolumePreference: "medium", sex: "prefer_not_to_say", goalPhase: undefined, trainingExperience: undefined, availableEquipment: "",
+            heightCm: "", weightKg: "", age: "", dietaryPreferences: ""
         });
         setGeneratedPlanOutput(null);
         setEditablePlanDetails(null);
@@ -365,8 +435,6 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
     ? `Substituindo Plano de ${editableClientName || 'Cliente'}`
     : "Gerar Plano Base para Cliente";
 
-  const showFullForm = !isEditingExistingPlan || isCloning;
-
   return (
     <div className="space-y-8">
       <Card className="shadow-lg print:shadow-none print:border-none">
@@ -380,239 +448,197 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
           </ShadCnCardDescription>
         </CardHeader>
         <CardContent>
-          {showFullForm ? (
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onGenerateSubmit)} className="space-y-6">
-                <h3 className="text-lg font-semibold border-b pb-2">Dados do Profissional e Cliente</h3>
-                <div className="grid md:grid-cols-2 gap-6">
-                    <FormField
-                        control={form.control}
-                        name="professionalRole"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Sua Principal Área de Atuação</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || undefined}>
-                                <FormControl>
-                                    <SelectTrigger><SelectValue placeholder="Selecione sua área" /></SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    <SelectItem value="physical_educator">Educador Físico</SelectItem>
-                                    <SelectItem value="nutritionist">Nutricionista</SelectItem>
-                                    <SelectItem value="both">Ambos (Ed. Físico e Nutricionista)</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="professionalRegistration"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>{registrationInfo.label}</FormLabel>
-                            <FormControl>
-                                <Input placeholder={registrationInfo.placeholder} {...field} />
-                            </FormControl>
-                            <FormDescription>Obrigatório. Será exibido no plano final.</FormDescription>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                </div>
-                <FormField
-                    control={form.control}
-                    name="clientName"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Nome do Cliente</FormLabel>
-                        <FormControl>
-                            <Input placeholder="Nome completo do cliente" {...field} />
-                        </FormControl>
-                        <FormDescription>Obrigatório. Para identificar o plano.</FormDescription>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                
-                <h3 className="text-lg font-semibold border-t pt-4 mt-6">Informações do Cliente para Geração IA</h3>
-                 <div className="grid md:grid-cols-2 gap-6">
-                  <FormField control={form.control} name="goalPhase" render={({ field }) => (
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onGenerateSubmit)} className="space-y-6">
+              <h3 className="text-lg font-semibold border-b pb-2">Dados do Profissional e Cliente</h3>
+              <div className="grid md:grid-cols-2 gap-6">
+                  <FormField
+                      control={form.control}
+                      name="professionalRole"
+                      render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Objetivo Principal do Cliente</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || undefined}>
+                          <FormLabel>Sua Principal Área de Atuação</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value || undefined}>
+                              <FormControl>
+                                  <SelectTrigger><SelectValue placeholder="Selecione sua área" /></SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                  <SelectItem value="physical_educator">Educador Físico</SelectItem>
+                                  <SelectItem value="nutritionist">Nutricionista</SelectItem>
+                                  <SelectItem value="both">Ambos (Ed. Físico e Nutricionista)</SelectItem>
+                              </SelectContent>
+                          </Select>
+                          <FormMessage />
+                      </FormItem>
+                      )}
+                  />
+                  <FormField
+                      control={form.control}
+                      name="professionalRegistration"
+                      render={({ field }) => (
+                      <FormItem>
+                          <FormLabel>{registrationInfo.label}</FormLabel>
                           <FormControl>
-                            <SelectTrigger><SelectValue placeholder="Selecione o objetivo do cliente" /></SelectTrigger>
+                              <Input placeholder={registrationInfo.placeholder} {...field} />
                           </FormControl>
-                          <SelectContent>
-                            <SelectItem value="bulking">Bulking (Ganhar Músculo)</SelectItem>
-                            <SelectItem value="cutting">Cutting (Perder Gordura)</SelectItem>
-                            <SelectItem value="maintenance">Manutenção</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
+                          <FormDescription>Obrigatório. Será exibido no plano final.</FormDescription>
+                          <FormMessage />
                       </FormItem>
-                    )}
+                      )}
                   />
-                  <FormField control={form.control} name="trainingExperience" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Experiência de Treino do Cliente</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || undefined}>
-                          <FormControl>
-                            <SelectTrigger><SelectValue placeholder="Selecione o nível do cliente" /></SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="beginner">Iniciante (&lt;1 ano)</SelectItem>
-                            <SelectItem value="intermediate">Intermediário (1-3 anos)</SelectItem>
-                            <SelectItem value="advanced">Avançado (3+ anos)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-6">
-                  <FormField control={form.control} name="trainingFrequency" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Dias de Treino por Semana</FormLabel>
-                        <FormControl>
-                          <Input type="number" placeholder="Ex: 3 (2-6 dias)" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : parseInt(e.target.value, 10))} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField control={form.control} name="trainingVolumePreference" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Preferência de Volume Semanal</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || "medium"}>
-                          <FormControl>
-                            <SelectTrigger><SelectValue placeholder="Selecione o volume" /></SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="low">Baixo (10-13 séries/músculo)</SelectItem>
-                            <SelectItem value="medium">Médio (14-17 séries/músculo)</SelectItem>
-                            <SelectItem value="high">Alto (18-20 séries/músculo)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField control={form.control} name="availableEquipment" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Equipamentos disponiveis + Preferencias de treino</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Ex: Equipamentos: Academia completa com halteres, barras e máquinas.&#10;Preferências: Gosta de treinar peito, mas não gosta de agachamento livre. Focar em exercícios para glúteos." {...field} rows={4} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <FormField control={form.control} name="heightCm" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Altura (cm)</FormLabel>
-                        <FormControl><Input type="number" placeholder="Ex: 180" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField control={form.control} name="weightKg" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Peso (kg)</FormLabel>
-                        <FormControl><Input type="number" placeholder="Ex: 75" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField control={form.control} name="age" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Idade</FormLabel>
-                        <FormControl><Input type="number" placeholder="Ex: 25" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField control={form.control} name="sex" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Sexo Biológico</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value ?? "prefer_not_to_say"}>
-                          <FormControl>
-                            <SelectTrigger><SelectValue placeholder="Selecione o sexo" /></SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="male">Masculino</SelectItem>
-                            <SelectItem value="female">Feminino</SelectItem>
-                            <SelectItem value="prefer_not_to_say">Prefiro não dizer</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <FormField control={form.control} name="dietaryPreferences" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Preferências/Restrições Alimentares</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Ex: Vegetariano, sem lactose, alergias..." {...field} rows={3} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button type="submit" className="w-full md:w-auto print:hidden" disabled={isLoadingAi || isSaving}>
-                  {isLoadingAi ? ( <> <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando... </> ) : ( <> <Wand2 className="mr-2 h-4 w-4" /> {(editablePlanDetails || generatedPlanOutput) ? "Gerar Novo Rascunho" : "Gerar Rascunho com IA"} </> )}
-                </Button>
-              </form>
-            </Form>
-          ) : ( 
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold border-b pb-2 mb-4">Dados Principais</h3>
-                 <div className="grid md:grid-cols-2 gap-6 mb-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="editProfessionalRole">Sua Principal Área de Atuação</Label>
-                        <Select onValueChange={(value) => { setEditableProfessionalRole(value as any); if (value) setProfRoleError(null); }} value={editableProfessionalRole || undefined} name="editProfessionalRole" id="editProfessionalRole" >
-                            <SelectTrigger className={profRoleError ? "border-destructive" : ""}> <SelectValue placeholder="Selecione sua área" /> </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="physical_educator">Educador Físico</SelectItem>
-                                <SelectItem value="nutritionist">Nutricionista</SelectItem>
-                                <SelectItem value="both">Ambos (Ed. Físico e Nutricionista)</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        {profRoleError && <p className="text-sm text-destructive mt-1">{profRoleError}</p>}
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="editProfessionalRegistration">{registrationInfo.label}</Label>
-                        <Input id="editProfessionalRegistration" placeholder={registrationInfo.placeholder} value={editableProfessionalRegistration || ""} onChange={(e) => { setEditableProfessionalRegistration(e.target.value); if (e.target.value.trim().length >= 3) setProfRegError(null); }} className={profRegError ? "border-destructive" : ""} />
-                        {profRegError && <p className="text-sm text-destructive mt-1">{profRegError}</p>}
-                    </div>
-                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="editClientName">Nome do Cliente</Label>
-                  <Input id="editClientName" placeholder="Nome completo do cliente" value={editableClientName || ""} onChange={(e) => { setEditableClientName(e.target.value); if (e.target.value.trim().length >=2) setClientNameError(null); }} className={clientNameError ? "border-destructive" : ""} />
-                  {clientNameError && <p className="text-sm text-destructive mt-1">{clientNameError}</p>}
-                </div>
               </div>
-              {initialClientInputs && (
-                <Card className="bg-muted/30 p-4 print:border-none print:shadow-none print:p-0">
-                    <CardHeader className="p-2 pt-0 print:hidden"><CardTitle className="text-base">Resumo dos Inputs Originais</CardTitle></CardHeader>
-                    <CardContent className="p-2 text-sm space-y-1 print:p-0 print:text-xs">
-                        <p><strong>Objetivo:</strong> {initialClientInputs.goalPhase}</p>
-                        <p><strong>Experiência:</strong> {initialClientInputs.trainingExperience}</p>
-                        <p><strong>Frequência Treino:</strong> {initialClientInputs.trainingFrequency} dias/semana</p>
-                    </CardContent>
-                </Card>
-              )}
-            </div>
-          )}
+              <FormField
+                  control={form.control}
+                  name="clientName"
+                  render={({ field }) => (
+                      <FormItem>
+                      <FormLabel>Nome do Cliente</FormLabel>
+                      <FormControl>
+                          <Input placeholder="Nome completo do cliente" {...field} />
+                      </FormControl>
+                      <FormDescription>Obrigatório. Para identificar o plano.</FormDescription>
+                      <FormMessage />
+                      </FormItem>
+                  )}
+              />
+              
+              <h3 className="text-lg font-semibold border-t pt-4 mt-6">Informações do Cliente para Geração IA</h3>
+               <div className="grid md:grid-cols-2 gap-6">
+                <FormField control={form.control} name="goalPhase" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Objetivo Principal do Cliente</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || undefined}>
+                        <FormControl>
+                          <SelectTrigger><SelectValue placeholder="Selecione o objetivo do cliente" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="bulking">Bulking (Ganhar Músculo)</SelectItem>
+                          <SelectItem value="cutting">Cutting (Perder Gordura)</SelectItem>
+                          <SelectItem value="maintenance">Manutenção</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField control={form.control} name="trainingExperience" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Experiência de Treino do Cliente</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || undefined}>
+                        <FormControl>
+                          <SelectTrigger><SelectValue placeholder="Selecione o nível do cliente" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="beginner">Iniciante (&lt;1 ano)</SelectItem>
+                          <SelectItem value="intermediate">Intermediário (1-3 anos)</SelectItem>
+                          <SelectItem value="advanced">Avançado (3+ anos)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-6">
+                <FormField control={form.control} name="trainingFrequency" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Dias de Treino por Semana</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder="Ex: 3 (2-6 dias)" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : parseInt(e.target.value, 10))} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField control={form.control} name="trainingVolumePreference" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Preferência de Volume Semanal</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || "medium"}>
+                        <FormControl>
+                          <SelectTrigger><SelectValue placeholder="Selecione o volume" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="low">Baixo (10-13 séries/músculo)</SelectItem>
+                          <SelectItem value="medium">Médio (14-17 séries/músculo)</SelectItem>
+                          <SelectItem value="high">Alto (18-20 séries/músculo)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField control={form.control} name="availableEquipment" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Equipamentos disponiveis + Preferencias de treino</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Ex: Equipamentos: Academia completa com halteres, barras e máquinas.&#10;Preferências: Gosta de treinar peito, mas não gosta de agachamento livre. Focar em exercícios para glúteos." {...field} rows={4} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <FormField control={form.control} name="heightCm" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Altura (cm)</FormLabel>
+                      <FormControl><Input type="number" placeholder="Ex: 180" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField control={form.control} name="weightKg" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Peso (kg)</FormLabel>
+                      <FormControl><Input type="number" placeholder="Ex: 75" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField control={form.control} name="age" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Idade</FormLabel>
+                      <FormControl><Input type="number" placeholder="Ex: 25" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField control={form.control} name="sex" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Sexo Biológico</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value ?? "prefer_not_to_say"}>
+                        <FormControl>
+                          <SelectTrigger><SelectValue placeholder="Selecione o sexo" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="male">Masculino</SelectItem>
+                          <SelectItem value="female">Feminino</SelectItem>
+                          <SelectItem value="prefer_not_to_say">Prefiro não dizer</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <FormField control={form.control} name="dietaryPreferences" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Preferências/Restrições Alimentares</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Ex: Vegetariano, sem lactose, alergias..." {...field} rows={3} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" className="w-full md:w-auto print:hidden" disabled={isLoadingAi || isSaving}>
+                {isLoadingAi ? ( <> <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando... </> ) : ( <> <Wand2 className="mr-2 h-4 w-4" /> {(editablePlanDetails || generatedPlanOutput) ? "Gerar Novo Rascunho" : "Gerar Rascunho com IA"} </> )}
+              </Button>
+            </form>
+          </Form>
         </CardContent>
       </Card>
 
@@ -632,7 +658,7 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
             <Card className="shadow-lg sticky top-20 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 print:shadow-none print:border-none print:sticky-auto print:top-auto print:z-auto">
                 <CardHeader className="print:border-b print:pb-2">
                     <CardTitle className="text-xl text-primary">
-                    Detalhes {isEditingExistingPlan ? 'Editáveis do Plano' : 'do Rascunho'} para: <span className="font-semibold">{editableClientName || 'Cliente'}</span>
+                    Detalhes {isEditingExistingPlan ? 'Editáveis do Plano' : 'do Rascunho'} para: <span className="font-semibold">{isEditingExistingPlan ? editableClientName : form.getValues("clientName")}</span>
                     </CardTitle>
                     <ShadCnCardDescription className="print:hidden">
                     Revise e edite conforme necessário. Seu registro profissional será associado a este plano.
@@ -643,8 +669,9 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
                         {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                         {user ? (planIdToEdit ? "Salvar Alterações no Plano" : "Salvar Plano para Cliente") : "Faça login para Salvar"}
                     </Button>
-                     <Button variant="outline" onClick={() => window.print()} className="w-full sm:w-auto">
-                        <Download className="mr-2 h-4 w-4" /> Exportar para PDF
+                     <Button variant="outline" onClick={handleExportPdf} disabled={isExportingPdf || !planIdToEdit} className="w-full sm:w-auto">
+                        {isExportingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                        {isExportingPdf ? "Gerando PDF..." : "Exportar para PDF"}
                     </Button>
                 </CardFooter>
             </Card>
@@ -802,5 +829,3 @@ export function PersonalizedPlanForm({ planIdToEdit, initialClientInputs, initia
     </div>
   );
 }
-
-    
