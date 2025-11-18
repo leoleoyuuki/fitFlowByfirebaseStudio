@@ -20,11 +20,12 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: `FitFlow Pro | Otimize a Entrega de Planos de Treino na sua Academia`,
   description: `A ferramenta de IA para academias que desejam agilizar a prescrição de treinos, padronizar a qualidade e aumentar a retenção de alunos. Entregue valor desde o primeiro dia.`,
+  manifest: '/manifest.json', // Link to the manifest file
   verification: {
     google: 'LanYmw2rzu3NmtiBG-OAQXNiuT-i_A0QkI-6F9qmRM4',
   },
   icons: {
-    apple: '/apple-touch-icon.png',
+    apple: '/images/apple-touch-icon.png',
   },
   appleWebApp: {
     capable: true,
