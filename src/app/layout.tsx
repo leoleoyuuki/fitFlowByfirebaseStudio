@@ -23,6 +23,17 @@ export const metadata: Metadata = {
   verification: {
     google: 'LanYmw2rzu3NmtiBG-OAQXNiuT-i_A0QkI-6F9qmRM4',
   },
+  icons: {
+    apple: '/apple-touch-icon.png',
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: APP_NAME,
+  },
+  other: {
+    'mobile-web-app-capable': 'yes',
+  }
 };
 
 export default function RootLayout({
